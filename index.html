@@ -7,38 +7,137 @@
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+
 <style>
-/* ── スタイル設定 ── */
 *{margin:0;padding:0;box-sizing:border-box;}
 :root {
   --gold: #c8a96e; --gold2: #f0d090; --blue: #1a9fff; --purple: #9b59f5;
   --teal: #00e5c0; --red: #ff4455; --bg0: #04060e; --bg1: #080d1a;
   --bg2: #0d1525; --bg3: #121d30; --border: #1e2d4a; --text: #c5d4e8; --textdim: #5a7090;
+  --silver: #b0c4de; --prismatic: #e8a0ff;
 }
 html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sans JP','Rajdhani',sans-serif;color:var(--text);}
 #root{height:100%;display:flex;flex-direction:column;}
 
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* POPアップのスタイル修正 */
+.champ-pop-up {
+  /* position: fixed; 等はJS側の親要素が担当するので不要になります */
+  animation: popInSimple 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popInSimple {
+  0% { transform: scale(0.5); opacity: 0; }
+  70% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ステージ進行バーのスタイル */
+.stage-tracker {
+  display: flex;
+  align-items: center;
+  background: #08101a;
+  border: 1px solid #1e2d4a;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 4px 20px;
+  gap: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  position: relative;
+}
+
+.stage-num {
+  font-family: 'Orbitron';
+  font-weight: 900;
+  color: #c5d4e8;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.round-dots {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.round-icon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: grayscale(1);
+  opacity: 0.3;
+  transition: all 0.3s;
+}
+
+.round-icon.active {
+  filter: grayscale(0);
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* 画像にあったひし形のカレントマーカー */
+.round-icon.active::after {
+  content: '';
+  position: absolute;
+  bottom: -12px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 8px solid var(--blue);
+}
+
+
 @keyframes fadeIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
 @keyframes starUpAnim{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes shimmer{0%{background-position:-200% center}100%{background-position:200% center}}
+@keyframes prismaticGlow{0%{box-shadow:0 0 8px #ff00ff,0 0 16px #00ffff}33%{box-shadow:0 0 8px #ffff00,0 0 16px #ff00ff}66%{box-shadow:0 0 8px #00ffff,0 0 16px #ffff00}100%{box-shadow:0 0 8px #ff00ff,0 0 16px #00ffff}}
 
 .menu-btn { padding:12px 25px; border:1px solid var(--border); background:var(--bg2); color:white; font-family:'Noto Sans JP','Orbitron'; cursor:pointer; border-radius:8px; transition:all 0.2s; text-align:center; font-weight:700;}
 .menu-btn:hover { background:var(--bg3); border-color:var(--blue); box-shadow:0 0 15px var(--blue); }
 
-/* スクロールバー */
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+.aug-card-silver { border-color: var(--silver) !important; box-shadow: 0 0 12px rgba(176,196,222,0.3); }
+.aug-card-silver:hover { border-color: white !important; box-shadow: 0 0 20px rgba(176,196,222,0.6) !important; }
+.aug-card-gold { border-color: var(--gold) !important; box-shadow: 0 0 12px rgba(200,169,110,0.4); }
+.aug-card-gold:hover { border-color: var(--gold2) !important; box-shadow: 0 0 20px rgba(200,169,110,0.7) !important; }
+.aug-card-prismatic { border-color: var(--prismatic) !important; animation: prismaticGlow 2s infinite; }
+.aug-card-prismatic:hover { box-shadow: 0 0 30px rgba(232,160,255,0.8) !important; }
+
+.aug-tier-silver { color: var(--silver); }
+.aug-tier-gold { color: var(--gold2); }
+.aug-tier-prismatic { 
+  background: linear-gradient(90deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+  background-size: 200%;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite;
+
+
+  
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState,useEffect,useRef,useMemo}=React;
+const {useState,useEffect,useRef,useMemo,useCallback}=React;
 
-/* ────────────────────────────────────────────────────────
-   1. マスターデータベース
-   ──────────────────────────────────────────────────────── */
+/* ── 1. マスターデータベース ── */
 const CHAMPS=[
   {id:'aatrox', name:'Aatrox', jaName:'エイトロックス', cost:1, traits:['N.O.V.A.', 'Bastion'], img:'Aatrox'},
   {id:'briar', name:'Briar', jaName:'ブライアー', cost:1, traits:['Anima', 'Primordian', 'Rogue'], img:'Briar'},
@@ -54,7 +153,6 @@ const CHAMPS=[
   {id:'teemo', name:'Teemo', jaName:'ティーモ', cost:1, traits:['Space Groove', 'Shepherd'], img:'Teemo'},
   {id:'twistedfate', name:'Twisted Fate', jaName:'ツイステッド・フェイト', cost:1, traits:['Stargazer', 'Fateweaver'], img:'TwistedFate'},
   {id:'veigar', name:'Veigar', jaName:'ベイガー', cost:1, traits:['Meeple', 'Replicator'], img:'Veigar'},
-
   {id:'akali', name:'Akali', jaName:'アカリ', cost:2, traits:['N.O.V.A.', 'Marauder'], img:'Akali'},
   {id:'belveth', name:"Bel'Veth", jaName:'ベル=ヴェス', cost:2, traits:['Primordian', 'Challenger', 'Marauder'], img:'Belveth'},
   {id:'gnar', name:'Gnar', jaName:'ナー', cost:2, traits:['Meeple', 'Sniper'], img:'Gnar'},
@@ -68,7 +166,6 @@ const CHAMPS=[
   {id:'pantheon', name:'Pantheon', jaName:'パンテオン', cost:2, traits:['Timebreaker', 'Brawler', 'Replicator'], img:'Pantheon'},
   {id:'pyke', name:'Pyke', jaName:'パイク', cost:2, traits:['Psionic', 'Voyager'], img:'Pyke'},
   {id:'zoe', name:'Zoe', jaName:'ゾーイ', cost:2, traits:['Arbiter', 'Channeler'], img:'Zoe'},
-
   {id:'aurora', name:'Aurora', jaName:'オーロラ', cost:3, traits:['Anima', 'Voyager'], img:'Aurora'},
   {id:'diana', name:'Diana', jaName:'ダイアナ', cost:3, traits:['Arbiter', 'Challenger'], img:'Diana'},
   {id:'fizz', name:'Fizz', jaName:'フィズ', cost:3, traits:['Meeple', 'Rogue'], img:'Fizz'},
@@ -120,39 +217,39 @@ const ITEM_JA = {
 const TRAIT_DESCS = {
   'Anima': '対人戦に敗北すると15「テック」を獲得し、さらに連敗数x5の「テック」を追加で獲得する。さらに、「アニマ」がキルまたはアシストを獲得するたびに、「テック」を2獲得する。\n「アニマ」が「テック」を100獲得するたびに、新たな「アニマ武器」が試作される。その武器を獲得してもいいし、「テック」を温存して次回により強力な武器を得ることも可能。\n\n(3) 研究開始！\n(6) 対人戦に勝利後、戦利品を獲得！',
   'Arbiter': '【独自の聖なる掟を定め、所定の原因が発生した際に「アービター」に適用される効果を選択できるようにする。\n(2) 自分の掟の原因と結果を選択する。\n(3) 効果が強化される。',
-  'N.O.V.A.': '(2) 戦闘開始から6秒後に、N.O.V.A.がチャンピオンに応じて味方にパワーサージを付与する。\n(5) 「ストライカー」セレクターを1個獲得する。選ばれしN.O.V.A.は、パワーサージ中に「ストライク」を使用する。\n\nエイトロックス: 味方のダメージが、敵に30%の細断と分解を付与する\nケイトリン: 味方の攻撃速度を20%増加させる\nアカリ: 味方が正確無比を獲得する\nマオカイ: 味方が最大体力の15%を回復する\nキンドレッド: 最も強いタンクに耐久値800のシールドを付与する\n紋章: 味方が10%の追加確定ダメージを与えるスタックを獲得する',
-  'Space Groove': '【1/3/5/7/10】独自の「グルーヴ」を獲得し、攻撃ごとにマナ回復量が増加します。',
-  'Vanguard': '「ヴァンガード」はシールドを獲得している間、耐久力が5%増加する。\n\n戦闘開始時、および体力が50%に低下したとき: 自身の最大体力の一定割合にあたるシールドを10秒間獲得する。\n\n(2) 最大体力の16%\n(4) 最大体力の30%\n(6) 最大体力の40% 10% (シールド展開中)',
+  'N.O.V.A.': '(2) 戦闘開始から6秒後に、N.O.V.A.がチャンピオンに応じて味方にパワーサージを付与する。\n(5) 「ストライカー」セレクターを1個獲得する。',
+  'Space Groove': '(1/3/5/7/10) 独自の「グルーヴ」を獲得し、攻撃ごとにマナ回復量が増加します。',
+  'Vanguard': '戦闘開始時および体力50%低下時にシールドを獲得。\n(2) 最大体力の16%\n(4) 最大体力の30%\n(6) 最大体力の40%',
   'Psionic': '任意の味方に装備できる「サイオニック」アイテムを獲得する。',
-  'Sniper': '「スナイパー」はダメージ増加効果を獲得する。対象が遠いほど効果が増加する。\n\n(2) 18%、マスごとに+2%\n(3) 24%、マスごとに+3%\n(4) 28%、マスごとに+4%',
-  'Dark Star': '(2) 「ダークスター」が最大体力10%以下の敵を飲み込むブラックホールを生成する。\n(4) さらに、33% を獲得する。\n(6) さらに、最も強い「ダークスター」ユニットがスーパーマッシブ状態になり、受ける「ダークスター」の効果が100%増加し、2つのミニブラックホールを生成する。\n(9) すべての「ダークスター」がスーパーマッシブ状態になる。レベル10で全員を飲み込む。',
-  'Timebreaker': '(2) 敗北時に無料リロールを獲得する。勝利時には時空の核にXPを蓄積する(ステージに応じて増加)。\n(3) さらに、味方の攻撃速度が15%増加する。\n(4) さらに、「タイムブレイカー」の攻撃速度が追加で50%増加する\n\n敗北時のリロール: 1\n勝利時のXP: 2',
-  'Channeler': 'インネイト: 「チャネラー」は、あらゆるソースから獲得するマナが20%増加する。\n\n味方チームのマナ自動回復が増加する。「チャネラー」はより多く増加する。\n\n(2) 1 | 3\n(3) 1 | 4\n(4) 2 | 6\n(5) 2 | 8',
-  'Challenger': '味方チームの攻撃速度が10%増加する。「チャレンジャー」の攻撃速度はさらに増加する。対象が倒された際、新たな対象までダッシュして、攻撃速度が2.5秒間50%増加する。\n\n(2) 15%\n(3) 22%\n(4) 30%\n(5) 40%',
-  'Bastion': '味方チームの物理防御と魔法防御が15増加する。\n\n「バスティオン」はさらに増加し、戦闘開始後10秒間は値が2倍になる。\n\n(2) 16\n(4) 40\n(6) 60、「バスティオン」以外は追加で20を獲得する。',
-  'Fateweaver': 'インネイト: 「フェイトウィーバー」は正確無比を持つ。\n\n(2) スキルの確率発動効果がラッキーになる。\n(4) クリティカル率が20%、クリティカルダメージが20%増加する。クリティカルヒットもラッキーになる。\n\nラッキー: 2回判定を行い、良い方の結果を適用する。',
-  'Brawler': '味方チームの体力が5%増加する。「ブローラー」はより多く増加する。\n\n(2) +最大体力の20%\n(4) +最大体力の40%\n(6) +最大体力の60%',
-  'Voyager': '戦闘開始: 味方のタンクとファイターが15秒間持続するシールドを獲得する。その他の味方はダメージ増加効果を獲得する。\n\n「ボイジャー」は2倍増加する。\n\n(2) 175シールド、9%\n(3) 250シールド、15%\n(4) 350シールド、18%\n(5) 500シールド、22%\n(6) 700シールド、27%',
-  'Meeple': '「宇宙飛行士」がミィプを引き寄せ、ミィプが「宇宙飛行士」のスキルをミィプ流のやり方で強化する。また、体力が増加する。\n\n(3) 2, 100\n(5) 3, 300\n(7) 4, 300。ベンチに「クローンスロット」を1つ作成する。クローンが完了すると、配置したチャンピオンの★1コピーとゴールドを獲得する。\n(10) 6、500。4体のミィプロードを召喚！\n\nクローン時間＝チャンピオンのコスト',
-  'Mecha': 'インネイト: 「メカ」ユニットが究極形態に変身する。スキルがアップグレードされ、体力が60%増加する。変身した「メカ」はチームスロットを2つ使用する。「メカ」特性が2倍にカウントされる。\n\n(3) エナジーセル: 「メカ」が20%を獲得する。\n(4) オーバークロックセル: 35%に増加する。\n(6) 精密工学: チームの最大サイズ+1\n\n「メカフォーマー」アイテムを使うと、「メカ」ユニットの形態が切り替わる',
-  'Replicator': '「レプリケーター」のスキルが2回発動するが、2回目の効果は低下する。\n\n(2) 22%の威力\n(4) 45%の威力',
-  'Rogue': '「ローグ」の攻撃力と魔力が増加する。体力が初めて50%未満になったとき、影の中に姿を消す。このユニットを対象にしている敵は、近くにいる別のユニットに対象を変更する(タンクを優先)。\n\n(2) 15%\n(3) 30%\n(4) 45%\n(5) 60%',
-  'Redeemer': '(1) 発動している特性1つにつき(固有特性を除く)、味方チームの攻撃速度が2%/3%/4%、物理防御と魔法防御が2/3/4増加する。',
-  'missfortuneuniquetrait': 'ミス・フォーチュンを配置する際には、「チャネラーモード」、「チャレンジャーモード」、「レプリケーターモード」の中から選択する。モードに応じた独自のスキルがあり、ミス・フォーチュンは追加の特性を獲得する。',
-  'Shepherd': '「導き手」は「星々の絆」を召喚して、戦いの助けとする。\n\n(3) ビアを召喚\n(5) バインを召喚\n(7) ビアとバインの絆が深まる\n\nビアとバインの力は、「導き手」全員の合計スターレベルに応じて増加する。',
-  'Marauder': '味方チームのオムニヴァンプが5%増加する。「略奪者」が獲得するオムニヴァンプと攻撃力が増加し、オムニヴァンプによる余剰の体力回復量はシールドに変換される(上限: 最大体力の25%)。\n\n(2) 5%、20%\n(4) 7%、35%\n(6) 10%、50%。',
-  'Space Groove': '(1) 「グルーヴィアン」は「グルーヴ」に入れる。その効果中、「グルーヴィアン」の攻撃力と最大体力自動回復が増加する。この効果量は、味方チームの「グルーヴィアン」1体ごとにさらに増加する。\n(3) 戦闘開始時、すべての「グルーヴィアン」は3秒間、「グルーヴ」に入る。\n(5) 「グルーヴ」の発動時間1秒ごとに、攻撃力と魔力が3%増加する(スタック可能)。\n(7) これらの効果が 10%増加する！\n(10) グルーヴ',
-  'Primordian': '(2) ダメージを与えると、「プライモーディアン」のスターレベルに応じてスワームリングを召喚する。\n(3) さらに多くのスワームリングを召喚する！毎ラウンド、ランダムなコスト1またはコスト2のチャンピオンを1体獲得する。\n\n被ダメージの8%が与ダメージに変換される。',
+  'Sniper': '(2) 18%+マスごとに2%\n(3) 24%+マスごとに3%\n(4) 28%+マスごとに4%',
+  'Dark Star': '(2) ブラックホール生成\n(4) 33%追加\n(6) スーパーマッシブ状態\n(9) 全員スーパーマッシブ',
+  'Timebreaker': '(2) 敗北時無料リロール獲得。勝利時XP蓄積\n(3) 味方の攻撃速度+15%\n(4) タイムブレイカーの攻撃速度+50%',
+  'Channeler': '「チャネラー」はマナ獲得量が20%増加。味方チームのマナ自動回復が増加。\n(2) 1|3\n(3) 1|4\n(4) 2|6\n(5) 2|8',
+  'Challenger': '味方の攻撃速度+10%。対象が倒されると新対象にダッシュし2.5秒間+50%。\n(2) 15%\n(3) 22%\n(4) 30%\n(5) 40%',
+  'Bastion': '味方の物理/魔法防御+15。\n(2) +16\n(4) +40\n(6) +60、非バスティオン+20',
+  'Fateweaver': 'インネイト: 正確無比。\n(2) スキルの確率発動がラッキー\n(4) クリ率+20%、クリダメ+20%',
+  'Brawler': '(2) 最大体力+20%\n(4) +40%\n(6) +60%',
+  'Voyager': '(2) 175シールド/9%\n(3) 250シールド/15%\n(4) 350シールド/18%\n(5) 500シールド/22%\n(6) 700シールド/27%',
+  'Meeple': '(3) 2体/体力100\n(5) 3体/体力300\n(7) 4体/体力300+クローンスロット\n(10) 6体/体力500+ミィプロード4体',
+  'Mecha': 'インネイト: メカが究極形態に変身。スキルアップグレード＆体力+60%。\n(3) エナジーセル+20%\n(4) オーバークロック+35%\n(6) チームサイズ+1',
+  'Replicator': '(2) 2回発動/22%威力\n(4) 45%威力',
+  'Rogue': '(2) +15%\n(3) +30%\n(4) +45%\n(5) +60%',
+  'Redeemer': '(1) 発動している特性1つにつき攻撃速度+2/3/4%、物理/魔法防御+2/3/4',
+  'missfortuneuniquetrait': 'チャネラー/チャレンジャー/レプリケーターモードから選択。',
+  'Shepherd': '(3) ビアを召喚\n(5) バインを召喚\n(7) ビアとバインの絆が深まる',
+  'Marauder': '(2) +5%/+20%\n(4) +7%/+35%\n(6) +10%/+50%',
+  'Primordian': '(2) スワームリング召喚\n(3) さらに召喚&毎ラウンドコスト1/2チャンピオン獲得',
+  'Stargazer': '試合ごとに異なる星座の効果を持つ。',
 };
 
 const stargazerVariants = [
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: イノシシ\n\n勝利時にゴールドを獲得する。強化マスにいる味方は体力、攻撃力、魔力が8%増加する。「星の観測者」は獲得量が増加する。\n\n(3) 1ゴールド、2%、16%\n(4) 2ゴールド、7%、24%\n(5) 3ゴールド、12%、32%\n(6) 5ゴールド、17%、37%\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: メダル\n\n(3) 強化マスにいる味方が12%のダメージ増加効果を獲得し、味方の★3ユニット1体ごとに効果量が9%増加する。\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 女狩人\n\n戦闘開始時: 最も体力が高い敵にマークを付与する。\n\n強化マスにいる味方は攻撃速度が15%増加する。強化マスにいる「星の観測者」はさらに増加量が増え、マークした敵が倒されると自身の最大体力の10%にあたる体力を回復する。\n\n(3) 15%、 3 マーク\n(5) 30%、 5 マーク\n(7) 45%、 7 マーク\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 蛇\n\n強化マスにいる味方は耐久力が8%増加する。強化マスにいる「星の観測者」は増加量がさらに増え、敵を毒状態にする。毒状態の敵は、受けたダメージの一部を魔法ダメージとして3秒間受け続ける。\n\n(3) 7%、 30%の毒ダメージ\n(5) 12%、 45%の毒ダメージ\n(7) 17%、 60%の毒ダメージ\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 祭壇\n\n(3) いずれかのチャンピオンが倒されると、そのユニットは生贄として祭壇に捧げられる。強化マスにいる味方は体力が8%、攻撃速度が12%増加する。 生贄を60回捧げると、強化マスにいる「星の観測者」は20%のおよび30%のを追加で獲得する 生贄:\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 泉\n\n強化マスにいる味方はマナ自動回復が1増加する。強化マスにいる「星の観測者」はさらに増加量が多くなり、スキルで体力が最も低い味方を回復できる。\n\n(3) 1、12%のスキルによるダメージ回復\n(5) 3、22%のスキルによるダメージ回復\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される',
-  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 山\n\n対人戦を5回行うたびに、「星の観測者の紋章」を1つ獲得する。強化マスにいる「星の観測者」は、さまざまなボーナスを獲得する。\n\n(残り戦闘数: 5)\n\n(3) 体力が15%増加\n(4) 攻撃力と魔力が15%増加\n(5) 物理防御と魔法防御が15増加\n(6) 攻撃速度が15%増加\n(7) 耐久力が12%増加\n(8) その他のすべてのボーナスが20%増加\n\nプレイヤーレベルが上がるにつれ、さらに多くのマスが解放される'
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: イノシシ\n\n勝利時にゴールドを獲得する。強化マスにいる味方は体力、攻撃力、魔力が8%増加する。「星の観測者」は獲得量が増加する。\n\n(3) 1ゴールド、2%、16%\n(4) 2ゴールド、7%、24%\n(5) 3ゴールド、12%、32%\n(6) 5ゴールド、17%、37%',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: メダル\n\n(3) 強化マスにいる味方が12%のダメージ増加効果を獲得し、味方の★3ユニット1体ごとに効果量が9%増加する。',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 女狩人\n\n戦闘開始時: 最も体力が高い敵にマークを付与する。\n\n(3) 15%、3マーク\n(5) 30%、5マーク\n(7) 45%、7マーク',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 蛇\n\n(3) 7%耐久力、30%毒ダメージ\n(5) 12%、45%\n(7) 17%、60%',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 祭壇\n\n(3) 体力+8%、攻撃速度+12%。生贄60回で星の観測者が追加効果獲得',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 泉\n\n(3) マナ自動回復+1、スキルダメージの12%回復\n(5) +3、22%回復',
+  '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: 山\n\n対人戦5回ごとに「星の観測者の紋章」を1つ獲得。各ラウンド様々なボーナスを獲得。'
 ];
 
 const ITEMS=[
@@ -164,6 +261,20 @@ const ITEMS=[
   {id:'cloak', name:'Negatron Cloak', icon:'🧥', type:'comp', imgId: 6},
   {id:'belt', name:"Giant's Belt", icon:'💖', type:'comp', imgId: 7}, 
   {id:'glove', name:'Sparring Gloves', icon:'🥊', type:'comp', imgId: 9}
+];
+
+/* ── 神々（Set 17 遭遇ギミックデータ） ── */
+/* ── 神々（Set 17 遭遇ギミックデータ） ── */
+const GOD_DATA = [
+  { id: 'soraka', name: '星々の神 ソラカ', desc: 'ソラカは「体力」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/5290323ec83e76ae4dcce502e0242f6b8095eb8a-800x800.png', color: '#e8a0ff' },
+  { id: 'ahri', name: '富の神 アーリ', desc: 'アーリは「富」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/ebc83fe16b5eda244d817fa5dea982b902a40c26-800x800.png', color: '#ff88aa' },
+  { id: 'asol', name: '驚異の神\nオレリオン・ソル', desc: 'オレリオン・ソルは\n「価値ある試練」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/2c497150be7a305a776b53224ef3d0dd7831c449-800x800.png', color: '#1a9fff' },
+  { id: 'yasuo', name: '深淵の神 ヤスオ', desc: 'ヤスオは「マス」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/5889c75974c9aa9e2d6d11ef38b78195f4f4c751-800x800.png', color: '#b0c4de' },
+  { id: 'varus', name: '愛の神 ヴァルス', desc: 'ヴァルスは「チャンピオン」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/e142690ed342c22dd2fbb6cb560758a506de09b9-800x800.png', color: '#ff4455' },
+  { id: 'evelynn', name: '誘惑の神 イブリン', desc: 'イブリンは「死の取引」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/f208d197f0e823b2b9ff0ec0be184501eb68a7db-800x800.png', color: '#9b59f5' },
+  { id: 'thresh', name: '契約の神 スレッシュ', desc: 'スレッシュは「ランダム」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/cc01d2af8a1ca3de86ce513f7ca34261e8b40596-800x800.png', color: '#00e5c0' },
+  { id: 'kayle', name: '秩序の神 ケイル', desc: 'ケイルは「アイテム」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/b2422b8bf1679f10d0e642fb6ebffa241ed4b962-800x800.png', color: '#f0d090' },
+  { id: 'ekko', name: '時の神 エコー', desc: 'エコーは「フラッシュバック」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/4c3157efdcb09e79c2882fbc167c52a727d7656c-800x800.png', color: '#c5d4e8' },
 ];
 
 const ITEM_RECIPES = {
@@ -212,56 +323,533 @@ const CONSUMABLES = {
   REMOVER: { id: 'remover', name: 'itemremover', icon: '🧲', type:'consumable', imgId: 904 }
 };
 
-const AUGMENTS=[
-  {id:'a1', name:'スレイヤーの紋章', desc:'スレイヤーユニットが強化されます。'},
-  {id:'a2', name:'ゴールドリザーブ', desc:'利子10Gにつき、ユニットの攻撃力が上昇。'},
-  {id:'a3', name:'新入隊員', desc:'チームの最大サイズが+1増加します。'},
-  {id:'a4', name:'バイナリ補給', desc:'2つのアイテムを持つユニットに3つ目を付与。'},
-  {id:'a5', name:'独自の強さ', desc:'特性を持たないユニットのHPと攻撃速度が上昇。'},
-  {id:'a6', name:'澄んだ心', desc:'ベンチが空なら、毎ラウンドXPを獲得。'},
-];
+/* ── オーグメントデータ ── */
+const AUGMENTS_DATA = {
+  silver: [
+    {
+      id: 'afk', name: 'AFK', tier: 'silver', category: 'economy', imgName: 'afk-i',
+      desc: '次の3ラウンドの間、アクションを行えなくなる。その後、20ゴールドを獲得する。',
+      icon: '💤',
+      effect: (state, rng, helpers) => {
+        helpers.setAfkRoundsLeft(3);
+        helpers.showMsg('💤 AFK: 次の3ラウンドはアクション不可。3ラウンド後に20G獲得！');
+      }
+    },
+    {
+      id: 'silver_spoon', name: '銀の匙', tier: 'silver', category: 'economy', imgName: 'silver-spoon-i',
+      desc: '経験値を10XP獲得する。',
+      icon: '🥄',
+      effect: (state, rng, helpers) => {
+        helpers.addXp(10);
+        helpers.showMsg('🥄 銀の匙: 10XP獲得！');
+      }
+    },
+    {
+      id: 'cognitive_tax', name: 'コグニティブ タックス', tier: 'silver', category: 'economy', imgName: 'cognitivetax_i',
+      desc: '8ゴールドと1XPを獲得する。',
+      icon: '🧠',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(8);
+        helpers.addXp(1);
+        helpers.showMsg('🧠 コグニティブ タックス: 8G + 1XP 獲得！');
+      }
+    },
+    {
+      id: 'augment_power', name: 'オーグメントパワー', tier: 'silver', category: 'economy', imgName: 'powerup_i',
+      desc: '次のオーグメントのティアが1つ高くなる。',
+      icon: '⬆️',
+      effect: (state, rng, helpers) => {
+        helpers.setAugmentTierBoost(1);
+        helpers.showMsg('⬆️ オーグメントパワー: 次のオーグメントのティアが上昇！');
+      }
+    },
+    {
+      id: 'one_two_three', name: 'ワンツースリー', tier: 'silver', category: 'economy', imgName: 'threes-company-i',
+      desc: 'コスト1、2、3のチャンピオンを各1体ずつ獲得。',
+      icon: '1️⃣',
+      effect: (state, rng, helpers) => {
+        helpers.addChampToBench(1, 1, rng);
+        helpers.addChampToBench(2, 1, rng);
+        helpers.addChampToBench(3, 1, rng);
+        helpers.showMsg('1️⃣ ワンツースリー: 1・2・3コスト獲得！');
+      }
+    },
+    {
+      id: 'thieves_guild', name: '盗賊団', tier: 'silver', category: 'item', imgName: 'bandthieves1',
+      desc: '「盗賊のグローブ」1個を獲得。',
+      icon: '🧤',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['glove_glove'], type:'completed'});
+      }
+    },
+    {
+      id: 'item_loot_bag', name: 'アイテム福袋', tier: 'silver', category: 'item', imgName: 'itemgrabbag1',
+      desc: 'ランダムな完成アイテム1個を獲得。',
+      icon: '🎁',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const item = {...recipes[Math.floor(rng() * recipes.length)], type:'completed'};
+        helpers.addItem(item);
+      }
+    },
+    {
+      id: 'continuous_magic', name: '連続魔法', tier: 'silver', category: 'item', imgName: 'hyperbolicrodextender_i',
+      desc: '「ムダニ デカイ ロッド」を1個獲得する。味方チームが38000の魔法ダメージを与えると、さらに2個獲得する。',
+      icon: '🔮',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='rod')});
+      }
+    },
+    {
+      id: 'pave_the_way', name: '道を切り拓け', tier: 'silver', category: 'item', imgName: 'carveapath_i',
+      desc: '「B.F.ソード」を1個獲得する。味方チームが65000の物理ダメージを与えると、さらに2個獲得する。。',
+      icon: '⚔️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='bf')});
+      }
+    },
+    {
+      id: 'extra_buckle', name: '追加のバックル', tier: 'silver', category: 'item', imgName: 'extrabuckles_i',
+      desc: '「ジャイアント ベルト」を1個獲得する。味方チームが75000ダメージを受けると、さらに2個獲得する。',
+      icon: '💖',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='belt')});
+      }
+    },
+    {
+      id: 'makeshift_armor1', name: '即席アーマー I', tier: 'silver', category: 'combat', imgName: 'makeshift1',
+      desc: 'アイテムを装備していない味方の物理防御と魔法防御が30増加する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'makeshift_armor', value: 30 });
+      }
+    },
+    {
+      id: 'focused_fire', name: 'エクスペディション', tier: 'silver', category: 'combat', imgName: 'expedition_i',
+      desc: '各ラウンドの開始時、ベンチの一番右にいるチャンピオンを失う。この方法で33ゴールド分のチャンピオンを失うと、強力な報酬を獲得する。コスト3のチャンピオンを即座に獲得する。',
+      icon: '🔥',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'focused_fire', value: 10 });
+      }
+    },
+    {
+      id: 'the_tower', name: 'ザ・タワー', tier: 'silver', category: 'combat', imgName: 'thetower_i',
+      desc: '巨大な「訓練用ダミー」を獲得する。その体力は(ステージに応じて)増加する。4秒ごとに、最も近くにいる敵3体に対して電撃を放ち、それぞれに最大体力の5%にあたる確定ダメージを与える。',
+      icon: '🗼',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'the_tower' });
+      }
+    },
+    {
+      id: 'small_giant', name: '小さな巨人', tier: 'silver', category: 'combat', imgName: 'tiny-titans-i',
+      desc: 'プレイヤーの現在体力と最大体力が30増加する。',
+      icon: '🏔️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'hp_boost', value: 30 });
+      }
+    },
+    {
+      id: 'team_building', name: 'チーム構築', tier: 'silver', category: 'combat', imgName: 'building-an-army-i',
+      desc: '「小型チャンピオン複製器」を1個獲得する。対人戦を5回行うと、さらにもう1個獲得する。',
+      icon: '👥',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...CONSUMABLES.LESSER_DUPE});
+      }
+    },
+  ],
+  gold: [
+    {
+      id: 'epoch', name: 'エポック', tier: 'gold', category: 'economy', imgName: 'epoch_ii',
+      desc: 'このオーグメント獲得時、および各ステージ開始時に4 XPの経験値を獲得する。また、2回分の無料リロールを獲得する。',
+      icon: '⏳',
+      effect: (state, rng, helpers) => {
+        helpers.addXp(4);
+        helpers.addFreeRerolls(2);
+        helpers.addPassiveBuff({ type: 'epoch' });
+      }
+    },
+    {
+      id: 'trade_sector', name: 'トレードセクター', tier: 'gold', category: 'economy', imgName: 'trade2',
+      desc: '毎ラウンド、ショップの無料リロール1回分を獲得する。2ゴールドを獲得する。',
+      icon: '💹',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(2);
+        helpers.addPassiveBuff({ type: 'trade_sector' });
+      }
+    },
+    {
+      id: 'savings_account', name: '普通預金口座', tier: 'gold', category: 'economy', imgName: 'savingsaccount_ii',
+      desc: '利子で50ゴールドを獲得後、30ゴールドを獲得する。最大利子が7に増加する。即座に4ゴールドを獲得する',
+      icon: '🏦',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(4);
+        helpers.setMaxInterest(7);
+        helpers.addPassiveBuff({ type: 'savings_account' });
+      }
+    },
+    {
+      id: 'slam_dunk', name: '叩きつけ', tier: 'gold', category: 'economy', imgName: 'slammin_ii',
+      desc: '3ゴールドを獲得する。対人戦ラウンドが終了するたび、ベンチに消費アイテム以外のアイテムがなければ、2XPの経験値を獲得する',
+      icon: '🏀',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(3);
+        helpers.addPassiveBuff({ type: 'slam_dunk' });
+      }
+    },
+    {
+      id: 'strategic_loss', name: '戦略的敗北', tier: 'gold', category: 'economy', imgName: 'calculatedloss2',
+      desc: '戦闘に敗北すると、2ゴールドとショップの無料リロール1回分を獲得する。',
+      icon: '📉',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'strategic_loss' });
+      }
+    },
+{
+      id: 'pandoras_items2', name: 'パンドラのアイテム II', tier: 'gold', category: 'item', imgName: 'pandora2',
+      desc: 'ラウンド開始時: ベンチのアイテムがランダムに変更される。ランダムな素材アイテムを2個獲得する。。',
+      icon: '📦',
+      effect: (state, rng, helpers) => {
+        // 🌟 素材アイテムを2個即座に獲得する処理を追加
+        const comps = ITEMS.filter(x => x.type === 'comp');
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+        
+        helpers.addPassiveBuff({ type: 'pandoras_items' });
+      }
+    },
+    {
+      id: 'pro_boxer', name: 'プロボクサー', tier: 'gold', category: 'item', imgName: 'prizefighter_ii',
+      desc: '素材アイテムを2個獲得する。5勝するたびに、素材アイテムを1個獲得する。',
+      icon: '🥊',
+      effect: (state, rng, helpers) => {
+        // 🌟 素材アイテムを2個即座に獲得する処理を追加
+        const comps = ITEMS.filter(x => x.type === 'comp');
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+        
+        helpers.addPassiveBuff({ type: 'pro_boxer' });
+      }
+    },
+    {
+      id: 'fan_the_flames', name: '炎を強めて', tier: 'gold', category: 'item', imgName: 'feedtheflames_ii',
+      desc: '「サンファイア ケープ」を1個獲得する。燃焼を付与された敵を攻撃するとき、味方チームのオムニヴァンプが12%増加する。',
+      icon: '🔥',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['chain_belt'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'fan_the_flames' });
+      }
+    },
+    {
+      id: 'seraphims_staff', name: 'セラフィムの杖', tier: 'gold', category: 'item', imgName: 'seraphimsstaff_ii',
+      desc: '「アークエンジェル スタッフ」を1個獲得する。装備者の魔力が90%以上だった場合、「アークエンジェル スタッフ」から2のマナ自動回復を追加で獲得する。',
+      icon: '👼',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['rod_tear'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'seraphims_staff' });
+      }
+    },
+    {
+      id: 'redemption_soul', name: 'リデンプションの魂', tier: 'gold', category: 'item', imgName: 'spiritofredemption_ii',
+      desc: '「スピリット ビサージュ」を1個獲得する。5秒ごとに、「スピリット ビサージュ」が1マス以内の味方を、減少体力の7.5%回復する。',
+      icon: '😇',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['tear_belt'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'redemption_soul' });
+      }
+    },
+{
+      id: 'charge', name: '出陣', tier: 'gold', category: 'combat', imgName: 'warpath_ii',
+      desc: 'ランダムな★★の2コストチャンピオンを獲得する。',
+      icon: '⚡',
+      effect: (state, rng, helpers) => {
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        const unitData = { ...chosen, star: 2, uid: rng(), items: [] };
+        helpers.addChampToBenchDirect(unitData);
+        
+        // 🌟 「チャンピオン獲得」に特化したリッチなPOPアップ
+        helpers.showMsg(
+          <div className="champ-pop-up">
+            <div style={{
+              background: 'rgba(8, 13, 26, 0.95)',
+              border: `2px solid ${COST_COLORS[2]}`,
+              borderRadius: '16px',
+              padding: '24px 40px',
+              boxShadow: `0 0 40px ${COST_COLORS[2]}44, inset 0 0 20px rgba(0,0,0,0.6)`,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 12,
+              backdropFilter: 'blur(10px)'
+            }}>
+              <div style={{ 
+                color: 'var(--gold2)', 
+                fontSize: '11px', 
+                fontWeight: 900, 
+                letterSpacing: '4px', 
+                textTransform: 'uppercase',
+                opacity: 0.8
+              }}>
+                Unit Acquired
+              </div>
+              
+              <div style={{ position: 'relative', width: 84, height: 84, marginTop: 5 }}>
+                <img 
+                  src={boardIcon(chosen.img)} 
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    borderRadius: '12px', 
+                    border: `2px solid ${COST_COLORS[2]}`,
+                    objectFit: 'cover'
+                  }} 
+                />
+                {/* 2つ星の表示 */}
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: -8, 
+                  left: 0, 
+                  right: 0, 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  gap: 3 
+                }}>
+                  {[1, 2].map(i => (
+                    <div key={i} style={{ width: 12, height: 12, clipPath: 'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)', background: STAR_COLORS[2], filter: 'drop-shadow(0 0 4px gold)' }} />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '20px', fontWeight: 900, color: 'white', marginBottom: 2 }}>{chosen.jaName}</div>
+                <div style={{ fontSize: '10px', color: 'var(--textdim)', fontWeight: 700 }}>2コスト / ★2</div>
+              </div>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'makeshift_armor2', name: '即席アーマー II', tier: 'gold', category: 'combat', imgName: 'makeshift2',
+      desc: 'アイテムを装備していない味方の物理防御と魔法防御が50増加する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'makeshift_armor', value: 50 });
+      }
+    },
+    {
+      id: 'bodyguard_training', name: 'ボディーガードの訓練', tier: 'gold', category: 'combat', imgName: 'bodyguardstraining_ii',
+      desc: '味方の物理防御と魔法防御が10増加し、プレイヤーレベル1ごとに3ずつ増加する。',
+      icon: '💪',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'bodyguard_training' });
+      }
+    },
+    {
+      id: 'warlords_honor', name: 'ウォーロードの名誉', tier: 'gold', category: 'combat', imgName: 'unforgotten_ii',
+      desc: '毎ラウンド、味方チームの攻撃力と魔力が5%増加する。チャンピオンはこの効果を1スタック持った状態で開始し、最大4回までスタックする。',
+      icon: '🏆',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'warlords_honor', stacks: 1 });
+      }
+    },
+    {
+      id: 'infinity_guardian', name: 'インフィニティの守護', tier: 'gold', category: 'combat', imgName: 'infinityprotection_ii',
+      desc: '即座に3ゴールドを獲得する。ステージ3-7で「インフィニティ フォース」を1個獲得する。「インフィニティ フォース」が同じ列の味方に体力の12%にあたる耐久値を持つシールドを付与する。',
+      icon: '♾️',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(3);
+        helpers.addPassiveBuff({ type: 'infinity_guardian' });
+      }
+    },
+  ],
+  prismatic: [
+    {
+      id: 'upward_mobility', name: '上方移動', tier: 'prismatic', category: 'economy', imgName: 'upwardmobility_iii',
+      desc: '経験値の購入コストが1減少する。レベルアップするたびに、体力2と無料リロールを2獲得する。。',
+      icon: '🚀',
+      effect: (state, rng, helpers) => {
+        helpers.setXpCostReduction(1);
+        helpers.addPassiveBuff({ type: 'upward_mobility' });
+      }
+    },
+    {
+      id: 'hedge_fund', name: 'ヘッジファンド', tier: 'prismatic', category: 'economy', imgName: 'richgetricher3',
+      desc: '25ゴールドを獲得する。利子の最大額が10まで増加する。',
+      icon: '💰',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(25);
+        helpers.setMaxInterest(10);
+      }
+    },
+    {
+      id: 'prism_ticket', name: 'プリズムチケット', tier: 'prismatic', category: 'economy', imgName: 'goldenticket3',
+      desc: 'ショップをリロールするたびに、50%の確率で無料リロール1回分を獲得する。',
+      icon: '🎟️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'prism_ticket' });
+      }
+    },
+    {
+      id: 'sacrifice', name: '代償', tier: 'prismatic', category: 'economy', imgName: 'atwhatcost_iii',
+      desc: '直ちにレベル6になり、12 XPの経験値を獲得する。今後、オーグメントは選択できない。',
+      icon: '⚖️',
+      effect: (state, rng, helpers) => {
+        helpers.setLevel(6);
+        helpers.addXp(12);
+        helpers.setNoMoreAugments(true);
+      }
+    },
+    {
+      id: 'make_friends', name: '仲間を作ろう', tier: 'prismatic', category: 'economy', imgName: 'constructacompanion_iii',
+      desc: 'ランダムな★3のコスト1チャンピオンを1体獲得する。8ゴールドを獲得する。',
+      icon: '🌟',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(8);
+      }
+    },
+    {
+      id: 'level_up', name: 'レベルアップ！', tier: 'prismatic', category: 'economy', imgName: 'levelup3',
+      desc: '経験値を購入する際、追加で経験値を2 XP獲得する。即座に経験値を8 XP獲得する。',
+      icon: '📈',
+      effect: (state, rng, helpers) => {
+        helpers.addXp(8);
+        helpers.addPassiveBuff({ type: 'level_up_aug' });
+      }
+    },
+    {
+      id: 'thieves_guild2', name: '盗賊団 II', tier: 'prismatic', category: 'item', imgName: 'bandthieves3',
+      desc: '「盗賊のグローブ」2個を獲得。対人戦を8回行ったあとに、もう1個獲得する。',
+      icon: '🧤',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'thieves_guild2' });
+      }
+    },
+    {
+      id: 'scarier_cap', name: 'もっと怖いキャップ', tier: 'prismatic', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/_deadliercaps.avif?v=1',
+      desc: '「ラバドン デスキャップ」を1個獲得する。装備者がキルまたはアシストを獲得するたび、「ラバドン デスキャップ」の魔力が恒久的に1%増加する。',
+      icon: '🎩',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['rod_rod'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'scarier_cap' });
+      }
+    },
+{
+      id: 'sublime_adventure', 
+      name: '崇高の冒険', 
+      tier: 'gold', 
+      category: 'combat', 
+      imgName: 'exaltedadventure_iii', 
+      desc: 'コスト2のチャンピオンを3体獲得する。そのうち2体を★3にすると、戦利品が詰まったオーブを1個獲得する。次の2ステージ開始時に、「小型チャンピオン複製器」を1個獲得する。',
+      icon: '🏔️',
+      effect: (state, rng, helpers) => {
+        // 🌟 コスト2のチャンピオンから重複しないように3種類選ぶ
+        const pool2 = CHAMPS.filter(c => c.cost === 2);
+        const selectedTypes = [];
+        const tempPool = [...pool2];
+        
+        for(let i = 0; i < 3; i++) {
+          if (tempPool.length === 0) break;
+          const idx = Math.floor(rng() * tempPool.length);
+          selectedTypes.push(tempPool.splice(idx, 1)[0]);
+        }
+
+        // 🌟 獲得した3体をベンチ（または待機列）に追加
+        const units = selectedTypes.map(c => ({ ...c, star: 1, uid: rng(), items: [] }));
+        helpers.addPendingUnits(units);
+
+        helpers.showMsg('コスト2チャンピオンを3種類獲得しました！');
+      }
+    },
+    {
+      id: 'deadlier_blade', name: 'デッドリアー ブレード', tier: 'prismatic', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/_tragicalblade.avif?v=1',
+      desc: '「デスブレード」を1個獲得する。装備者がキルまたはアシストを獲得するたび、「デスブレード」の攻撃力が恒久的に1%増加する。',
+      icon: '🗡️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['bf_bf'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'deadlier_blade' });
+      }
+    },
+    {
+      id: 'cursed_crown', name: 'カースドのクラウン', tier: 'prismatic', category: 'combat', imgName: 'cursedcrown-iii',
+      desc: 'チームサイズの上限が2増加し、味方チームの耐久力が4%増加するが、対人戦に敗北した際に受けるダメージが上昇する。',
+      icon: '👑',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'cursed_crown', teamSizeBonus: 2 });
+      }
+    },
+    {
+      id: 'last_stand', name: '逆転劇', tier: 'prismatic', category: 'combat', imgName: 'comebackstory_iii',
+      desc: 'プレイヤーの体力が減少するごとに、味方チームの体力が5、攻撃速度が0.4%増加する。',
+      icon: '🔁',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'last_stand' });
+      }
+    },
+    {
+      id: 'worth_the_wait2', name: '待つ価値あり II', tier: 'prismatic', category: 'combat', imgName: 'worththewait_iii',
+      desc: 'ランダムなコスト2のチャンピオン1種類を2体獲得する。', // 説明文もシンプルに
+      effect: (state, rng, helpers) => {
+        // 1. 2コストのプールから1種類だけ選ぶ
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        const chosenUnit = pool[Math.floor(rng() * pool.length)];
+
+        // 2. 同じユニットを2体ベンチに追加（即時実行のみ）
+        const unitData = { ...chosenUnit, star: 1, uid: rng(), items: [] };
+        helpers.addChampToBenchDirect(unitData);
+        helpers.addChampToBenchDirect({ ...unitData, uid: rng() }); // uidだけ変えてもう1体
+
+        // 通知メッセージ
+        helpers.showMsg(
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <img src={boardIcon(chosenUnit.img)} style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--blue)' }} />
+            <span>{chosenUnit.jaName} を2体獲得しました</span>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'birthday_gift', name: 'バースデープレゼント', tier: 'prismatic', category: 'combat', imgName: 'golden-gifts-iii',
+      desc: 'プレイヤーがレベルアップするたびに、★★のチャンピオン1体と1ゴールドを獲得する。プレイヤーのレベルから4を引いた値が、獲得できるチャンピオンのコストティアになる(上限: コスト5)。',
+      icon: '🎂',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'birthday_gift' });
+      }
+    },
+  ]
+};
 
 const COST_COLORS={1:'#8a9aaa',2:'#44cc66',3:'#3399ff',4:'#cc44ff',5:'#ffcc44'};
 const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
-/* ────────────────────────────────────────────────────────
-   2. ヘルパー関数
-   ──────────────────────────────────────────────────────── */
+/* ── ヘルパー関数 ── */
 const getJaName = (name) => ITEM_JA[name] || name;
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 const champIcon=(img)=>`https://blitz-cdn.blitz.gg/blitz/centered-tft/set17/TFT17_${img.charAt(0).toUpperCase() + img.slice(1)}.webp`;
 const boardIcon=(img)=>`https://blitz-cdn.blitz.gg/blitz/tft/champion_squares/set17/TFT17_${img.charAt(0).toUpperCase() + img.slice(1)}.webp`;
-
-const getTraitIconUrl = (name) => {
-  const formatted = name.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return `https://cdn.metatft.com/file/metatft/traits/${formatted}.png`;
-};
-
+const getTraitIconUrl = (name) => `https://cdn.metatft.com/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
 const getMetaTFTItemUrl = (name) => {
   if (!name) return "";
-
-  // 1. 小型チャンピオン複製機（青色）
-  if (name === 'Lesser Champion Duplicator') {
-    return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_iii.png";
-  }
-  // 2. チャンピオン複製機（黄色）
-  if (name === 'Champion Duplicator') {
-    return "https://cdn.metatft.com/file/metatft/items/tft_consumable_neekoshelp.png";
-  }
-  // 3. 再合成装置
-  if (name === 'Reforger') {
-    return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemreroller.png";
-  }
-  // 4. 磁力式除去装置
-  if (name === 'itemremover') {
-    return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemremover.png";
-  }
-
-  // 通常アイテム
+  if (name === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_iii.png";
+  if (name === 'Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_neekoshelp.png";
+  if (name === 'Reforger') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemreroller.png";
+  if (name === 'itemremover') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemremover.png";
   const formatted = name.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
   return `https://cdn.metatft.com/file/metatft/items/tft_item_${formatted}.png?v=1`;
 };
+
+const getAugmentIconUrl = (aug) => {
+  if (!aug || !aug.imgName) return "";
+  // 🌟 修正：もし imgName が http から始まっていたら、そのまま返す
+  if (aug.imgName.startsWith('http')) {
+    return aug.imgName;
+  }
+  // MetaTFTのパスに合わせる（全て.png形式）
+  return `https://cdn.metatft.com/file/metatft/augments/${aug.imgName}.png`;
+};
+
+
 
 const createRNG = (seed) => {
   let h = 2166136261 >>> 0;
@@ -275,6 +863,8 @@ const createRNG = (seed) => {
   };
 };
 
+
+
 function rollShop(level, rng){
   const odds={1:{1:100}, 2:{1:100}, 3:{1:75,2:25,3:0,4:0,5:0},4:{1:55,2:30,3:15,4:0,5:0},5:{1:45,2:33,3:20,4:2,5:0}}[level] || {1:100};
   return Array(5).fill(null).map(()=>{
@@ -286,9 +876,7 @@ function rollShop(level, rng){
   });
 }
 
-/* ────────────────────────────────────────────────────────
-   3. UI コンポーネント
-   ──────────────────────────────────────────────────────── */
+/* ── UIコンポーネント ── */
 const Stars = ({star}) => (
   <div style={{display:'flex', gap:2, justifyContent:'center', alignItems:'center'}}>
     {Array.from({length: star}).map((_, i) => (
@@ -305,17 +893,8 @@ const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseL
         <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : champ ? `${COST_COLORS[champ.cost]}12` : 'rgba(13,21,37,.7)'} stroke={over ? 'rgba(26,159,255,.9)' : champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.5)'} strokeWidth={champ ? 2 : 1} />
       </svg>
       {champ && (
-        <div 
-          draggable={!!onDragStart} 
-          onDragStart={(e) => { 
-            if (onMouseLeave) onMouseLeave(); 
-            if (onDragStart) onDragStart(e); 
-          }} 
-          onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)}
-          onMouseLeave={onMouseLeave}
-           style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}>
+        <div draggable={!!onDragStart} onDragStart={(e) => { if (onMouseLeave) onMouseLeave(); if (onDragStart) onDragStart(e); }} onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)} onMouseLeave={onMouseLeave} style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}>
           <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
-          
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
             {(champ.items || []).map((it, idx) => (
               <img key={idx} src={getMetaTFTItemUrl(it.name)} style={{ width: 14, height: 14, border: '1px solid rgba(255,255,255,0.5)', borderRadius: 2, background: 'black' }} />
@@ -333,165 +912,188 @@ const ChampionTooltip = ({ data }) => {
   if (!data) return null;
   const { champ, x, y, isRight } = data;
   const isBottom = y > window.innerHeight / 2;
-
   return (
-    <div style={{
-      position: 'fixed', 
-      top: isBottom ? 'auto' : Math.max(10, y - 20),
-      bottom: isBottom ? Math.max(10, window.innerHeight - y - 70) : 'auto',
-      left: isRight ? 'auto' : x + 80,
-      right: isRight ? window.innerWidth - x + 10 : 'auto',
-      zIndex: 5000,
-      width: 260, 
-      background: '#1a1c23', 
-      color: '#c5d4e8',
-      border: `1px solid ${COST_COLORS[champ.cost]}`,
-      borderRadius: 4, 
-      overflow: 'hidden',
-      fontFamily: 'Noto Sans JP', 
-      fontSize: 12,
-      boxShadow: '0 8px 24px rgba(0,0,0,0.8)',
-      pointerEvents: 'none',
-      animation: 'fadeIn 0.2s ease'
-    }}>
-      <div style={{ position: 'relative', height: 140 }}>
-        <img src={champIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 80%)' }} />
-        
-        <div style={{ position: 'absolute', top: 10, left: 10 }}>
-          <div style={{ color: 'white', fontSize: 18, fontWeight: 900, textShadow: '1px 1px 2px #000' }}>{champ.jaName}</div>
+    <div style={{ position:'fixed', top:isBottom?'auto':Math.max(10,y-20), bottom:isBottom?Math.max(10,window.innerHeight-y-70):'auto', left:isRight?'auto':x+80, right:isRight?window.innerWidth-x+10:'auto', zIndex:5000, width:260, background:'#1a1c23', color:'#c5d4e8', border:`1px solid ${COST_COLORS[champ.cost]}`, borderRadius:4, overflow:'hidden', fontFamily:'Noto Sans JP', fontSize:12, boxShadow:'0 8px 24px rgba(0,0,0,0.8)', pointerEvents:'none', animation:'fadeIn 0.2s ease' }}>
+      <div style={{ position:'relative', height:140 }}>
+        <img src={champIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} />
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 80%)' }} />
+        <div style={{ position:'absolute', top:10, left:10 }}><div style={{ color:'white', fontSize:18, fontWeight:900, textShadow:'1px 1px 2px #000' }}>{champ.jaName}</div></div>
+        <div style={{ position:'absolute', bottom:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
+          {champ.traits.map(t => (<div key={t} style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0) invert(1)' }} onError={(e)=>e.target.style.display='none'} /><span style={{ color:'white', fontWeight:700, fontSize:11, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span></div>))}
         </div>
-        
-        <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {champ.traits.map(t => (
-            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <img src={getTraitIconUrl(t)} style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} onError={(e)=>e.target.style.display='none'} />
-              <span style={{ color: 'white', fontWeight: 700, fontSize: 11, textShadow: '1px 1px 2px #000' }}>{getTraitJaName(t)}</span>
-            </div>
-          ))}
-        </div>
-        
-        <div style={{ 
-          position: 'absolute', 
-          bottom: 0, 
-          right: 0, 
-          background: 'rgba(10, 15, 25, 0.9)',
-          color: COST_COLORS[champ.cost],      
-          borderTopLeftRadius: 6, 
-          borderTop: `1px solid ${COST_COLORS[champ.cost]}`,
-          borderLeft: `1px solid ${COST_COLORS[champ.cost]}`,
-          padding: '2px 10px', 
-          fontWeight: 900, 
-          fontSize: 13, 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 4 
-          }}>
-          <span style={{color: 'var(--gold2)'}}>💰</span>{champ.cost}
-        </div>
+        <div style={{ position:'absolute', bottom:0, right:0, background:'rgba(10,15,25,0.9)', color:COST_COLORS[champ.cost], borderTopLeftRadius:6, borderTop:`1px solid ${COST_COLORS[champ.cost]}`, borderLeft:`1px solid ${COST_COLORS[champ.cost]}`, padding:'2px 10px', fontWeight:900, fontSize:13, display:'flex', alignItems:'center', gap:4 }}><span style={{color:'var(--gold2)'}}>💰</span>{champ.cost}</div>
       </div>
     </div>
   );
 };
 
-// 【修正】stargazerDescをpropsとして受け取るようにしました
 const TraitTooltip = ({ data, stargazerDesc }) => {
   if (!data) return null;
   const { trait, count, x, y } = data;
   const jaName = getTraitJaName(trait);
-  
-  // traitが'Stargazer'なら、Appでシードから生成されたテキストを使う
-  const desc = trait === 'Stargazer' 
-    ? stargazerDesc 
-    : (TRAIT_DESCS[trait] || "特性の詳細は現在解析中です...");
-  
+  const desc = trait === 'Stargazer' ? stargazerDesc : (TRAIT_DESCS[trait] || "特性の詳細は現在解析中です...");
   const members = CHAMPS.filter(c => c.traits.includes(trait));
-
   return (
-    <div style={{
-      position: 'fixed',
-      top: Math.min(y, window.innerHeight - 250),
-      left: x + 130,
-      zIndex: 6000,
-      width: 'max-content',
-      maxWidth: 400,
-      background: '#121d30',
-      border: '1px solid var(--gold)',
-      borderRadius: 8,
-      padding: '12px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.8)',
-      animation: 'fadeIn 0.2s ease',
-      pointerEvents: 'none'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <img src={getTraitIconUrl(trait)} style={{ width: 24, height: 24 }} alt={jaName} />
-        <span style={{ fontSize: 16, fontWeight: 900, color: 'var(--gold)' }}>{jaName}</span>
-        <span style={{ fontSize: 12, color: 'white', background: 'rgba(255,255,255,0.1)', padding: '2px 6px', borderRadius: 4 }}>{count}</span>
+    <div style={{ position:'fixed', top:Math.min(y,window.innerHeight-250), left:x+130, zIndex:6000, width:'max-content', maxWidth:400, background:'#121d30', border:'1px solid var(--gold)', borderRadius:8, padding:'12px', boxShadow:'0 8px 32px rgba(0,0,0,0.8)', animation:'fadeIn 0.2s ease', pointerEvents:'none' }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+        <img src={getTraitIconUrl(trait)} style={{ width:24, height:24 }} alt={jaName} />
+        <span style={{ fontSize:16, fontWeight:900, color:'var(--gold)' }}>{jaName}</span>
+        <span style={{ fontSize:12, color:'white', background:'rgba(255,255,255,0.1)', padding:'2px 6px', borderRadius:4 }}>{count}</span>
       </div>
-      
-      <div style={{ whiteSpace: 'pre-wrap', fontSize: 11, color: '#aaa', lineHeight: 1.6, marginBottom: 12 }}>
-        {desc}
-      </div>
-
-      <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 10 }}>
-        <div style={{ fontSize: 10, color: 'var(--textdim)', marginBottom: 6 }}>対象チャンピオン:</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-          {members.map(m => (
-            <div key={m.id} style={{ position: 'relative' }}>
-              <img 
-                src={boardIcon(m.img)} 
-                alt={m.name}
-                style={{ width: 30, height: 30, borderRadius: 4, border: `1px solid ${COST_COLORS[m.cost]}` }} 
-              />
-            </div>
-          ))}
+      <div style={{ whiteSpace:'pre-wrap', fontSize:11, color:'#aaa', lineHeight:1.6, marginBottom:12 }}>{desc}</div>
+      <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10 }}>
+        <div style={{ fontSize:10, color:'var(--textdim)', marginBottom:6 }}>対象チャンピオン:</div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+          {members.map(m => (<div key={m.id}><img src={boardIcon(m.img)} alt={m.name} style={{ width:30, height:30, borderRadius:4, border:`1px solid ${COST_COLORS[m.cost]}` }} /></div>))}
         </div>
       </div>
     </div>
   );
 };
 
-const AugmentScreen=({onPick, rng})=>{
-  const [choices, setChoices] = useState(() => {
-    const res = []; const p = [...AUGMENTS];
-    while(res.length < 3) res.push(p.splice(Math.floor(rng()*p.length), 1)[0]);
-    return res;
+/* ── オーグメント選択画面 ── */
+const TIER_LABELS = { silver: '銀', gold: '金', prismatic: '虹' };
+const TIER_COLORS = { silver: 'var(--silver)', gold: 'var(--gold2)', prismatic: 'var(--prismatic)' };
+
+/* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
+const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false }) => {
+  const [tier] = useState(() => {
+    const baseTierRoll = rng() * 100;
+    const adjusted = baseTierRoll - (augmentTierBoost * 30);
+    if (adjusted < 9) return 'prismatic';
+    if (adjusted < 74) return 'gold';
+    return 'silver';
   });
+
+  const [viewBoard, setViewBoard] = useState(false);
+
+  const [augmentSetup] = useState(() => {
+    const pool = [...AUGMENTS_DATA[tier]];
+    const drawn = [];
+    while (drawn.length < 6 && pool.length > 0) {
+      const idx = Math.floor(rng() * pool.length);
+      drawn.push(pool.splice(idx, 1)[0]);
+    }
+    return { initial: drawn.slice(0, 3), backups: drawn.slice(3, 6) };
+  });
+
+  const [choices, setChoices] = useState(augmentSetup.initial);
   const [rerolledSlots, setRerolledSlots] = useState([false, false, false]);
+
   const handleReroll = (idx) => {
-    if(rerolledSlots[idx]) return;
-    const currentIds = choices.map(c => c.id);
-    const available = AUGMENTS.filter(a => !currentIds.includes(a.id));
-    const newAug = available[Math.floor(rng() * available.length)];
-    if(newAug) {
-      const nc = [...choices]; nc[idx] = newAug; setChoices(nc);
+    if (rerolledSlots[idx]) return;
+    const nextAug = augmentSetup.backups[idx];
+    if (nextAug) {
+      const nc = [...choices]; nc[idx] = nextAug; setChoices(nc);
       const nr = [...rerolledSlots]; nr[idx] = true; setRerolledSlots(nr);
     }
   };
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(4,6,14,.98)',zIndex:2000,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:40,animation:'fadeIn 0.5s ease', padding:20}}>
-      <div style={{fontFamily:'Noto Sans JP,Orbitron',fontSize:'clamp(18px, 5vw, 26px)',fontWeight:900,color:'var(--gold)',letterSpacing:4, textAlign:'center'}}>オーグメントを選択してください</div>
-      <div style={{display:'flex',gap:20, flexWrap:'wrap', justifyContent:'center'}}>
-        {choices.map((aug, i)=>(
-          <div key={i} style={{display:'flex', flexDirection:'column', gap:15, width:220}}>
-            <div onClick={() => onPick(aug)} style={{height:180, background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:12, padding:24, cursor:'pointer', transition:'all 0.2s', textAlign:'center'}} onMouseEnter={e=>e.currentTarget.style.borderColor='var(--gold)'} onMouseLeave={e=>e.currentTarget.style.borderColor='var(--border)'}>
-              <div style={{fontFamily:'Noto Sans JP',fontSize:15,fontWeight:700,color:'white',marginBottom:12}}>{aug.name}</div>
-              <div style={{fontFamily:'Noto Sans JP',fontSize:12,color:'var(--textdim)',lineHeight:1.6}}>{aug.desc}</div>
-            </div>
-            <button onClick={() => handleReroll(i)} disabled={rerolledSlots[i]} style={{background: rerolledSlots[i] ? 'rgba(30,45,74,.4)' : 'rgba(200,169,110,.1)', border: `1px solid ${rerolledSlots[i] ? 'var(--border)' : 'var(--gold)'}`, color: rerolledSlots[i] ? 'var(--textdim)' : 'var(--gold)', borderRadius: 6, padding: '8px', cursor: rerolledSlots[i] ? 'default' : 'pointer', fontFamily: 'Noto Sans JP', fontSize: 11, fontWeight: 700}}>
-              {rerolledSlots[i] ? '再抽選済み' : '再抽選'}
-            </button>
+
+  if (isNoMoreAugments) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      // 🌟 viewBoard中は透明にするが、レイヤー自体は残す（下の盤面を触らせない）
+      background: viewBoard ? 'rgba(0,0,0,0)' : 'rgba(4,6,14,.98)',
+      zIndex: 2000,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      transition: 'all 0.3s ease',
+      // 🌟 pointer-eventsは常にautoにすることで、下の盤面操作をブロック
+      pointerEvents: 'auto'
+    }}>
+      
+      {/* 🌟 盤面確認ボタン（操作ロックの「ガラス」の上に配置） */}
+      <button 
+        onClick={() => setViewBoard(!viewBoard)}
+        className="menu-btn"
+        style={{
+          position: 'fixed',
+          bottom: 30,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 2100,
+          boxShadow: '0 0 20px rgba(0,0,0,0.8)',
+          background: viewBoard ? 'var(--blue)' : 'var(--bg2)',
+          fontSize: '13px',
+          padding: '8px 24px',
+          // このボタンだけは常に触れる
+          pointerEvents: 'auto'
+        }}
+      >
+        {viewBoard ? '← オーグメント選択に戻る' : '盤面を確認する'}
+      </button>
+
+      {/* 🌟 盤面確認中はカード全体を非表示に */}
+      {!viewBoard && (
+        <div style={{ 
+          transform: 'scale(0.8)', 
+          transformOrigin: 'center center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 30
+        }}>
+          <div style={{ textAlign: 'center', animation: 'fadeIn 0.4s ease' }}>
+            <div style={{ fontFamily: 'Orbitron', fontSize: '14px', color: TIER_COLORS[tier], letterSpacing: 4, marginBottom: 8, fontWeight: 900 }}>{tier.toUpperCase()} TIER</div>
+            <div style={{ fontFamily: 'Noto Sans JP,Orbitron', fontSize: '26px', fontWeight: 900, color: 'white', letterSpacing: 4 }}>オーグメントを選択してください</div>
           </div>
-        ))}
-      </div>
+
+          <div style={{ display: 'flex', gap: 25, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', animation: 'fadeIn 0.6s ease' }}>
+            {choices.map((aug, i) => (
+              <div key={aug.id} style={{ display: 'flex', flexDirection: 'column', gap: 15, width: 250 }}>
+                <div
+                  onClick={() => onPick(aug)}
+                  className={`aug-card-${aug.tier}`}
+                  style={{
+                    height: 350, width: 250, background: 'var(--bg2)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
+                    borderRadius: 16, padding: '30px 20px', cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, position: 'relative', boxSizing: 'border-box'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.background = 'var(--bg3)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'var(--bg2)'; }}
+                >
+                  <div style={{ width: '100%', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}>
+                    {aug.imgName && (
+                      <img src={getAugmentIconUrl(aug)} style={{ height: '85%', width: 'auto', objectFit: 'contain' }} />
+                    )}
+                  </div>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', fontWeight: 900, color: 'white', textAlign: 'center', lineHeight: 1.2, minHeight: '40px', display: 'flex', alignItems: 'center' }}>
+                    {aug.name}
+                  </div>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '12px', color: 'var(--textdim)', lineHeight: 1.6, textAlign: 'center', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
+                    {aug.desc}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => handleReroll(i)}
+                  disabled={rerolledSlots[i]}
+                  style={{
+                    background: rerolledSlots[i] ? 'rgba(30,45,74,.4)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${rerolledSlots[i] ? 'var(--border)' : TIER_COLORS[tier]}`,
+                    color: rerolledSlots[i] ? 'var(--textdim)' : 'white',
+                    borderRadius: 8, padding: '10px', cursor: rerolledSlots[i] ? 'default' : 'pointer',
+                    fontFamily: 'Noto Sans JP', fontSize: 12, fontWeight: 700, transition: 'all 0.2s'
+                  }}
+                >
+                  {rerolledSlots[i] ? '再抽選済み' : '再抽選'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-/* ────────────────────────────────────────────────────────
-   4. メインアプリケーション
-   ──────────────────────────────────────────────────────── */
+/* ── メインアプリ ── */
 function Main() {
   const [view, setView] = useState('MENU');
   const [seed, setSeed] = useState("");
@@ -504,50 +1106,14 @@ function Main() {
 
   if (view === 'MENU') {
     return (
-      <div style={{
-        height: '100vh', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        gap: 30, 
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        padding: 20,
-        animation: 'fadeIn 1s ease'
-      }}>
-        <div style={{
-          fontFamily: 'Orbitron', 
-          fontSize: 'clamp(30px, 10vw, 70px)',
-          fontWeight: 900, 
-          color: '#fff',
-          letterSpacing: 15, 
-          textShadow: `
-            0 0 5px rgba(0,0,0,1),
-            0 0 10px rgba(0,0,0,0.8),
-            0 0 20px var(--gold),
-            0 0 40px var(--gold)
-          `,
-          textAlign: 'center',
-          transform: 'skewX(-5deg)', 
-          opacity: 0.95
-        }}>
+      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
+        <div style={{ fontFamily:'Orbitron', fontSize:'clamp(30px,10vw,70px)', fontWeight:900, color:'#fff', letterSpacing:15, textShadow:`0 0 5px rgba(0,0,0,1),0 0 10px rgba(0,0,0,0.8),0 0 20px var(--gold),0 0 40px var(--gold)`, textAlign:'center', transform:'skewX(-5deg)', opacity:0.95 }}>
           TFT SET 17　1ステ DEMO
         </div>
-        
-        <button className="menu-btn" style={{width: 220, boxShadow: '0 10px 30px rgba(0,0,0,0.5)', transition: 'all 0.3s'}} onClick={() => startWithSeed()}>
-          ゲームスタート
-        </button>
-        
-        <div style={{display: 'flex', gap: 5, background: 'rgba(0,0,0,0.5)', padding: '10px', borderRadius: '12px', backdropFilter: 'blur(6px)'}}>
-            <input 
-              style={{padding: 12, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg1)', color: 'white', fontFamily: 'Orbitron', width: 160}} 
-              placeholder="シード値..." 
-              value={seed} 
-              onChange={(e) => setSeed(e.target.value.toUpperCase())}
-            />
-            <button className="menu-btn" onClick={() => startWithSeed(seed)}>開始</button>
+        <button className="menu-btn" style={{ width:220, boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
+        <div style={{ display:'flex', gap:5, background:'rgba(0,0,0,0.5)', padding:'10px', borderRadius:'12px', backdropFilter:'blur(6px)' }}>
+          <input style={{ padding:12, borderRadius:8, border:'1px solid var(--border)', background:'var(--bg1)', color:'white', fontFamily:'Orbitron', width:160 }} placeholder="シード値..." value={seed} onChange={(e) => setSeed(e.target.value.toUpperCase())} />
+          <button className="menu-btn" onClick={() => startWithSeed(seed)}>開始</button>
         </div>
       </div>
     );
@@ -555,61 +1121,177 @@ function Main() {
   return <App key={gameKey} seed={seed} onRestart={() => startWithSeed(seed)} onNewGame={() => startWithSeed()} />;
 }
 
-function App({ seed, onRestart, onNewGame }){
+function App({ seed, onRestart, onNewGame }) {
   const rng = useMemo(() => createRNG(seed), [seed]);
-  
-  // 【修正】シード値からこの試合の星座テキストを決定する
-  const currentStargazerDesc = useMemo(() => {
-    return stargazerVariants[Math.floor(rng() * stargazerVariants.length)];
+  const currentStargazerDesc = useMemo(() => stargazerVariants[Math.floor(rng() * stargazerVariants.length)], [rng]);
+
+  // 1-1で表示する2柱の神を抽選
+  const encounterGods = useMemo(() => {
+    const shuffled = [...GOD_DATA].sort(() => rng() - 0.5);
+    return [shuffled[0], shuffled[1]];
   }, [rng]);
 
-  const initBoard = () => {
-    const b = Array(28).fill(null);
-    const pool = CHAMPS.filter(c => c.cost === 1);
-    b[17] = { ...pool[Math.floor(rng() * pool.length)], star: 1, uid: rng() };
-    return b;
+const initBoard = () => {
+    return Array(28).fill(null);
   };
 
-  const [gold,setGold]=useState(0);
-  const [level,setLevel]=useState(1);
-  const [xp,setXp]=useState(0);
-  const [round,setRound]=useState('1-1');
-  const [shop,setShop]=useState(()=>rollShop(1, rng));
-  const [bench,setBench]=useState(Array(9).fill(null));
-  const [board,setBoard]=useState(initBoard);
-  const [inventory,setInventory]=useState([]);
-  const [augments,setAugments]=useState([]);
-  const [dragSrc,setDragSrc]=useState(null);
-  const [dropMsg,setDropMsg]=useState(null);
+  const [gold, setGold] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [xp, setXp] = useState(0);
+  const [round, setRound] = useState('1-1');
+  const [shop, setShop] = useState(() => rollShop(1, rng));
+  const [bench, setBench] = useState(Array(9).fill(null));
+  const [board, setBoard] = useState(initBoard);
+  const [inventory, setInventory] = useState([]);
+  const [augments, setAugments] = useState([]);
+  const [passiveBuffs, setPassiveBuffs] = useState([]);
+  const [dragSrc, setDragSrc] = useState(null);
+  const [dropMsg, setDropMsg] = useState(null);
   const [showAugment, setShowAugment] = useState(false);
-  const [mergeToast,setMergeToast]=useState(null);
+  const [mergeToast, setMergeToast] = useState(null);
   const [isFinished, setIsFinished] = useState(false);
   const [traitTooltipData, setTraitTooltipData] = useState(null);
   const [tooltipData, setTooltipData] = useState(null);
+  const [freeRerolls, setFreeRerolls] = useState(0);
+  const [maxInterest, setMaxInterest] = useState(5);
+  const [xpCostReduction, setXpCostReduction] = useState(0);
+  const [augmentTierBoost, setAugmentTierBoost] = useState(0);
+  const [noMoreAugments, setNoMoreAugments] = useState(false);
+  const [afkRoundsLeft, setAfkRoundsLeft] = useState(0);
+  const [droppedComps, setDroppedComps] = useState([]); // 🌟 ドロップ済みの素材アイテム履歴
   const hoverTimer = useRef(null);
 
-  const handleMouseEnter = (e, champ) => {
-    if (!champ) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isRight = rect.left > window.innerWidth / 2; 
-    
-    hoverTimer.current = setTimeout(() => {
-      setTooltipData({ champ, x: rect.left, y: rect.top, isRight });
-    }, 2000); 
-  };
+  // 🌟 画像保存用のRefとStateを追加
+  const resultRef = useRef(null);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // 🌟 今回遭遇した神（リザルト表示用。ランダムで選ばれた1体目を運命の神とする）
+  const chosenGod = encounterGods[0];
 
-  const handleMouseLeave = () => {
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
+  // 🌟 キャプチャ処理
+  const handleSaveImage = async () => {
+    if (!resultRef.current) return;
+    setIsSaving(true);
+    try {
+      // html2canvasでDOMを画像化 (外部画像も読み込めるように useCORS: true を指定)
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#04060e', // 背景色をアプリに合わせる
+        scale: 2, // 高画質化
+        useCORS: true 
+      });
+      const image = canvas.toDataURL("image/png");
+      const link = document.createElement("a");
+      link.href = image;
+      link.download = `TFT_Set17_Result_${seed}.png`;
+      link.click();
+      showMsg('画像を保存しました！');
+    } catch (err) {
+      console.error(err);
+      showMsg('画像の保存に失敗しました');
     }
-    setTooltipData(null);
+    setIsSaving(false);
   };
 
-  const handleTraitMouseEnter = (e, trait, count) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTraitTooltipData({ trait, count, x: rect.left, y: rect.top });
-  };
+
+  
+
+// 🌟 POP用のタイマーを管理する箱
+  const dropMsgTimer = useRef(null);
+
+  const showMsg = useCallback((msg, duration = 3000) => {
+    setDropMsg(msg);
+    // 🌟 前のタイマーが残っていたらキャンセルする（瞬殺されるのを防ぐ）
+    if (dropMsgTimer.current) clearTimeout(dropMsgTimer.current);
+    // 新しいタイマーをセット
+    dropMsgTimer.current = setTimeout(() => setDropMsg(null), duration);
+  }, []);
+
+  const addXp = useCallback((amount) => {
+    setXp(prevXp => {
+      setLevel(prevLevel => {
+        let curL = prevLevel;
+        let curX = prevXp + amount;
+        while (curX >= (XP_FOR_NEXT_LEVEL[curL] || 999) && curL < 9) {
+          curX -= XP_FOR_NEXT_LEVEL[curL];
+          curL++;
+        }
+        setXp(curX);
+        return curL;
+      });
+      return prevXp; // will be overwritten by setLevel callback
+    });
+  }, []);
+
+  const addGold = useCallback((amount) => setGold(g => g + amount), []);
+  const addItem = useCallback((item) => setInventory(prev => [...prev, item]), []);
+  const addPassiveBuff = useCallback((buff) => setPassiveBuffs(prev => [...prev, buff]), []);
+  const setLevelDirect = useCallback((lv) => setLevel(lv), []);
+  const setMaxInterestFn = useCallback((v) => setMaxInterest(v), []);
+  const setXpCostReductionFn = useCallback((v) => setXpCostReduction(v), []);
+  const setAugmentTierBoostFn = useCallback((v) => setAugmentTierBoost(v), []);
+  const setNoMoreAugmentsFn = useCallback((v) => setNoMoreAugments(v), []);
+  const setAfkRoundsLeftFn = useCallback((v) => setAfkRoundsLeft(v), []);
+  const addFreeRerolls = useCallback((n) => setFreeRerolls(prev => prev + n), []);
+
+  const addChampToBench = useCallback((cost, count, rngFn) => {
+    setBench(prev => {
+      const nb = [...prev];
+      const pool = CHAMPS.filter(c => c.cost === cost);
+      for (let i = 0; i < count; i++) {
+        const slot = nb.findIndex(x => !x);
+        if (slot !== -1) nb[slot] = { ...pool[Math.floor(rngFn() * pool.length)], star: 1, uid: rngFn(), items: [] };
+      }
+      return nb;
+    });
+  }, []);
+
+  const addChampToBenchDirect = useCallback((champ) => {
+    setBench(prev => {
+      const nb = [...prev];
+      const slot = nb.findIndex(x => !x);
+      if (slot !== -1) nb[slot] = champ;
+      return nb;
+    });
+  }, []);
+
+  // Appコンポーネント内のState定義のあたりに追加
+const [pendingUnits, setPendingUnits] = useState([]); // 🌟 待機中のユニット
+
+// 🌟 ベンチの空きを監視して、待機ユニットを自動で追加するロジック
+useEffect(() => {
+  if (pendingUnits.length > 0) {
+    const emptySlot = bench.findIndex(x => !x);
+    if (emptySlot !== -1) {
+      // 空きがある場合：1体ベンチに移動
+      const nextUnit = pendingUnits[0];
+      setBench(prev => {
+        const nb = [...prev];
+        nb[emptySlot] = nextUnit;
+        return nb;
+      });
+      setPendingUnits(prev => prev.slice(1));
+    } else {
+      // 空きがない場合：警告を出す（1回だけ出るように調整）
+      showMsg(
+        <div style={{ color: 'var(--red)', fontWeight: 900 }}>
+          ⚠️ ベンチが満杯です！<br/>チャンピオンを売却して空きを作ってください
+        </div>
+      );
+    }
+  }
+}, [bench, pendingUnits]);
+
+
+  const augmentHelpers = useMemo(() => ({
+    addGold, addXp, addItem, addPassiveBuff, showMsg, getJaName,
+    addChampToBench: (cost, count, r) => addChampToBench(cost, count, r || rng),
+    addChampToBenchDirect,
+    addPendingUnits: (units) => setPendingUnits(prev => [...prev, ...units]),
+    setLevel: setLevelDirect, setMaxInterest: setMaxInterestFn,
+    setXpCostReduction: setXpCostReductionFn, setAugmentTierBoost: setAugmentTierBoostFn,
+    setNoMoreAugments: setNoMoreAugmentsFn, setAfkRoundsLeft: setAfkRoundsLeftFn,
+    addFreeRerolls,
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rng]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -618,631 +1300,1263 @@ function App({ seed, onRestart, onNewGame }){
     }
   }, [mergeToast]);
 
-  const [dropPlan] = useState(() => ({ targetComp: Math.floor(rng() * 4) + 1, droppedComp: 0 }));
-
-  const addUnitsToBench = (cost, count) => {
-    setBench(prev => {
-        const nb = [...prev];
-        const pool = CHAMPS.filter(c => c.cost === cost);
-        for(let i=0; i<count; i++) {
-            const slot = nb.findIndex(x => !x);
-            if(slot !== -1) nb[slot] = { ...pool[Math.floor(rng() * pool.length)], star: 1, uid: rng() };
-        }
-        return nb;
-    });
-  };
-
-  const executeOrbDrop = (type) => {
+  const [dropPlan] = useState(() => {
     const roll = rng() * 100;
-    let msg = "";
+    // 10%で1個、20%で2個(10~30)、60%で3個(30~90)、10%で4個(90~100)
+    const target = roll < 10 ? 1 : roll < 30 ? 2 : roll < 90 ? 3 : 4;
+    return { targetComp: target, droppedComp: 0 };
+  });
+
+　const executeOrbDrop = (type) => {
+    const roll = rng() * 100;
+    const rowStyle = { display: 'flex', alignItems: 'center', gap: 6 };
+    const iconStyle = (cost) => ({ width: 50, height: 50, border: `1px solid ${COST_COLORS[cost]}`, borderRadius: 3 });
+
+    // 🌟 複数体ドロップ用の汎用ヘルパー
+    const rollMultiple = (cost, count) => {
+      const pool = CHAMPS.filter(c => c.cost === cost);
+      const droppedUnits = [];
+      for (let i = 0; i < count; i++) {
+        const c = pool[Math.floor(rng() * pool.length)];
+        const unit = { ...c, star: 1, uid: rng(), items: [] };
+        addChampToBenchDirect(unit);
+        droppedUnits.push(unit);
+      }
+      return (
+        <div style={rowStyle}>
+          <div style={{ display:'flex', gap:2 }}>
+            {droppedUnits.map((u, idx) => (
+              <img key={idx} src={boardIcon(u.img)} style={iconStyle(cost)} title={u.jaName} />
+            ))}
+          </div>
+          <span>{droppedUnits.length > 1 ? `${droppedUnits[0].jaName}等` : droppedUnits[0].jaName}</span>
+        </div>
+      );
+    };
+
     if (type === 'GRAY') {
-        if (roll < 48) { addUnitsToBench(1, 2); msg = "⚪グレー: コスト１チャンピオン ×２体"; }
-        else if (roll < 95) { addUnitsToBench(2, 1); msg = "⚪グレー: コスト２チャンピオン ×１体"; }
-        else if (roll < 98) { setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 2); msg = "⚪ グレー: 再合成装置 + 2G"; }
-        else if (roll < 99) { setInventory(p => [...p, CONSUMABLES.REMOVER]); setGold(g => g + 2); msg = "⚪ グレー: 磁力式除去装置 + 2G"; }
-        else { setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]); msg = "⚪ グレー: 小型チャンピオン複製機"; }
+      if (roll < 48) return rollMultiple(1, 2); // 🌟 1コス×2体（個別抽選）
+      if (roll < 95) return rollMultiple(2, 1); // 🌟 2コス×1体
+      if (roll < 98) {
+        setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 2);
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Reforger')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>再合成 + 2G</span></div>;
+      }
+      if (roll < 99) {
+        setInventory(p => {
+          const nb = [...p];
+          const ex = nb.findIndex(i => i.id === 'remover');
+          if (ex !== -1) nb[ex] = { ...nb[ex], count: (nb[ex].count || 1) + 1 };
+          else nb.push({ ...CONSUMABLES.REMOVER, count: 1 });
+          return nb;
+        });
+        setGold(g => g + 2);
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('itemremover')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>除去装置 + 2G</span></div>;
+      }
+      setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]);
+      return <div style={rowStyle}><img src={getMetaTFTItemUrl('Lesser Champion Duplicator')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>小型複製機</span></div>;
+
     } else if (type === 'BLUE') {
-        if (roll < 33) { addUnitsToBench(3, 2); msg = "🔵 ブルー: コスト３チャンピオン ×２体"; }
-        else if (roll < 64) { setGold(g => g + 3); addUnitsToBench(3, 1); msg = "🔵 ブルー: ３G + コスト３チャンピオン ×１体"; }
-        else if (roll < 95) { addUnitsToBench(2, 3); msg = "🔵 ブルー: スト２チャンピオン ×３体"; }
-        else if (roll < 97) { setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]); addUnitsToBench(2, 2); msg = "🔵 ブルー: 小型チャンピオン複製機 + コスト２チャンピオン ×２体"; }
-        else if (roll < 99) { setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 6); msg = "🔵 ブルー: 再合成装置 + ６G"; }
-        else { setInventory(p => [...p, CONSUMABLES.CHAMP_DUPE]); addUnitsToBench(3, 1); msg = "🔵 ブルー: チャンピオン複製機 + コスト３チャンピオン ×１体"; }
+      if (roll < 33) return rollMultiple(3, 2); // 🌟 3コス×2体（個別抽選）
+      if (roll < 64) {
+        const res = rollMultiple(3, 1);
+        setGold(g => g + 3);
+        return <div style={rowStyle}>{res}<span> + 3G</span></div>;
+      }
+      if (roll < 95) return rollMultiple(2, 3); // 🌟 2コス×3体（個別抽選）
+      if (roll < 97) {
+        const res = rollMultiple(2, 2);
+        setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]);
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Lesser Champion Duplicator')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>＋</span>{res}</div>;
+      }
+      if (roll < 99) {
+        setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 6);
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Reforger')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>再合成 + 6G</span></div>;
+      }
+      const pool = CHAMPS.filter(c => c.cost === 3);
+      const c = pool[Math.floor(rng() * pool.length)];
+      setInventory(p => [...p, CONSUMABLES.CHAMP_DUPE]);
+      addChampToBenchDirect({ ...c, star: 1, uid: rng(), items: [] });
+      return <div style={rowStyle}><img src={getMetaTFTItemUrl('Champion Duplicator')} style={iconStyle(1)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>＋</span><img src={boardIcon(c.img)} style={iconStyle(3)} /><span style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>{c.jaName}</span></div>;
     }
-    return msg;
   };
 
- const triggerDrops = (isLastRound) => {
-    const dropCount = Math.floor(rng() * 2) + 1; 
-    let newItems = [];
-    let dropElements = []; // 文字列の代わりにReact要素を入れる配列
+  const triggerDrops = (isLastRound) => {
+    // 🌟 基本のドロップ数（1〜2個）
+    let dropCount = Math.floor(rng() * 2) +1;
+    const remainingForStage = dropPlan.targetComp - dropPlan.droppedComp;
 
-    for(let i = 0; i < dropCount; i++) {
-        const remainingComps = dropPlan.targetComp - dropPlan.droppedComp;
-        let isItem = false;
-        if (remainingComps > 0) {
-            if (isLastRound && remainingComps >= (dropCount - i)) isItem = true;
-            else if (rng() < 0.4) isItem = true;
-        }
-        if (isItem) {
-            const comps = ITEMS.filter(it => it.type === 'comp');
-            const item = comps[Math.floor(rng() * comps.length)];
-            newItems.push(item);
-            dropPlan.droppedComp++;
-            
-            // 🌟 🎁の代わりに画像を使ったUIを追加
-            dropElements.push(
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <img 
-                        src={getMetaTFTItemUrl(item.name)} 
-                        style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} 
-                    />
-                    <span>{getJaName(item.name)}</span>
-                </div>
-            );
-        } else {
-            const orbType = rng() < 0.3 ? 'BLUE' : 'GRAY';
-            dropElements.push(<div key={i}>{executeOrbDrop(orbType)}</div>);
-        }
+    // 🌟🌟🌟 新規追加：1-4の時に、まだ落とすべき素材の数が箱の数を上回っている場合、
+    // 強制的に箱の数を増やして、確実に目標数の素材を吐き出させる！
+    if (isLastRound && remainingForStage > dropCount) {
+      dropCount = remainingForStage;
     }
+
+    let newItems = [];
+    let dropElements = [];
+    let newlyDroppedIds = [];
+
+    for (let i = 0; i < dropCount; i++) {
+      const remainingComps = dropPlan.targetComp - dropPlan.droppedComp;
+      let isItem = false;
+      
+      if (remainingComps > 0) {
+        // 🌟 最終ラウンドで、残りの箱の数と落とすべき素材の数が一致したら強制ドロップ
+        if (isLastRound && remainingComps >= (dropCount - i)) isItem = true;
+        else if (rng() < 0.4) isItem = true;
+      }
+      
+      if (isItem) {
+        const comps = ITEMS.filter(it => it.type === 'comp');
+        let availableComps = comps.filter(c => !droppedComps.includes(c.id) && !newlyDroppedIds.includes(c.id));
+        
+        if (availableComps.length === 0) {
+          availableComps = comps;
+        }
+
+        const item = availableComps[Math.floor(rng() * availableComps.length)];
+        
+        newItems.push(item);
+        newlyDroppedIds.push(item.id);
+        dropPlan.droppedComp++; // 🌟 ここでしっかりカウントを進める
+        
+        dropElements.push(
+          <div key={`item-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <img src={getMetaTFTItemUrl(item.name)} style={{ width: 50, height: 50, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
+            <span>{getJaName(item.name)}</span>
+          </div>
+        );
+      } else {
+        const orbType = rng() < 0.3 ? 'BLUE' : 'GRAY';
+        const orbResult = executeOrbDrop(orbType);
+        dropElements.push(<div key={`orb-${i}`}>{orbResult}</div>);
+      }
+    }
+
     if (newItems.length > 0) setInventory(prev => [...prev, ...newItems]);
     
-    // 🌟 メッセージを横に並べて1つの通知としてセット
-    setDropMsg(
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, flexWrap: 'wrap' }}>
-            {dropElements}
-        </div>
+    if (newlyDroppedIds.length > 0) {
+      setDroppedComps(prev => [...prev, ...newlyDroppedIds]);
+    }
+
+    // 🌟 古いタイマーをリセットする仕様になった showMsg を使用
+    showMsg(
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 15, flexWrap:'wrap' }}>
+        {dropElements}
+      </div>, 
+      4000
     );
-    setTimeout(() => setDropMsg(null), 4000); 
   };
+
+  // レベルアップ処理（addXpの安定版）
+  const applyXp = (amount, curLevel, curXp) => {
+    let lv = curLevel;
+    let x = curXp + amount;
+    while (x >= (XP_FOR_NEXT_LEVEL[lv] || 999) && lv < 9) {
+      x -= XP_FOR_NEXT_LEVEL[lv];
+      lv++;
+    }
+    return { level: lv, xp: x };
+  };
+
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleNextRound = (forcedRound) => {
+    // 🌟 遷移中（3秒の間）は、クリックを完全に無視する
+    if (isTransitioning) return;
+
     const currentR = forcedRound || round;
-    if (currentR === '2-1') { setIsFinished(true); return; }
-    const schedule = ['1-1','1-2','1-3','1-4','2-1'];
+    // 終了判定
+    if (currentR === '2-1') {
+      setIsFinished(true);
+      return;
+    }
+    
+    const schedule = ['1-1', '1-2', '1-3', '1-4', '2-1'];
     const nextR = schedule[schedule.indexOf(currentR) + 1];
-    if (currentR.startsWith('1-')) triggerDrops(currentR === '1-4');
-    if (nextR === '2-1') setShowAugment(true);
-    setRound(nextR);
-    setGold(g => {
-        const interest = Math.min(5, Math.floor(g / 10));
-        const baseIncome = { '1-2': 2, '1-3': 2, '1-4': 3, '2-1': 4 }[nextR] || 5;
-        return g + baseIncome + interest;
-    });
-    let curL = level; let curX = xp + 2;
-    while (curX >= (XP_FOR_NEXT_LEVEL[curL] || 999) && curL < 6) { curX -= XP_FOR_NEXT_LEVEL[curL]; curL++; }
-    setLevel(curL); setXp(curX); setShop(rollShop(curL, rng));
+
+    // 🌟 遷移開始：ガードレイヤーを起動（操作不能にする）
+    setIsTransitioning(true);
+
+    // ==========================================
+    // 1. 即座に実行する演出（POP表示と盤面変更）
+    // ==========================================
+
+    // 【1-1 → 1-2】運命の1体配布演出
+    if (currentR === '1-1' && nextR === '1-2') {
+      const pool = CHAMPS.filter(c => c.cost === 1);
+      const chosen = pool[Math.floor(rng() * pool.length)];
+      const unit = { ...chosen, star: 1, uid: rng(), items: [] };
+      
+      setBoard(prev => {
+        const nb = [...prev];
+        nb[17] = unit; // 盤面中央に配置
+        return nb;
+      });
+
+      // 🌟 除去装置をスタック（重ねて）追加する処理
+      setInventory(prev => {
+        const nb = [...prev];
+        const existingIdx = nb.findIndex(i => i && i.id === 'remover');
+        if (existingIdx !== -1) {
+          // すでにある場合はカウントを+4する
+          nb[existingIdx] = { ...nb[existingIdx], count: (nb[existingIdx].count || 1) + 4 };
+        } else {
+          // ない場合はカウント4で新規追加する
+          nb.push({ ...CONSUMABLES.REMOVER, count: 4 });
+        }
+        return nb;
+      });
+
+
+
+      // 1-2用の巨大POP（名前やアイコンのサイズはお好みで調整してください）
+      
+    } 
+    // 【1-2以降】通常のドロップ演出
+    else if (currentR.startsWith('1-')) {
+      // 1-2から1-3へ行く際、または1-3、1-4終了時にドロップ実行
+      triggerDrops(currentR === '1-4');
+    }
+
+    // ==========================================
+    // 2. 3秒待ってから実行するロジック（数値更新）
+    // ==========================================
+
+    setTimeout(() => {
+      // --- ステージ更新 ---
+      setRound(nextR);
+
+      // --- AFK処理 ---
+      if (afkRoundsLeft > 0) {
+        const newLeft = afkRoundsLeft - 1;
+        setAfkRoundsLeft(newLeft);
+        if (newLeft === 0) {
+          setGold(g => g + 20);
+          setDropMsg('💤 AFK解除！20G獲得！');
+          setTimeout(() => setDropMsg(null), 2500);
+        }
+      }
+
+      // --- パッシブバフ（Trade Sector / Warlord's Honor） ---
+      const hasTS = passiveBuffs.some(b => b.type === 'trade_sector');
+      if (hasTS) setFreeRerolls(fr => fr + 1);
+
+      const wh = passiveBuffs.find(b => b.type === 'warlords_honor');
+      if (wh && wh.stacks < 4) {
+        setPassiveBuffs(prev => prev.map(b => b.type === 'warlords_honor' ? { ...b, stacks: Math.min(4, b.stacks + 1) } : b));
+      }
+
+      // --- ゴールド収入（基礎収入 + 利子） ---
+      // 
+      setGold(g => {
+        // 🌟 既存のゴールド(g)を無視せず、しっかり足し算するように修正！
+        if (nextR === '1-2') return g + 0; 
+        if (nextR === '1-3') return g + 2;
+
+        const interest = Math.min(maxInterest, Math.floor(g / 10));
+        const baseIncome = {  '1-4': 2, '2-1': 3 }[nextR] || 5;
+        const hasSA = passiveBuffs.some(b => b.type === 'savings_account');
+        const extraG = (hasSA && interest >= 5) ? 30 : 0;
+        return g + baseIncome + interest + extraG;
+      });
+
+      // --- XP処理とレベルアップ ---
+      // 1-1終了時のみXP 0、それ以外はXP 2を獲得
+      const xpGain = (currentR === '1-1') ? 0 : 2;
+      const { level: newLevel, xp: newXp } = applyXp(xpGain, level, xp);
+      
+      // レベルアップに伴うバフ処理（Birthday Gift / Upward Mobility / Epoch）
+      if (newLevel > level) {
+        const hasBD = passiveBuffs.some(b => b.type === 'birthday_gift');
+        if (hasBD) {
+          const cost = Math.min(5, Math.max(1, newLevel - 4));
+          const pool = CHAMPS.filter(c => c.cost === cost);
+          if (pool.length) {
+            const champ = { ...pool[Math.floor(rng() * pool.length)], star: 2, uid: rng(), items: [] };
+            addChampToBenchDirect(champ);
+            setGold(g => g + 1);
+            setDropMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
+            setTimeout(() => setDropMsg(null), 2500);
+          }
+        }
+        const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
+        if (hasUM) setFreeRerolls(fr => fr + 2);
+        
+        const hasEp = passiveBuffs.some(b => b.type === 'epoch');
+        if (hasEp) {
+          const r = applyXp(4, newLevel, newXp);
+          setLevel(r.level);
+          setXp(r.xp);
+          // Epochの場合は早期リターンせず解禁処理へ
+        }
+      }
+
+      // 最終的なレベルとショップの更新
+      setLevel(newLevel); 
+      setXp(newXp);
+      setShop(rollShop(newLevel, rng));
+
+      // 次が2-1ならオーグメント選択画面を表示
+      if (nextR === '2-1' && !noMoreAugments) {
+        setShowAugment(true);
+      }
+
+      // 🌟 全更新完了。ガードレイヤーを消去（操作解禁）
+      setIsTransitioning(false);
+    }, 800); // 3秒待機
   };
 
+const handleAugmentPick = (aug) => {
+  setAugments(prev => [...prev, aug]);
+  setAugmentTierBoost(0);
+  aug.effect({ gold, level, xp }, rng, augmentHelpers);
+  setShowAugment(false);
+
+  // 🌟 通知メッセージを画像付きにする
+  setDropMsg(
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+      <img src={getAugmentIconUrl(aug)} style={{ width: 24, height: 24, borderRadius: 4 }} />
+      <span>{aug.name} を獲得しました</span>
+    </div>
+  );
+  setTimeout(() => setDropMsg(null), 2000);
+};
 
   const debugDropAllItems = () => {
-    // 素材アイテム(comp)と消費アイテム(consumable)をすべて取得
     const allComps = ITEMS.filter(it => it.type === 'comp');
     const allConsumables = Object.values(CONSUMABLES);
-    
     setInventory(prev => [...prev, ...allComps, ...allConsumables]);
-    setDropMsg("🛠️ デバッグ: 全アイテムをインベントリに追加しました");
+    setDropMsg("🛠️ デバッグ: 全アイテム追加");
     setTimeout(() => setDropMsg(null), 2000);
   };
 
   const hDrop = (targetType, targetIdx) => (e) => {
     e.preventDefault();
+    e.stopPropagation(); // 🌟 重複判定を防ぐためのストッパー
+
     if (!dragSrc) return;
+    let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
 
-    let nb = [...bench];
-    let nbrd = [...board];
-    let ns = [...shop];
-    let ninv = [...inventory];
+    // 🌟 【新規追加】ショップからドラッグし、ショップ以外にドロップされた場合はベンチに購入する
+    if (dragSrc.type === 'shop' && targetType !== 'shop') {
+      const unit = ns[dragSrc.idx];
+      if (!unit || gold < unit.cost) {
+        setDragSrc(null); return;
+      }
+      const slot = nb.findIndex(x => !x);
+      if (slot === -1) {
+        showMsg("⚠️ ベンチに空きがありません");
+        setDragSrc(null); return;
+      }
+      
+      // 購入＆ベンチの空きに追加
+      nb[slot] = { ...unit, star:1, uid:rng(), items:[] };
+      ns[dragSrc.idx] = null;
+      setGold(g => g - unit.cost);
 
+      // 進化ロジック
+      const counts = {}; 
+      [...nb, ...nbrd].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1; } });
+      for (const k in counts) {
+        if (counts[k] >= 3) {
+          const [id, s] = k.split('_');
+          const star = parseInt(s);
+          if (star < 3) {
+            let toRem = 3; let collected = []; let targetBoardIdx = -1;
+            for (let j = 0; j < nbrd.length && toRem > 0; j++) {
+              if (nbrd[j] && nbrd[j].id === id && nbrd[j].star === star) {
+                if (targetBoardIdx === -1) targetBoardIdx = j;
+                if (nbrd[j].items) collected.push(...nbrd[j].items);
+                nbrd[j] = null; toRem--;
+              }
+            }
+            for (let j = 0; j < nb.length && toRem > 0; j++) {
+              if (nb[j] && nb[j].id === id && nb[j].star === star) {
+                if (nb[j].items) collected.push(...nb[j].items);
+                nb[j] = null; toRem--;
+              }
+            }
+            const up = { ...CHAMPS.find(c => c.id === id), star: star + 1, uid: rng(), items: collected.slice(0, 3) };
+            if (targetBoardIdx !== -1) {
+              nbrd[targetBoardIdx] = up;
+            } else {
+              const emptySlot = nb.findIndex(x => !x);
+              if (emptySlot !== -1) nb[emptySlot] = up;
+            }
+            setMergeToast(up); break;
+          }
+        }
+      }
+      setShop(ns); setBench(nb); setBoard(nbrd); setDragSrc(null);
+      return;
+    }
+
+    // --- アイテム関連の処理 ---
     if ((targetType === 'board' || targetType === 'bench') && dragSrc.type === 'inventory') {
       const targetArr = targetType === 'board' ? nbrd : nb;
       const unit = targetArr[targetIdx];
       const newItem = ninv[dragSrc.idx];
-
       if (unit && newItem) {
         if (!unit.items) unit.items = [];
-
-        // 🌟 消費アイテム（Consumable）のロジック
         if (newItem.type === 'consumable') {
           if (newItem.id === 'remover') {
-            if (unit.items.length === 0) {
-              setDropMsg("⚠️ アイテムを持っていません！");
-              setDragSrc(null); return;
+            if (unit.items.length === 0) { showMsg("⚠️ アイテムを持っていません！"); setDragSrc(null); return; }
+            ninv.push(...unit.items); unit.items = []; 
+            
+            // 🌟 カウントが2以上の場合は1減らし、1の場合は削除する
+            if (newItem.count && newItem.count > 1) {
+              ninv[dragSrc.idx] = { ...newItem, count: newItem.count - 1 };
+            } else {
+              ninv.splice(dragSrc.idx, 1);
             }
-            ninv.push(...unit.items);
-            unit.items = [];
-            ninv.splice(dragSrc.idx, 1);
-            setDropMsg(
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <img src={getMetaTFTItemUrl(newItem.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                <span>アイテムを取り外しました</span>
-              </div>
-            );
+            
+            showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを取り外しました</span></div>);
           }
+          
+          
+          
+          
+          
           else if (newItem.id === 'reforger') {
-            if (unit.items.length === 0) {
-              setDropMsg("⚠️ アイテムを持っていません！");
-              setDragSrc(null); return;
-            }
+            if (unit.items.length === 0) { showMsg("⚠️ アイテムを持っていません！"); setDragSrc(null); return; }
             const newItems = unit.items.map(it => {
-              if (it.type === 'comp') {
-                const comps = ITEMS.filter(x => x.type === 'comp');
-                return comps[Math.floor(rng() * comps.length)];
-              } else if (it.type === 'completed') {
-                const recipes = Object.values(ITEM_RECIPES);
-                const randomRecipe = recipes[Math.floor(rng() * recipes.length)];
-                return { ...randomRecipe, type: 'completed' };
-              }
+              if (it.type === 'comp') { const comps = ITEMS.filter(x => x.type === 'comp'); return comps[Math.floor(rng() * comps.length)]; }
+              else if (it.type === 'completed') { const recipes = Object.values(ITEM_RECIPES); const r = recipes[Math.floor(rng() * recipes.length)]; return { ...r, type:'completed' }; }
               return it;
             });
-            ninv.push(...newItems);
-            unit.items = [];
-            ninv.splice(dragSrc.idx, 1);
-            setDropMsg(
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <img src={getMetaTFTItemUrl(newItem.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                <span>アイテムを再合成して取り外しました</span>
-              </div>
-            );
-          }
-          else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe') {
-            if (newItem.id === 'lesser_dupe' && unit.cost > 3) {
-              setDropMsg("⚠️ 1〜3コストのチャンピオンにのみ使用できます");
-              setDragSrc(null); return;
-            }
+            ninv.push(...newItems); unit.items = []; ninv.splice(dragSrc.idx, 1);
+            showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成して取り外しました</span></div>);
+          } else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe') {
+            if (newItem.id === 'lesser_dupe' && unit.cost > 3) { showMsg("⚠️ 1〜3コストのみ使用可"); setDragSrc(null); return; }
             const emptySlot = nb.findIndex(x => !x);
-            if (emptySlot === -1) {
-              setDropMsg("⚠️ ベンチに空きがありません");
-              setDragSrc(null); return;
-            }
-            const copy = { ...CHAMPS.find(c => c.id === unit.id), star: 1, uid: rng(), items: [] };
-            nb[emptySlot] = copy;
-            ninv.splice(dragSrc.idx, 1);
-            setDropMsg(
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <img src={getMetaTFTItemUrl(newItem.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                <span>{unit.jaName}を複製しました！</span>
-              </div>
-            );
-
-            // 🌟 複製後のスターアップチェック（アイテム引き継ぎ対応）
-            const counts={}; [...nb,...nbrd].forEach(u=>{if(u){const k=`${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1;}});
-            for(const k in counts){
-              if(counts[k]>=3){
-                const [id,s]=k.split('_'); const star=parseInt(s);
-                if(star<3){
-                  let toRem=3; let collected = [];
-                  for(let i=0;i<nb.length&&toRem>0;i++) if(nb[i]&&nb[i].id===id&&nb[i].star===star){ if(nb[i].items) collected.push(...nb[i].items); nb[i]=null; toRem--; }
-                  for(let i=0;i<nbrd.length&&toRem>0;i++) if(nbrd[i]&&nbrd[i].id===id&&nbrd[i].star===star){ if(nbrd[i].items) collected.push(...nbrd[i].items); nbrd[i]=null; toRem--; }
-                  
-                  const up={...CHAMPS.find(c=>c.id===id), star:star+1, uid:rng(), items: collected.slice(0, 3)};
-                  if (collected.length > 3) { ninv.push(...collected.slice(3)); setDropMsg("⚠️ 溢れたアイテムを回収しました"); }
-                  
-                  const slot = nb.findIndex(x=>!x); if(slot !== -1) nb[slot]=up;
+            if (emptySlot === -1) { showMsg("⚠️ ベンチに空きがありません"); setDragSrc(null); return; }
+            const copy = { ...CHAMPS.find(c => c.id === unit.id), star:1, uid:rng(), items:[] };
+            nb[emptySlot] = copy; ninv.splice(dragSrc.idx, 1);
+            showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>{unit.jaName}を複製しました！</span></div>);
+            const counts = {}; [...nb, ...nbrd].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
+            for (const k in counts) {
+              if (counts[k] >= 3) {
+                const [id, s] = k.split('_'); const star = parseInt(s);
+                if (star < 3) {
+                  let toRem = 3; let collected = [];
+                  for (let i = 0; i < nb.length && toRem > 0; i++) if (nb[i] && nb[i].id === id && nb[i].star === star) { if (nb[i].items) collected.push(...nb[i].items); nb[i] = null; toRem--; }
+                  for (let i = 0; i < nbrd.length && toRem > 0; i++) if (nbrd[i] && nbrd[i].id === id && nbrd[i].star === star) { if (nbrd[i].items) collected.push(...nbrd[i].items); nbrd[i] = null; toRem--; }
+                  const up = { ...CHAMPS.find(c => c.id === id), star: star+1, uid:rng(), items: collected.slice(0, 3) };
+                  if (collected.length > 3) { ninv.push(...collected.slice(3)); showMsg("⚠️ 溢れたアイテムを回収しました"); }
+                  const slot = nb.findIndex(x => !x); if (slot !== -1) nb[slot] = up;
                   setMergeToast(up); break;
                 }
               }
             }
           }
-          
-          setInventory(ninv.filter(Boolean));
-          setTimeout(() => setDropMsg(null), 2000);
-          setDragSrc(null);
-          setBoard(nbrd);
-          setBench(nb);
-          return;
+          setInventory(ninv.filter(Boolean)); setDragSrc(null); setBoard(nbrd); setBench(nb); return;
         }
 
-        // 🌟 通常アイテムの装備・合成処理
         let merged = false;
         if (newItem.type === 'comp') {
           const existingCompIdx = unit.items.findIndex(it => it.type === 'comp');
           if (existingCompIdx !== -1) {
-            const itemA = unit.items[existingCompIdx];
-            const itemB = newItem;
-            const key1 = `${itemA.id}_${itemB.id}`;
-            const key2 = `${itemB.id}_${itemA.id}`;
-            const recipe = ITEM_RECIPES[key1] || ITEM_RECIPES[key2];
+            const itemA = unit.items[existingCompIdx], itemB = newItem;
+            const recipe = ITEM_RECIPES[`${itemA.id}_${itemB.id}`] || ITEM_RECIPES[`${itemB.id}_${itemA.id}`];
             if (recipe) {
-              unit.items[existingCompIdx] = { ...recipe, type: 'completed' };
-              merged = true;
-              setDropMsg(
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <img src={getMetaTFTItemUrl(recipe.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                  <span>合成成功: {getJaName(recipe.name)}!</span>
-                </div>
-              );
+              unit.items[existingCompIdx] = { ...recipe, type:'completed' }; merged = true;
+              showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>合成成功: {getJaName(recipe.name)}!</span></div>);
             }
           }
         }
-
         if (!merged) {
           if (unit.items.length < 3) {
-            unit.items.push(newItem);
-            setDropMsg(
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <img src={getMetaTFTItemUrl(newItem.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                <span>装備完了: {getJaName(newItem.name)}</span>
-              </div>
-            );
-          } else {
-            setDropMsg("⚠️ アイテムスロットが一杯です！");
-            setDragSrc(null);
-            return;
-          }
-        }
+            if (newItem.name === 'thieves_gloves') {
+              // 盗賊のグローブ本体をセット
+              unit.items.push(newItem);
 
-        ninv.splice(dragSrc.idx, 1);
-        setInventory(ninv.filter(Boolean));
-        setTimeout(() => setDropMsg(null), 2000);
+              // 2つ目のスロット：ランダムな完成アイテム
+              const recipes = Object.values(ITEM_RECIPES);
+              const randomFullItem = { 
+                ...recipes[Math.floor(rng() * recipes.length)], 
+                type: 'completed',
+                isTGGenerated: true 
+              };
+              unit.items.push(randomFullItem);
+
+              // 3つ目のスロット：ランダムな素材アイテム
+              const comps = ITEMS.filter(it => it.type === 'comp');
+              const randomCompItem = { 
+                ...comps[Math.floor(rng() * comps.length)],
+                isTGGenerated: true 
+              };
+              unit.items.push(randomCompItem);
+
+              showMsg("🍀 盗賊のグローブ：追加アイテムを獲得！");
+            } else {
+              // 通常のアイテム装備
+              unit.items.push(newItem);
+              showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>装備完了: {getJaName(newItem.name)}</span></div>);
+            }
+          } else { showMsg("⚠️ アイテムスロットが一杯です！"); setDragSrc(null); return; }
+        }
+        ninv.splice(dragSrc.idx, 1); setInventory(ninv.filter(Boolean));
       }
-      
-      setDragSrc(null);
-      setBoard(nbrd);
-      setBench(nb);
-      return;
+      setDragSrc(null); setBoard(nbrd); setBench(nb); return;
     }
 
-    // ② インベントリ内のアイテム同士の合成・再合成・入れ替え
     if (targetType === 'inventory') {
       if (dragSrc.type === 'inventory') {
-        const srcIdx = dragSrc.idx;
-        const itemA = ninv[srcIdx]; // ドラッグしているアイテム
-        const itemB = ninv[targetIdx]; // 重ねられた先のアイテム
-
+        const srcIdx = dragSrc.idx, itemA = ninv[srcIdx], itemB = ninv[targetIdx];
         if (itemA && itemB && srcIdx !== targetIdx) {
-          // 🌟 1. 通常の素材同士の合成
           if (itemA.type === 'comp' && itemB.type === 'comp') {
-            const key1 = `${itemA.id}_${itemB.id}`;
-            const key2 = `${itemB.id}_${itemA.id}`;
-            const recipe = ITEM_RECIPES[key1] || ITEM_RECIPES[key2];
-
+            const recipe = ITEM_RECIPES[`${itemA.id}_${itemB.id}`] || ITEM_RECIPES[`${itemB.id}_${itemA.id}`];
             if (recipe) {
-              ninv[targetIdx] = { ...recipe, type: 'completed' };
-              ninv.splice(srcIdx, 1);
-              setInventory(ninv.filter(Boolean));
-              setDropMsg(
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <img src={getMetaTFTItemUrl(recipe.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                  <span>作成完了: {getJaName(recipe.name)}</span>
-                </div>
-              );
+              ninv[targetIdx] = { ...recipe, type:'completed' }; ninv.splice(srcIdx, 1); setInventory(ninv.filter(Boolean));
+              showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>作成完了: {getJaName(recipe.name)}</span></div>);
               setDragSrc(null); return;
             }
           }
-
-          // 🌟 2. 再合成装置（Reforger）をアイテムに重ねた場合
           if (itemA.id === 'reforger' && (itemB.type === 'comp' || itemB.type === 'completed')) {
             let transformedItem;
-            if (itemB.type === 'comp') {
-              // 素材は別の素材へ
-              const comps = ITEMS.filter(x => x.type === 'comp');
-              transformedItem = comps[Math.floor(rng() * comps.length)];
-            } else {
-              // 完成品は別の完成品へ
-              const recipes = Object.values(ITEM_RECIPES);
-              const randomRecipe = recipes[Math.floor(rng() * recipes.length)];
-              transformedItem = { ...randomRecipe, type: 'completed' };
-            }
-
-            ninv[targetIdx] = transformedItem; // アイテムを変化
-            ninv.splice(srcIdx, 1); // 再合成装置を消去
-            setInventory(ninv.filter(Boolean));
-            setDropMsg(
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <img src={getMetaTFTItemUrl(transformedItem.name)} style={{ width: 18, height: 18, border: '1px solid rgba(255,255,255,0.6)', borderRadius: 3 }} />
-                <span>アイテムを再合成しました！</span>
-              </div>
-            );
-            setTimeout(() => setDropMsg(null), 2000);
+            if (itemB.type === 'comp') { const comps = ITEMS.filter(x => x.type === 'comp'); transformedItem = comps[Math.floor(rng() * comps.length)]; }
+            else { const recipes = Object.values(ITEM_RECIPES); const r = recipes[Math.floor(rng() * recipes.length)]; transformedItem = { ...r, type:'completed' }; }
+            ninv[targetIdx] = transformedItem; ninv.splice(srcIdx, 1); setInventory(ninv.filter(Boolean));
+            showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(transformedItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成しました！</span></div>);
             setDragSrc(null); return;
           }
         }
-
-        // 🌟 3. それ以外（ただの入れ替え）
-        const temp = ninv[targetIdx];
-        ninv[targetIdx] = ninv[srcIdx];
-        ninv[srcIdx] = temp;
+        const temp = ninv[targetIdx]; ninv[targetIdx] = ninv[srcIdx]; ninv[srcIdx] = temp;
         setInventory(ninv.filter(Boolean));
-      } 
-      setDragSrc(null);
-      return;
+      }
+      setDragSrc(null); return;
     }
 
+    // --- コマの売却と移動 ---
     if (targetType === 'shop') {
-        const src = dragSrc.type === 'bench' ? nb : nbrd; 
-        const mover = src[dragSrc.idx];
-        if (mover) {
-          setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1))));
-          src[dragSrc.idx] = null;
+      const src = dragSrc.type === 'bench' ? nb : nbrd;
+      const mover = src[dragSrc.idx];
+      if (mover) { setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1)))); src[dragSrc.idx] = null; }
+    } else {
+      // 🌟 何もない場所(anywhere) へのドロップ判定
+      if (targetType === 'anywhere') {
+        setDragSrc(null); return;
+      }
+
+      // 🌟 ショップからの購入判定は一番上で処理済みなので、ここはボード・ベンチ間の移動のみ
+      const src = dragSrc.type === 'bench' ? nb : nbrd; 
+      let mover = src[dragSrc.idx];
+      
+      if (dragSrc.type === 'bench' && targetType === 'board' && !nbrd[targetIdx] && nbrd.filter(Boolean).length >= level + (passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0)) {
+        showMsg("⚠️ 盤面が一杯です！"); setDragSrc(null); return;
+      }
+      src[dragSrc.idx] = null;
+      if (mover) {
+        const target = targetType === 'bench' ? nb : nbrd; 
+        const ex = target[targetIdx]; 
+        target[targetIdx] = mover;
+        if (ex) { 
+          if (dragSrc.type === 'bench') nb[dragSrc.idx] = ex; 
+          else nbrd[dragSrc.idx] = ex; 
         }
-    } else if(!(dragSrc.type==='shop' && targetType==='board')){
-        let mover = null;
-        if(dragSrc.type==='shop'){
-            mover=ns[dragSrc.idx]; if(!mover||gold<mover.cost||nb[targetIdx]) { setDragSrc(null); return; }
-            setGold(g=>g-mover.cost); ns[dragSrc.idx]=null; mover={...mover,star:1,uid:rng(), items:[]};
-        } else {
-            const src = dragSrc.type==='bench'?nb:nbrd; mover=src[dragSrc.idx];
-            if(dragSrc.type==='bench' && targetType==='board' && !nbrd[targetIdx] && nbrd.filter(Boolean).length>=level) {
-                setDropMsg("⚠️ 盤面が一杯です！"); setTimeout(()=>setDropMsg(null),2000); setDragSrc(null); return;
-            }
-            src[dragSrc.idx]=null;
-        }
-        if(mover){
-            const target = targetType==='bench'?nb:nbrd; const ex=target[targetIdx]; target[targetIdx]=mover;
-            if(ex){ if(dragSrc.type==='bench') nb[dragSrc.idx]=ex; else nbrd[dragSrc.idx]=ex; }
-        }
+      }
     }
 
     setShop(ns);
-
-    // 🌟 全体：自動スターアップ判定とアイテム引き継ぎ
-    const counts={}; [...nb,...nbrd].forEach(u=>{if(u){const k=`${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1;}});
-    for(const k in counts){
-        if(counts[k]>=3){
-            const [id,s]=k.split('_'); const star=parseInt(s);
-            if(star<3){
-                let toRem=3; let collected = [];
-                for(let i=0;i<nb.length&&toRem>0;i++) if(nb[i]&&nb[i].id===id&&nb[i].star===star){ if(nb[i].items) collected.push(...nb[i].items); nb[i]=null; toRem--; }
-                for(let i=0;i<nbrd.length&&toRem>0;i++) if(nbrd[i]&&nbrd[i].id===id&&nbrd[i].star===star){ if(nbrd[i].items) collected.push(...nbrd[i].items); nbrd[i]=null; toRem--; }
-                
-                const up={...CHAMPS.find(c=>c.id===id), star:star+1, uid:rng(), items: collected.slice(0, 3)};
-                if (collected.length > 3) { ninv.push(...collected.slice(3)); setDropMsg("⚠️ 溢れたアイテムを回収しました"); }
-                
-                const slot = nb.findIndex(x=>!x); if(slot !== -1) nb[slot]=up;
-                setMergeToast(up); break;
-            }
+    const counts = {}; [...nb, ...nbrd].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
+    for (const k in counts) {
+      if (counts[k] >= 3) {
+        const [id, s] = k.split('_'); const star = parseInt(s);
+        if (star < 3) {
+          let toRem = 3; let collected = [];
+          for (let i = 0; i < nb.length && toRem > 0; i++) if (nb[i] && nb[i].id === id && nb[i].star === star) { if (nb[i].items) collected.push(...nb[i].items); nb[i] = null; toRem--; }
+          for (let i = 0; i < nbrd.length && toRem > 0; i++) if (nbrd[i] && nbrd[i].id === id && nbrd[i].star === star) { if (nbrd[i].items) collected.push(...nbrd[i].items); nbrd[i] = null; toRem--; }
+          const up = { ...CHAMPS.find(c => c.id === id), star: star+1, uid:rng(), items: collected.slice(0, 3) };
+          if (collected.length > 3) { ninv.push(...collected.slice(3)); showMsg("⚠️ 溢れたアイテムを回収しました"); }
+          const slot = nb.findIndex(x => !x); if (slot !== -1) nb[slot] = up;
+          setMergeToast(up); break;
         }
+      }
     }
     setBench(nb); setBoard(nbrd); setInventory(ninv.filter(Boolean)); setDragSrc(null);
   };
 
-  const traitCounts={}; const seenIds=new Set();
-  board.filter(Boolean).forEach(c=>{ if(!seenIds.has(c.id)){ seenIds.add(c.id); c.traits.forEach(t=>{traitCounts[t]=(traitCounts[t]||0)+1;}); } });
-  
+  const handleMouseEnter = (e, champ) => {
+    if (!champ) return;
+    handleMouseLeave();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const isRight = rect.left > window.innerWidth / 2;
+    hoverTimer.current = setTimeout(() => { setTooltipData({ champ, x: rect.left, y: rect.top, isRight }); }, 1000);
+  };
+  const handleMouseLeave = () => { if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; } setTooltipData(null); };
+  const handleTraitMouseEnter = (e, trait, count) => { const rect = e.currentTarget.getBoundingClientRect(); setTraitTooltipData({ trait, count, x: rect.left, y: rect.top }); };
+
+  const traitCounts = {}; const seenIds = new Set();
+  board.filter(Boolean).forEach(c => { if (!seenIds.has(c.id)) { seenIds.add(c.id); c.traits.forEach(t => { traitCounts[t] = (traitCounts[t]||0)+1; }); } });
+
   const TRAIT_TIERS = {
-    'Anima': [3, 6], 'Arbiter': [2, 3], 'Dark Star': [2, 4, 6, 9], 'Mecha': [3, 4, 6],
-    'Meeple': [3, 5, 7, 10], 'N.O.V.A.': [2, 5], 'Primordian': [2, 3], 'Psionic': [2, 4],
-    'Space Groove': [1, 3, 5, 7, 10], 'Stargazer': [3, 4, 5, 6, 7], 'Timebreaker': [2, 3, 4],
-    'Bastion': [2, 4, 6], 'Brawler': [2, 4, 6], 'Challenger': [2, 3, 4, 5], 'Channeler': [2, 3, 4, 5],
-    'Fateweaver': [2, 4], 'Marauder': [2, 4, 6], 'Replicator': [2, 4], 'Rogue': [2, 3, 4, 5],
-    'Shepherd': [3, 5, 7], 'Sniper': [2, 3, 4, 5], 'Vanguard': [2, 4, 6], 'Voyager': [2, 3, 4, 5, 6],
-    'Redeemer': [1],'missfortuneuniquetrait': [1]
+    'Anima':[3,6],'Arbiter':[2,3],'Dark Star':[2,4,6,9],'Mecha':[3,4,6],'Meeple':[3,5,7,10],
+    'N.O.V.A.':[2,5],'Primordian':[2,3],'Psionic':[2,4],'Space Groove':[1,3,5,7,10],
+    'Stargazer':[3,4,5,6,7],'Timebreaker':[2,3,4],'Bastion':[2,4,6],'Brawler':[2,4,6],
+    'Challenger':[2,3,4,5],'Channeler':[2,3,4,5],'Fateweaver':[2,4],'Marauder':[2,4,6],
+    'Replicator':[2,4],'Rogue':[2,3,4,5],'Shepherd':[3,5,7],'Sniper':[2,3,4,5],
+    'Vanguard':[2,4,6],'Voyager':[2,3,4,5,6],'Redeemer':[1],'missfortuneuniquetrait':[1]
   };
 
   const getMinReq = (t) => TRAIT_TIERS[t] ? TRAIT_TIERS[t][0] : 2;
-  const activeTraits = Object.entries(traitCounts).filter(([t,c]) => c >= getMinReq(t)).sort((a,b)=>b[1]-a[1]);
-  const inactiveTraits = Object.entries(traitCounts).filter(([t,c]) => c < getMinReq(t)).sort((a,b)=>b[1]-a[1]);
+  const activeTraits = Object.entries(traitCounts).filter(([t,c]) => c >= getMinReq(t)).sort((a,b) => b[1]-a[1]);
+  const inactiveTraits = Object.entries(traitCounts).filter(([t,c]) => c < getMinReq(t)).sort((a,b) => b[1]-a[1]);
+
 
   if (isFinished) {
     return (
-      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease', padding:20, overflowY:'auto'}}>
-        <div style={{fontFamily:'Noto Sans JP,Orbitron', fontSize:'clamp(20px, 8vw, 36px)', fontWeight:900, color:'var(--gold)', letterSpacing:6, textAlign:'center'}}>結果</div>
-        <div style={{color:'var(--textdim)', fontFamily:'Orbitron', fontSize:14, letterSpacing:2}}>シード値: {seed}</div>
-        <div style={{display:'flex', gap:20, flexWrap:'wrap', justifyContent:'center'}}>
-          <div style={{width:220, display:'flex', flexDirection:'column', gap:12}}>
-             <div style={{background:'var(--bg2)', padding:15, borderRadius:12, border:'1px solid var(--blue)'}}><div style={{fontSize:10, color:'var(--blue)', fontFamily:'Noto Sans JP'}}>最終レベル</div><div style={{fontSize:24, fontWeight:900, color:'white'}}>LV. {level}</div></div>
-             <div style={{background:'var(--bg2)', padding:15, borderRadius:12, border:'1px solid var(--gold)'}}><div style={{fontSize:10, color:'var(--gold)', fontFamily:'Noto Sans JP'}}>最終ゴールド</div><div style={{fontSize:24, fontWeight:900, color:'white'}}>{gold}G</div></div>
-             <div style={{background:'var(--bg2)', padding:15, borderRadius:12, border:'1px solid var(--teal)', maxHeight:180, overflow:'auto'}}>
-                {activeTraits.map(([t,c])=>(<div key={t} style={{fontSize:14, color:'var(--gold)', fontWeight:900, marginBottom:5, display:'flex', alignItems:'center', gap:6}}><img src={getTraitIconUrl(t)} style={{width:18, height:18}} onError={(e)=>e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
-             </div>
-             <button className="menu-btn" onClick={onRestart}>同じシード値で再挑戦</button>
-             <button className="menu-btn" onClick={onNewGame}>新しいゲーム</button>
-             <button className="menu-btn" style={{fontSize:11, padding:'8px'}} onClick={() => { navigator.clipboard.writeText(seed); alert("シード値をコピーしました！"); }}>シード値をコピー</button>
-          </div>
-          <div style={{background:'rgba(255,255,255,0.03)', padding:20, borderRadius:20, border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center'}}>
-            <div style={{transform: 'scale(0.8)'}}>
-              {[0,1,2,3].map(row=>(<div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?30:0}}>{[0,1,2,3,4,5,6].map(col=><HexCell key={row*7+col} champ={board[row*7+col]} size={60} />)}</div>))}
+      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
+        
+        {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
+        <div style={{display:'flex',gap:12,marginBottom:5}}>
+          <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13}}>同じシードで再挑戦</button>
+          <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13}}>新しいゲーム</button>
+          <button className="menu-btn" onClick={() => { navigator.clipboard.writeText(seed); showMsg('シード値をコピーしました'); }} style={{padding:'10px 20px',fontSize:13, borderColor:'var(--gold)', color:'var(--gold2)'}}>
+            シード値をコピー
+          </button>
+        </div>
+
+        {/* 🌟 キャプチャ対象エリア */}
+        <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding:24,display:'flex',flexDirection:'column',gap:20,maxWidth:900,width:'100%'}}>
+          
+          {/* ヘッダー */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16}}>
+            <div>
+              <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET 17 — 1 STAGE RESULT</div>
+              <div style={{fontFamily:'Orbitron',fontSize:28,fontWeight:900,color:'white'}}>結果</div>
             </div>
+            
+            <div style={{display:'flex',alignItems:'center',gap:16}}>
+              {/* 🌟 2. 遭遇した2体の神を並べて表示（画像ブロック解除済み） */}
+              <div style={{display:'flex',gap:10}}>
+                {encounterGods.map((god) => (
+                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.03)',border:`1px solid ${god.color}33`,borderRadius:10,padding:'6px 12px'}}>
+                    {/* 👇 crossOrigin属性を削除したため画像が表示されます */}
+                    <img src={god.imgUrl} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover'}} />
+                    <div>
+                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
+                      <div style={{fontSize:11,fontWeight:900,color:god.color,lineHeight:1.2}}>{god.name.replace('\n', ' ')}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div style={{fontFamily:'Orbitron',fontSize:11,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
+                <div>SEED</div>
+                <div style={{color:'white',fontWeight:900}}>{seed}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
+            {/* 左カラム：ステータス */}
+            <div style={{display:'flex',flexDirection:'column',gap:10,minWidth:200}}>
+              
+              {/* レベル・ゴールド */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <div style={{background:'rgba(26,159,255,0.08)',border:'1px solid rgba(26,159,255,0.2)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:9,color:'var(--blue)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終レベル</div>
+                  <div style={{fontSize:22,fontWeight:900,color:'white',fontFamily:'Orbitron'}}>LV {level}</div>
+                </div>
+                <div style={{background:'rgba(200,169,110,0.08)',border:'1px solid rgba(200,169,110,0.2)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:9,color:'var(--gold)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終ゴールド</div>
+                  <div style={{fontSize:22,fontWeight:900,color:'white',fontFamily:'Orbitron'}}>{gold}G</div>
+                </div>
+              </div>
+
+              {/* オーグメント */}
+              {augments.length > 0 && (
+                <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(155,89,245,0.3)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:9,color:'var(--purple)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>AUGMENTS</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                    {augments.map((a, i) => (
+                      <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{width:32,height:32,background:'rgba(0,0,0,0.4)',border:`1px solid ${TIER_COLORS[a.tier]}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+                          <img src={getAugmentIconUrl(a)} style={{width:'80%',height:'80%',objectFit:'contain'}} onError={e => e.target.style.display='none'}/>
+                        </div>
+                        <div>
+                          <div style={{fontSize:11,fontWeight:900,color:TIER_COLORS[a.tier],lineHeight:1.1}}>{a.name}</div>
+                          {/* 🌟 3. ティア（GOLDなど）の文字を削除しました */}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* シナジー */}
+              {activeTraits.length > 0 && (
+                <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(0,229,192,0.2)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:9,color:'var(--teal)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>ACTIVE TRAITS</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                    {activeTraits.map(([t, c]) => (
+                      <div key={t} style={{display:'flex',alignItems:'center',gap:5,background:'rgba(200,169,110,0.12)',border:'1px solid rgba(200,169,110,0.3)',borderRadius:6,padding:'4px 8px'}}>
+                        <img src={getTraitIconUrl(t)} style={{width:12,height:12}} onError={e => e.target.style.display='none'}/>
+                        <span style={{fontSize:10,color:'var(--gold)',fontWeight:900}}>{c}</span>
+                        <span style={{fontSize:10,color:'white'}}>{getTraitJaName(t)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 右エリア全体：盤面・ベンチ・アイテム */}
+            <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.02)',borderRadius:12,border:'1px solid var(--border)',padding:'24px 16px',minWidth:340, gap: 16}}>
+              
+              {/* 🌟 上部エリア：左にアイテム、右に盤面（主役） */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, width: '100%' }}>
+                
+                {/* 🌟 アイテム一覧（左側に配置、縦長） */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(0,0,0,0.3)', padding: '12px 10px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', alignItems: 'center', minHeight: 120, minWidth: 50 }}>
+                  <div style={{ fontSize: 9, color: 'var(--gold)', fontFamily: 'Orbitron', letterSpacing: 1 }}>ITEMS</div>
+                  
+                  {/* 👇 ここを flexDirection: 'column' に変更して縦長に！ */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', maxHeight: 260, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                    {inventory.length > 0 ? inventory.map((it, i) => (
+                      <div key={i} style={{
+                        width: 28, height: 28, background: 'var(--bg0)', borderRadius: 4,
+                        border: `1px solid ${it?.type === 'completed' ? 'var(--gold)' : 'var(--border)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', position: 'relative', flexShrink: 0
+                      }}>
+                        {it?.name ? (<img src={getMetaTFTItemUrl(it.name)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />) : (<span style={{ fontSize: 12 }}>{it?.icon}</span>)}
+                        
+                        {/* 除去装置などのスタック表示 */}
+                        {it?.id === 'remover' && (it.count || 1) > 1 && (
+                          <div style={{ position: 'absolute', top: -6, left: -6, background: 'var(--blue)', color: 'white', fontSize: 9, fontWeight: 900, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bg0)', zIndex: 10 }}>
+                            {it.count}
+                          </div>
+                        )}
+                      </div>
+                    )) : <div style={{ fontSize: 10, color: 'var(--textdim)', padding: '6px 0', textAlign: 'center' }}>なし</div>}
+                  </div>
+                </div>
+
+                {/* 🌟 盤面（主役なので大きく表示） */}
+                <div style={{transform:'scale(0.8)',transformOrigin:'center center'}}>
+                  {[0,1,2,3].map(row => (
+                    <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60}/>)}
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+
+              {/* 🌟 下部エリア：ベンチ（小さく控えめに） */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', width: 'fit-content' }}>
+                <div style={{ fontSize: 9, color: 'var(--textdim)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center' }}>BENCH</div>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {bench.map((champ, i) => (
+                    <div key={i} style={{
+                      width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
+                      border: `1px solid ${champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.4)'}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'
+                    }}>
+                      {champ && (
+                        <React.Fragment>
+                          <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                            {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it.name)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: '1px solid white', borderRadius: 1 }} />))}
+                          </div>
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
+                        </React.Fragment>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* フッター */}
+          <div style={{borderTop:'1px solid var(--border)',paddingTop:12,display:'flex',justifyContent:'center'}}>
+            <div style={{fontFamily:'Orbitron',fontSize:9,color:'var(--textdim)',letterSpacing:3}}>TFT SET 17 SIMULATOR</div>
           </div>
         </div>
       </div>
     );
   }
 
-  return(
-    <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',overflow:'hidden',userSelect:'none',position:'relative'}}>
+  const xpCost = Math.max(1, 4 - xpCostReduction);
+  const teamSizeBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
+
+  return (
+
+  <div 
+    onDragOver={e => e.preventDefault()} 
+    onDrop={hDrop('anywhere', -1)} 
+    style={{ height:'100vh', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
+  >
+    
+
+
       <ChampionTooltip data={tooltipData} />
       <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} />
+      {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rng} augmentTierBoost={augmentTierBoost} />}
+      {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:12, textAlign:'center', maxWidth:'90%' }}>{dropMsg}</div>}
+      {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
 
-      {showAugment && <AugmentScreen onPick={(aug)=>{setAugments([...augments, aug]); setShowAugment(false);}} rng={rng}/>}
-      {dropMsg && <div style={{position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:12, textAlign:'center', maxWidth:'90%'}}>{dropMsg}</div>}
-      {mergeToast && <div style={{position:'fixed',top:'25%',left:'50%',transform:'translateX(-50%)',background:'rgba(8,13,26,.97)',border:`1px solid ${STAR_COLORS[mergeToast.star]}`,borderRadius:12,padding:20,zIndex:4000,animation:'starUpAnim .4s ease',display:'flex',alignItems:'center',gap:15}}><img src={boardIcon(mergeToast.img)} style={{width:60,height:60,borderRadius:8,objectFit:'cover',border:`2px solid ${STAR_COLORS[mergeToast.star]}`}}/><div><div style={{fontFamily:'Noto Sans JP',fontSize:11,color:STAR_COLORS[mergeToast.star]}}>スター昇格！</div><div style={{fontSize:20,fontWeight:900,color:'white'}}>{mergeToast.jaName}</div></div></div>}
+      {isTransitioning && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,      // 全要素の最前面
+          background: 'transparent', 
+          cursor: 'wait',    
+          pointerEvents: 'all' 
+        }} />
+      )}
 
-      {/* ヘッダー */}
-      <div style={{height:48,background:'rgba(8,13,26,.98)',borderBottom:'1px solid rgba(30,45,74,.8)',display:'flex',alignItems:'center',padding:'0 10px',gap:12,zIndex:50, flexShrink:0}}>
-        <div style={{fontFamily:'Orbitron',fontWeight:900,fontSize:12,color:'var(--gold)'}}>{seed}</div>
-        <div style={{fontFamily:'Orbitron',fontSize:15,fontWeight:700,color:'white'}}>{round}</div>
-        <div style={{display:'flex',gap:6, overflowX:'auto', flex:1}}>
-          {augments.map((a, i) => <div key={i} style={{fontSize:9,background:'rgba(200,169,110,0.15)',border:'1px solid var(--gold)',padding:'2px 6px',borderRadius:4,color:'var(--gold)', whiteSpace:'nowrap', fontFamily:'Noto Sans JP'}}>{a.name}</div>)}
-        </div>
 
-        <button 
-    onClick={debugDropAllItems} 
-    style={{
-      background: 'rgba(200,169,110,.15)', 
-      border:'1px solid var(--gold)', 
-      borderRadius:6, 
-      padding:'6px 10px', 
-      fontFamily:'Noto Sans JP', 
-      fontSize:10, 
-      color:'var(--gold)', 
-      cursor: 'pointer',
-      marginRight: '5px'
-    }}
-  >
-    DEBUG: ALL ITEMS
-  </button>
-        
-        <button 
+      {/* 🌟 1-1 神との遭遇 （二回り縮小・比率維持版） */}
+      {round === '1-1' && (
+        <div 
           onClick={() => handleNextRound()} 
           style={{
-            background: round === '2-1' ? 'var(--red)' : 'rgba(26,159,255,.15)', 
-            border:'1px solid white', 
-            borderRadius:6, 
-            padding:'6px 12px', 
-            fontFamily:'Noto Sans JP', 
-            fontSize:11, 
-            color:'white', 
-            cursor: 'pointer', 
-            fontWeight:700
-          }}>
-          {round === '2-1' ? 'Finish' : 'NEXT'}
-        </button>
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            background: 'radial-gradient(circle, rgba(200,169,110,0.1) 0%, rgba(4,6,14,0.98) 70%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            animation: 'fadeIn 1s ease',
+            cursor: 'pointer',
+          }}
+        >
+          {/* タイトル */}
+          <div style={{ textAlign: 'center', marginBottom: 45, pointerEvents: 'none' }}>
+            <div style={{ fontFamily: 'Orbitron', fontSize: '12px', color: 'var(--gold2)', letterSpacing: '8px', marginBottom: 15 }}>GOD ENCOUNTER</div>
+            <h1 style={{ fontFamily: 'Noto Sans JP', fontSize: '36px', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--gold)', letterSpacing: '3px' }}>神々の世界</h1>
+            <p style={{ color: 'var(--textdim)', marginTop: 15, fontSize: '12px', letterSpacing: '1px' }}>
+              画面をクリックして運命を受け入れる
+            </p>
+          </div>
+
+          {/* 神のカード */}
+          <div style={{ display: 'flex', gap: 45, pointerEvents: 'none' }}>
+            {encounterGods.map((god) => (
+              <div 
+                key={god.id}
+                style={{
+                  width: 240, height: 360, // 👈 320x480 から 240x360（1:1.5の比率を維持）
+                  background: 'rgba(8,13,26,0.9)',
+                  border: `2px solid ${god.color}44`, 
+                  borderRadius: 18, 
+                  position: 'relative',
+                  overflow: 'hidden',
+                  display: 'flex', flexDirection: 'column',
+                  boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 15px ${god.color}11`,
+                  animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                }}
+              >
+                {/* 背景の光り */}
+                <div style={{ position: 'absolute', top: -75, left: -75, width: 225, height: 225, background: god.color, filter: 'blur(75px)', opacity: 0.15 }}></div>
+
+                {/* 神の画像 */}
+                <div style={{ width: '100%', height: '240px', position: 'relative', overflow: 'hidden' }}>
+                  <img src={god.imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {/* 下部へのフェード */}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,13,26,1) 0%, transparent 40%)' }}></div>
+                </div>
+
+                {/* 詳細テキスト */}
+                <div style={{ padding: '0 18px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                  <h2 style={{ fontSize: 18, color: 'white', fontWeight: 900, marginBottom: 8, fontFamily: 'Noto Sans JP', whiteSpace: 'pre-wrap' }}>{god.name}</h2>
+                  <p style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.6, opacity: 0.8, whiteSpace: 'pre-wrap' }}>{god.desc}</p>
+                </div>
+
+                {/* 縁取りの光り */}
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${god.color}, transparent)` }}></div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 45, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
+            — CLICK ANYWHERE TO BEGIN —
+          </div>
+        </div>
+      )}
+
+
+
+
+      {/* ヘッダー：シンプル巨大ステージ表示版 */}
+      <div style={{ 
+        height: 60, // 少し高さを出して存在感をアップ
+        background: 'rgba(8,13,26,.98)', 
+        borderBottom: '1px solid rgba(30,45,74,.8)', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '0 20px', 
+        zIndex: 50, 
+        flexShrink: 0,
+        position: 'relative'
+      }}>
+        
+        {/* 左側：シード値 */}
+        <div style={{ position: 'absolute', left: 20, fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6 }}>
+          {seed}
+        </div>
+
+        {/* 🌟 中央：大きく表示されるステージ番号 */}
+        <div style={{ 
+          fontFamily: 'Orbitron', 
+          fontSize: '32px', // 大きく！
+          fontWeight: 900, 
+          color: 'white', 
+          letterSpacing: '4px',
+          textShadow: '0 0 15px rgba(26,159,255,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 15
+        }}>
+          {round}
+          {afkRoundsLeft > 0 && (
+            <span style={{ fontSize: '12px', color: 'var(--red)', background: 'rgba(255,68,85,0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--red)', letterSpacing: '0' }}>
+              💤 AFK {afkRoundsLeft}
+            </span>
+          )}
+        </div>
+
+        {/* 右側：ボタン類 */}
+        <div style={{ position: 'absolute', right: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {freeRerolls > 0 && (
+            <div style={{ background:'rgba(0,229,192,0.15)', border:'1px solid var(--teal)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--teal)', fontWeight:700 }}>
+              🎲 ×{freeRerolls}
+            </div>
+          )}
+          {/*  <button onClick={debugDropAllItems} style={{ background:'rgba(200,169,110,.1)', border:'1px solid rgba(200,169,110,0.3)', borderRadius:6, padding:'6px 10px', fontFamily:'Noto Sans JP', fontSize:10, color:'var(--gold)', cursor:'pointer' }}>DEBUG</button>*/}
+          
+        </div>
       </div>
 
       {/* メインエリア */}
-      <div style={{flex:1,display:'flex',overflow:'hidden', position:'relative'}}>
+      <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
-        <div style={{display:'flex', background:'rgba(8,13,26,.6)', borderRight:'1px solid var(--border)', flexShrink:0}}>
-          <div style={{width:150, padding:8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)'}}>
-            <div style={{background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center'}}>
-              <div style={{fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP'}}>ユニット数</div>
-              <div style={{fontSize:14, color:'white', fontWeight:900, fontFamily:'Orbitron'}}>{board.filter(Boolean).length}/{level}</div>
+        <div style={{ display:'flex', background:'rgba(8,13,26,.6)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
+          <div style={{ width:150, padding:8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
+            <div style={{ background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center' }}>
+              <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
+              <div style={{ fontSize:14, color:'white', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{level + teamSizeBonus}</div>
             </div>
-            
-            {/* アクティブシナジー */}
-            {activeTraits.map(([t,c])=>(
-              <div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{fontSize:10,marginBottom:4,background:'rgba(200,169,110,.15)',borderRadius:6,padding:6,border:'1px solid var(--gold)',color:'white', fontWeight:700, display:'flex', alignItems:'center', gap:6}}>
-                <img src={getTraitIconUrl(t)} style={{width:14, height:14}} onError={(e)=>e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span>
-              </div>
-            ))}
-
-            {/* 非アクティブシナジー */}
-            {inactiveTraits.map(([t,c])=>(
-              <div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{fontSize:10,marginBottom:4,background:'rgba(13,21,37,.4)',borderRadius:6,padding:6,border:'1px dashed rgba(30,45,74,.5)',color:'var(--textdim)', display:'flex', alignItems:'center', gap:6}}>
-                <img src={getTraitIconUrl(t)} style={{width:14, height:14, opacity:0.5}} onError={(e)=>e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span>
-              </div>
-            ))}
+            {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'rgba(200,169,110,.15)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'white', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14 }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
+            {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'rgba(13,21,37,.4)', borderRadius:6, padding:6, border:'1px dashed rgba(30,45,74,.5)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5 }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
           </div>
-          
           {/* アイテム欄 */}
-          <div style={{width:56, padding:8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap:8}}>
-            <div style={{fontSize:9, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center'}}>アイテム</div>
+          <div style={{ width:56, padding:8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap:8 }}>
+            <div style={{ fontSize:9, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center' }}>アイテム</div>
             {inventory.map((it, i) => (
-              <div key={i} draggable onDragStart={() => setDragSrc({ type: 'inventory', idx: i })} onDragOver={e => e.preventDefault()} onDrop={hDrop('inventory', i)} title={it?.name ? getJaName(it.name) : ""}
-              style={{
-                width: 36, height: 36, background: 'var(--bg0)', borderRadius: 6, border: `1px solid ${it?.type === 'completed' ? 'var(--gold)' : 'var(--border)'}`, cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, boxShadow: it?.type === 'completed' ? '0 0 10px rgba(200,169,110,0.3)' : 'none'
-              }}>
-              {it?.imgId ? (
-                <img src={getMetaTFTItemUrl(it.name)} style={{ width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} onError={(e) => { e.target.src = `https://cdn.mobalytics.gg/assets/tft/images/game-items/set17/${it.name.toLowerCase().replace(/\s+/g, '-')}.png`; }} />
-              ) : (
-                <span style={{ fontSize: 18, pointerEvents: 'none' }}>{it?.icon}</span>
-              )}
+              <div key={i} draggable onDragStart={() => setDragSrc({ type:'inventory', idx:i })} onDragOver={e => e.preventDefault()} onDrop={hDrop('inventory', i)} title={it?.name ? getJaName(it.name) : ""} style={{ width:36, height:36, background:'var(--bg0)', borderRadius:6, border:`1px solid ${it?.type==='completed'?'var(--gold)':'var(--border)'}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none', position:'relative' }}>
+                {it?.name ? (<img src={getMetaTFTItemUrl(it.name)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
+                
+                {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
+                {it?.id === 'remover' && (it.count || 1) > 1 && (
+                  <div style={{ position:'absolute', top:-6, left:-6, background:'var(--blue)', color:'white', fontSize:10, fontWeight:900, width:16, height:16, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--bg0)', zIndex:10, boxShadow:'0 2px 4px rgba(0,0,0,0.5)' }}>
+                    {it.count}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
-        
+
         {/* 盤面 */}
-        <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center', overflow:'hidden'}}>
-          <div style={{transform: 'scale(clamp(0.4, 0.9, 0.9))', transition:'transform 0.3s'}}>
-            <div style={{display:'flex',flexDirection:'column',gap:2}}>
-              {[0,1,2,3].map(row=>(
-                <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
-                  {[0,1,2,3,4,5,6].map(col=>(
-                    <HexCell key={row*7+col} champ={board[row*7+col]} onDragStart={()=>setDragSrc({type:'board',idx:row*7+col})} onDrop={hDrop('board',row*7+col)} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />
-                  ))}
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+          <div style={{ transform:'scale(clamp(0.4,0.9,0.9))', transition:'transform 0.3s' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+              {[0,1,2,3].map(row => (
+                <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
+                  {[0,1,2,3,4,5,6].map(col => (<HexCell key={row*7+col} champ={board[row*7+col]} onDragStart={() => setDragSrc({ type:'board', idx:row*7+col })} onDrop={hDrop('board', row*7+col)} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />))}
                 </div>
               ))}
             </div>
           </div>
         </div>
+
+        {/* 🌟 右サイドバー: 取得済みオーグメント */}
+        <div style={{
+          width: 100, // 横幅
+          background: 'rgba(8,13,26,.6)',
+          borderLeft: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '15px 5px',
+          gap: 20, // 各オーグメント間の隙間
+          overflowY: 'auto',
+          flexShrink: 0
+        }}>
+          <div style={{ fontSize: 9, color: 'var(--gold2)', fontWeight: 900, marginBottom: 5, textAlign: 'center', fontFamily:'Noto Sans JP' }}>AUGMENTS</div>
+          
+          {augments.map((a, i) => (
+            <div key={i} style={{
+              display: 'flex',
+              flexDirection: 'column', // 縦に並べる
+              alignItems: 'center',
+              gap: 6,
+              textAlign: 'center',
+              width: '100%'
+            }}>
+              {/* アイコン画像 */}
+              <div style={{
+                width: 50,
+                height: 50,
+                background: 'rgba(0,0,0,0.4)',
+                border: `2px solid ${TIER_COLORS[a.tier]}`,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                overflow: 'hidden',
+                boxShadow: `0 0 10px ${TIER_COLORS[a.tier]}33`,
+                flexShrink: 0
+              }}>
+                <img 
+                  src={getAugmentIconUrl(a)} 
+                  style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
+                  onError={(e) => e.target.style.display = 'none'}
+                />
+              </div>
+              
+              {/* 名前 */}
+              <span style={{
+                fontSize: 10,
+                color: TIER_COLORS[a.tier],
+                fontWeight: 900,
+                lineHeight: 1.2,
+                fontFamily: 'Noto Sans JP',
+                wordBreak: 'break-all',
+                padding: '0 4px'
+              }}>
+                {a.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      {/* 🌟 メインエリア全体の閉じタグの直前まで */}
+
+
       </div>
 
       {/* ベンチ */}
-      <div style={{background:'rgba(8,13,26,.92)',borderTop:'1px solid var(--border)',padding:'8px',display:'flex',justifyContent:'center',gap:4, flexShrink:0}}>
-        {bench.map((champ,i)=>(
-          <div key={i} onDragOver={e=>e.preventDefault()} onDrop={hDrop('bench',i)} style={{width:54,height:54,borderRadius:8,background:'rgba(13,21,37,.5)',border:'1px solid rgba(30,45,74,.4)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-           {champ && (
-            <div draggable onDragStart={() => setDragSrc({ type: 'bench', idx: i })} onMouseEnter={(e) => handleMouseEnter(e, champ)}  onMouseLeave={handleMouseLeave} style={{ width: '100%', height: '100%', cursor: 'grab', position: 'relative' }}>
-              <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, pointerEvents: 'none' }} />
-              <div style={{ position: 'absolute', top: 2, left: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {(champ.items || []).map((it, idx) => (
-                  <img key={idx} src={getMetaTFTItemUrl(it.name)} style={{ width: 12, height: 12, border: '1px solid white', borderRadius: 2, background: 'black' }} />
-                ))}
+      <div style={{ background:'rgba(8,13,26,.92)', borderTop:'1px solid var(--border)', padding:'8px', display:'flex', justifyContent:'center', gap:4, flexShrink:0 }}>
+        {bench.map((champ, i) => (
+          <div 
+            key={i} 
+            onDragOver={e => e.preventDefault()} 
+            onDrop={hDrop('bench', i)} 
+            style={{ 
+              width:54, 
+              height:54, 
+              borderRadius:8, 
+              background:'rgba(13,21,37,.5)', 
+              // 🌟 枠線の色をコストに合わせて動的に変更
+              border: `1px solid ${champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.4)'}`,
+              // 🌟 ユニットがいる時は少しだけ発光させる
+              boxShadow: champ ? `inset 0 0 10px ${COST_COLORS[champ.cost]}33` : 'none',
+              display:'flex', 
+              alignItems:'center', 
+              justifyContent:'center', 
+              position:'relative',
+              transition: 'border 0.2s ease'
+            }}
+          >
+            {champ && (
+              <div draggable onDragStart={() => setDragSrc({ type:'bench', idx:i })} onMouseEnter={(e) => handleMouseEnter(e, champ)} onMouseLeave={handleMouseLeave} style={{ width:'100%', height:'100%', cursor:'grab', position:'relative' }}>
+                <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+                <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
+                  {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it.name)} style={{ width:12, height:12, border:'1px solid white', borderRadius:2, background:'black' }} />))}
+                </div>
+                <div style={{ position:'absolute', bottom:2, left:0, right:0 }}><Stars star={champ.star} /></div>
               </div>
-              <div style={{ position: 'absolute', bottom: 2, left: 0, right: 0 }}><Stars star={champ.star} /></div>
-            </div>
-          )}
-            {!champ && <span style={{color:'var(--border)', fontSize:12}}>＋</span>}
+            )}
+            {!champ && <span style={{ color:'var(--border)', fontSize:12 }}>＋</span>}
           </div>
         ))}
       </div>
 
       {/* ショップ */}
-      <div onDragOver={e=>e.preventDefault()} onDrop={hDrop('shop', -1)} style={{height:140,background:'rgba(4,6,14,.98)',borderTop:'2px solid var(--border)',display:'flex',flexDirection:'column', flexShrink:0}}>
-        {round !== '1-1' ? (
-          <React.Fragment>
-            <div style={{height: 26, display:'flex', alignItems:'center', padding:'0 15px', background:'rgba(0,0,0,0.4)', borderBottom:'1px solid rgba(30,45,74,.6)', fontFamily:'Orbitron', position:'relative'}}>
-              <div style={{display:'flex', alignItems:'center'}}>
-                <div style={{fontWeight:900, fontSize:13, color:'white', marginRight:10}}>LV {level}</div>
-                <div style={{color:'var(--textdim)', fontSize:11, fontFamily:'Rajdhani', fontWeight:700}}>{xp} / {XP_FOR_NEXT_LEVEL[level]||'-'}</div>
-              </div>
-              <div style={{position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', justifyContent:'center', height:'100%', padding:'0 30px', color:'white', fontSize:15, fontWeight:900, background:'linear-gradient(90deg, transparent 0%, rgba(13,21,37,0.9) 20%, rgba(13,21,37,0.9) 80%, transparent 100%)'}}>
-                <span style={{color:'var(--gold2)', marginRight:8, fontSize:12, textShadow:'0 0 5px var(--gold)'}}>💰</span> {gold}
-              </div>
-              <div style={{display:'flex', gap:12, fontSize:10, fontWeight:900, marginLeft:'auto'}}>
-                {(()=>{
-                  const odds = {1:[100,0,0,0,0],2:[100,0,0,0,0],3:[75,25,0,0,0],4:[55,30,15,0,0],5:[45,33,20,2,0],6:[35,40,20,5,0],7:[19,35,35,10,1],8:[15,25,35,20,5],9:[10,20,25,35,10]}[level] || [100,0,0,0,0];
-                  const colors = ['#8a9aaa','#44cc66','#3399ff','#cc44ff','#ffcc44'];
-                  return odds.map((o,i) => o > 0 && <div key={i} style={{color:colors[i]}}>• {o}%</div>);
-                })()}
-              </div>
-            </div>
-
-            <div style={{display:'flex', justifyContent:'center', alignItems:'center', gap:12, padding:'0 20px', height: '100%'}}>
-              <div style={{display:'flex', flexDirection:'column', gap:6, width: 130, flexShrink:0}}>
-                <button onClick={()=>{if(gold>=4){setGold(g=>g-4); setXp(x=>{const nx=x+4; if(nx>=XP_FOR_NEXT_LEVEL[level]){setLevel(l=>l+1); return nx-XP_FOR_NEXT_LEVEL[level];} return nx;});}}} style={{height: 38, background:'linear-gradient(135deg, rgba(16,35,57,1) 0%, rgba(26,159,255,0.15) 100%)', border:'1px solid rgba(26,159,255,.4)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'white'}}>
-                  <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP'}}>
-                    <span style={{fontSize:13, fontWeight:700, lineHeight:1.2}}>XP購入</span>
-                    <span style={{fontSize:11, color:'var(--gold2)', fontFamily:'Orbitron'}}>💰 4</span>
-                  </div>
-                </button>
-                <button onClick={()=>{if(gold>=2){setGold(g=>g-2);setShop(rollShop(level, rng))}}} style={{height: 38, background:'linear-gradient(135deg, rgba(42,32,16,1) 0%, rgba(200,169,110,0.15) 100%)', border:'1px solid rgba(200,169,110,.4)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'white'}}>
-                  <div style={{display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP'}}>
-                    <span style={{fontSize:13, fontWeight:700, lineHeight:1.2}}>リロール</span>
-                    <span style={{fontSize:11, color:'var(--gold2)', fontFamily:'Orbitron'}}>💰 2</span>
-                  </div>
-                </button>
+      {/* ショップエリア */}
+     {/* 🌟 ショップ・NEXTボタン エリア 🌟 */}
+      <div style={{ height:140, background:'rgba(4,6,14,.98)', borderTop:'2px solid var(--border)', display:'flex', flexShrink:0, position: 'relative' }}>
+        
+        {/* 左側〜中央：ショップ内容（ドロップ判定はここに残す） */}
+        <div onDragOver={e => e.preventDefault()} onDrop={hDrop('shop', -1)} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {round !== '1-1' && round !== '1-2' && !showAugment ? (
+            <React.Fragment>
+              {/* ヘッダー情報（レベル・XP・ゴールド・確率） */}
+              <div style={{ height:26, display:'flex', alignItems:'center', padding:'0 15px', background:'rgba(0,0,0,0.4)', borderBottom:'1px solid rgba(30,45,74,.6)', fontFamily:'Orbitron', position:'relative' }}>
+                <div style={{ display:'flex', alignItems:'center' }}>
+                  <div style={{ fontWeight:900, fontSize:13, color:'white', marginRight:10 }}>LV {level}{teamSizeBonus > 0 ? `+${teamSizeBonus}` : ''}</div>
+                  <div style={{ color:'var(--textdim)', fontSize:11, fontFamily:'Rajdhani', fontWeight:700 }}>{xp} / {XP_FOR_NEXT_LEVEL[level]||'-'}</div>
+                </div>
+                <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', justifyContent:'center', height:'100%', padding:'0 30px', color:'white', fontSize:15, fontWeight:900, background:'linear-gradient(90deg, transparent 0%, rgba(13,21,37,0.9) 20%, rgba(13,21,37,0.9) 80%, transparent 100%)' }}>
+                  <span style={{ color:'var(--gold2)', marginRight:8, fontSize:12, textShadow:'0 0 5px var(--gold)' }}>💰</span> {gold}
+                </div>
+                <div style={{ display:'flex', gap:12, fontSize:10, fontWeight:900, marginLeft:'auto' }}>
+                  {(()=>{
+                    const odds = {1:[100,0,0,0,0],2:[100,0,0,0,0],3:[75,25,0,0,0],4:[55,30,15,0,0],5:[45,33,20,2,0],6:[35,40,20,5,0],7:[19,35,35,10,1],8:[15,25,35,20,5],9:[10,20,25,35,10]}[level] || [100,0,0,0,0];
+                    const colors = ['#8a9aaa','#44cc66','#3399ff','#cc44ff','#ffcc44'];
+                    return odds.map((o,i) => o > 0 && <div key={i} style={{ color:colors[i] }}>• {o}%</div>);
+                  })()}
+                </div>
               </div>
 
-              <div style={{display:'flex', gap:8, height:'100%', padding: '8px 0'}}>
-                {shop.map((champ,i)=>(
-                  <div key={i} draggable={!!champ && gold>=champ.cost} onDragStart={champ ? (e)=>setDragSrc({type:'shop',idx:i}) : undefined} onClick={()=>{const unit=shop[i]; if(!unit||gold<unit.cost)return; const slot=bench.findIndex(x=>!x); if(slot===-1)return; let nb=[...bench], ns=[...shop]; nb[slot]={...unit, star:1, uid:rng()}; ns[i]=null; setGold(g=>g-unit.cost); setShop(ns); 
-                    const counts={}; [...nb,...board].forEach(u=>{if(u){const k=`${u.id}_${u.star||1}`;counts[k]=(counts[k]||0)+1;}});
-                    for(const k in counts){ if(counts[k]>=3){ const [id,s]=k.split('_'); const star=parseInt(s); if(star<3){ let toRem=3; for(let j=0;j<nb.length&&toRem>0;j++) if(nb[j]&&nb[j].id===id&&nb[j].star===star){nb[j]=null;toRem--;} for(let j=0;j<board.length&&toRem>0;j++) if(board[j]&&board[j].id===id&&board[j].star===star){board[j]=null;toRem--;} const up={...CHAMPS.find(c=>c.id===id), star:star+1, uid:rng()}; nb[nb.findIndex(x=>!x)]=up; setMergeToast(up); } } }
-                    setBench(nb); setShop(ns);
-                  }} style={{height:'100%', aspectRatio:'400 / 237', flexShrink:0, borderRadius:4, background:champ?'rgba(10,15,25,1)':'transparent', border:champ?`1px solid ${COST_COLORS[champ.cost]}`:'1px solid rgba(30,45,74,.3)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity: champ && gold < champ.cost ? 0.4 : 1}}>
-                    {champ && (
-                      <React.Fragment>
-                        <img src={champIcon(champ.img)} style={{position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none'}}/>
-                        <div style={{position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(10,15,25,1) 0%, transparent 45%, rgba(10,15,25,0.7) 100%)'}}></div>
-                        <div style={{position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none'}}></div>
-                        <div style={{position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3}}>
-                          {champ.traits.map(t=>(
-                            <div key={t} style={{display:'flex', alignItems:'center', gap:4}}>
-                              <img src={getTraitIconUrl(t)} style={{width:12, height:12, filter:'drop-shadow(1px 1px 2px #000)'}} onError={(e)=>e.target.style.display='none'}/>
-                              <span style={{fontSize:10, color:'white', fontWeight:600, textShadow:'1px 1px 2px #000'}}>{getTraitJaName(t)}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{position:'absolute', bottom:4, left:6, right:6, display:'flex', justifyContent:'space-between', alignItems:'flex-end'}}>
-                          <span style={{fontSize:12, fontWeight:900, color:'white', textShadow:'1px 1px 2px #000', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{champ.jaName}</span>
-                          <span style={{fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'1px 1px 2px #000', fontFamily:'Orbitron'}}>💰 {champ.cost}</span>
-                        </div>
-                      </React.Fragment>
-                    )}
-                  </div>
-                ))}
+              {/* 操作エリア（XP・リロール・チャンピオン枠） */}
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, padding:'0 20px', height:'100%' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, width:130, flexShrink:0 }}>
+                  {/* XP購入ボタン */}
+                  <button
+                    onClick={() => {
+                      const cost = xpCost;
+                      if (gold >= cost) {
+                        setGold(g => g - cost);
+                        const extraXp = passiveBuffs.some(b => b.type === 'level_up_aug') ? 2 : 0;
+                        const { level: nl, xp: nx } = applyXp(4 + extraXp, level, xp);
+                        setLevel(nl); setXp(nx);
+                      }
+                    }}
+                    style={{ height:38, background:'linear-gradient(135deg, rgba(16,35,57,1) 0%, rgba(26,159,255,0.15) 100%)', border:'1px solid rgba(26,159,255,.4)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'white' }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
+                      <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>XP購入</span>
+                      <span style={{ fontSize:11, color:'var(--gold2)', fontFamily:'Orbitron' }}>💰 {xpCost}</span>
+                    </div>
+                  </button>
+                  {/* リロールボタン */}
+                  <button
+                    onClick={() => {
+                      if (freeRerolls > 0) { setFreeRerolls(fr => fr - 1); setShop(rollShop(level, rng)); return; }
+                      if (gold >= 2) {
+                        setGold(g => g - 2); setShop(rollShop(level, rng));
+                        if (passiveBuffs.some(b => b.type === 'prism_ticket') && rng() < 0.5) setFreeRerolls(fr => fr + 1);
+                      }
+                    }}
+                    style={{ height:38, background:'linear-gradient(135deg, rgba(42,32,16,1) 0%, rgba(200,169,110,0.15) 100%)', border:`1px solid ${freeRerolls>0?'var(--teal)':'rgba(200,169,110,.4)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'white' }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
+                      <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>リロール</span>
+                      <span style={{ fontSize:11, color:freeRerolls>0?'var(--teal)':'var(--gold2)', fontFamily:'Orbitron' }}>{freeRerolls > 0 ? `🎲 無料(${freeRerolls})` : '💰 2'}</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* チャンピオン枠 */}
+                <div style={{ display:'flex', gap:8, height:'100%', padding:'8px 0' }}>
+                  {shop.map((champ, i) => (
+                    <div key={i} draggable={!!champ && gold>=champ.cost} onDragStart={champ ? () => setDragSrc({ type:'shop', idx:i }) : undefined}
+                      onClick={() => {
+                        const unit = shop[i]; if (!unit || gold < unit.cost) return;
+                        const slot = bench.findIndex(x => !x); if (slot === -1) return;
+                        let nb = [...bench], ns = [...shop];
+                        nb[slot] = { ...unit, star:1, uid:rng(), items:[] }; ns[i] = null;
+                        setGold(g => g - unit.cost); setShop(ns);
+                        const counts = {}; [...nb, ...board].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1; } });
+                        // 🌟 ショップ内 onClick 内の進化ロジック
+                        for (const k in counts) {
+                          if (counts[k] >= 3) {
+                            const [id, s] = k.split('_');
+                            const star = parseInt(s);
+                            
+                            if (star < 3) {
+                              let toRem = 3;
+                              let collected = [];
+                              let targetBoardIdx = -1; // 進化後の配置先（ボード）
+                              // 1. まずボード上の同名・同星ユニットを消去＆アイテム回収
+                              for (let j = 0; j < board.length && toRem > 0; j++) {
+                                if (board[j] && board[j].id === id && board[j].star === star) {
+                                  if (targetBoardIdx === -1) targetBoardIdx = j; // 最初に見つけたボードの位置を記憶
+                                  if (board[j].items) collected.push(...board[j].items);
+                                  board[j] = null;
+                                  toRem--;
+                                }
+                              }
+                              // 2. 残りの必要数をベンチから消去＆アイテム回収
+                              for (let j = 0; j < nb.length && toRem > 0; j++) {
+                                if (nb[j] && nb[j].id === id && nb[j].star === star) {
+                                  if (nb[j].items) collected.push(...nb[j].items);
+                                  nb[j] = null;
+                                  toRem--;
+                                }
+                              }
+                              // 3. 進化したユニットを作成（アイテムは3つまで）
+                              const up = { ...CHAMPS.find(c => c.id === id), star: star + 1, uid: rng(), items: collected.slice(0, 3) };
+                              // 4. 配置：ボードの位置が記憶されていればボードへ、そうでなければベンチへ
+                              if (targetBoardIdx !== -1) {
+                                board[targetBoardIdx] = up;
+                              } else {
+                                const slot = nb.findIndex(x => !x);
+                                if (slot !== -1) nb[slot] = up;
+                              }
+                              setMergeToast(up);
+                              break;
+                            }
+                          }
+                        }
+                        setBench(nb);
+                      }}
+                      style={{ height:'100%', aspectRatio:'400/237', flexShrink:0, borderRadius:4, background:champ?'rgba(10,15,25,1)':'transparent', border:champ?`1px solid ${COST_COLORS[champ.cost]}`:'1px solid rgba(30,45,74,.3)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
+                      {champ && (
+                        <React.Fragment>
+                          <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
+                          <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(10,15,25,1) 0%, transparent 45%, rgba(10,15,25,0.7) 100%)' }}></div>
+                          <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
+                          <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
+                            {champ.traits.map(t => (<div key={t} style={{ display:'flex', alignItems:'center', gap:4 }}><img src={getTraitIconUrl(t)} style={{ width:12, height:12, filter:'drop-shadow(1px 1px 2px #000)' }} onError={(e) => e.target.style.display='none'}/><span style={{ fontSize:10, color:'white', fontWeight:600, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span></div>))}
+                          </div>
+                          <div style={{ position:'absolute', bottom:4, left:6, right:6, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+                            <span style={{ fontSize:12, fontWeight:900, color:'white', textShadow:'1px 1px 2px #000', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{champ.jaName}</span>
+                            <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'1px 1px 2px #000', fontFamily:'Orbitron' }}>💰 {champ.cost}</span>
+                          </div>
+                        </React.Fragment>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
+            </React.Fragment>
+          ) : (
+            /* 🌟 隠されている時の表示 */
+            <div style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Noto Sans JP', color:'var(--textdim)', fontSize:12, opacity:0.5 }}>
+              {showAugment ? 'オーグメントを選択中...' : '・・・戦闘中・・　右下の「NEXT」を押してね'}
             </div>
-          </React.Fragment>
-        ) : (<div style={{width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'Noto Sans JP', color:'var(--textdim)', fontSize:12, opacity:0.5}}>・・・戦闘中・・　右上の「NEXT」を押してね</div>)}
+          )}
+        </div>
+
+        {/* 🌟 右側：NEXTボタンエリア（常に表示） */}
+        <div style={{ width: 140, borderLeft: '1px solid rgba(30,45,74,.8)', background: 'rgba(8,13,26,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '15px', zIndex: 10 }}>
+          <button 
+            onClick={() => handleNextRound()} 
+            style={{ 
+              width: '100%', height: '70px',
+              background: round === '2-1' ? 'var(--red)' : 'var(--blue)', 
+              border: '1px solid white', borderRadius: 8, 
+              fontFamily: 'Orbitron', fontSize: '18px', color: 'white', 
+              cursor: 'pointer', fontWeight: 900,
+              boxShadow: '0 0 15px rgba(26,159,255,0.3)',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+          >
+            <span style={{ fontSize: '11px', opacity: 0.8, marginBottom: '2px', fontFamily: 'Noto Sans JP' }}>
+              {round === '2-1' ? '最終結果へ' : '次のラウンド'}
+            </span>
+            <span>{round === '2-1' ? 'FINISH' : 'NEXT ➔'}</span>
+          </button>
+        </div>
+
       </div>
     </div>
   );
 }
+
+
 
 ReactDOM.createRoot(document.getElementById('root')).render(<Main/>);
 </script>
