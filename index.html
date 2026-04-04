@@ -1107,9 +1107,21 @@ function Main() {
   if (view === 'MENU') {
     return (
       <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
-        <div style={{ fontFamily:'Orbitron', fontSize:'clamp(30px,10vw,70px)', fontWeight:900, color:'#fff', letterSpacing:15, textShadow:`0 0 5px rgba(0,0,0,1),0 0 10px rgba(0,0,0,0.8),0 0 20px var(--gold),0 0 40px var(--gold)`, textAlign:'center', transform:'skewX(-5deg)', opacity:0.95 }}>
-          TFT SET 17　1ステ DEMO
-        </div>
+<div style={{ 
+  fontFamily:'Orbitron', 
+  fontSize:'clamp(30px, 8vw, 70px)', // 改行するので少し小さめに調整
+  fontWeight:900, 
+  color:'#fff', 
+  letterSpacing:15, 
+  textShadow:`0 0 5px rgba(0,0,0,1),0 0 10px rgba(0,0,0,0.8),0 0 20px var(--gold),0 0 40px var(--gold)`, 
+  textAlign:'center', 
+  transform:'skewX(-5deg)', 
+  opacity:0.95,
+  lineHeight: 1.2 // 行間が広すぎないように調整
+}}>
+  TFT SET 17<br />
+  <span style={{ fontSize: '0.7em', letterSpacing: 8 }}>1stage Simulator</span> 
+</div>
         <button className="menu-btn" style={{ width:220, boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
         <div style={{ display:'flex', gap:5, background:'rgba(0,0,0,0.5)', padding:'10px', borderRadius:'12px', backdropFilter:'blur(6px)' }}>
           <input style={{ padding:12, borderRadius:8, border:'1px solid var(--border)', background:'var(--bg1)', color:'white', fontFamily:'Orbitron', width:160 }} placeholder="シード値..." value={seed} onChange={(e) => setSeed(e.target.value.toUpperCase())} />
