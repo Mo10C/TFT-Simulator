@@ -1048,7 +1048,12 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
             {choices.map((aug, i) => (
               <div key={aug.id} style={{ display: 'flex', flexDirection: 'column', gap: 15, width: 250 }}>
                 <div
-                  onClick={() => onPick(aug)}
+                  onClick={() => onPick(aug, { 
+                    tier, 
+                    initialChoices: augmentSetup.initial, 
+                    rerolledSlots, 
+                    finalChoices: choices 
+                  })}
                   className={`aug-card-${aug.tier}`}
                   style={{
                     height: 350, width: 250, background: 'var(--bg2)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
@@ -1618,13 +1623,14 @@ useEffect(() => {
     }, 800); // 3秒待機
   };
 
-const handleAugmentPick = (aug) => {
-  setAugments(prev => [...prev, aug]);
+const handleAugmentPick = (aug, historyContext) => {
+  // 🌟 augデータの中に history オブジェクトとして文脈データをまるごと保存
+  setAugments(prev => [...prev, { ...aug, history: historyContext }]);
   setAugmentTierBoost(0);
   aug.effect({ gold, level, xp }, rng, augmentHelpers);
   setShowAugment(false);
 
-  // 🌟 通知メッセージを画像付きにする
+  // 通知メッセージを画像付きにする
   setDropMsg(
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
       <img src={getAugmentIconUrl(aug)} style={{ width: 24, height: 24, borderRadius: 4 }} />
@@ -1977,19 +1983,48 @@ const handleAugmentPick = (aug) => {
                 </div>
               </div>
 
-              {/* オーグメント */}
+              {/* オーグメント履歴 */}
               {augments.length > 0 && (
                 <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(155,89,245,0.3)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,color:'var(--purple)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>AUGMENTS</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:8}}>
+                  <div style={{fontSize:9,color:'var(--purple)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>AUGMENT HISTORY</div>
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
                     {augments.map((a, i) => (
-                      <div key={i} style={{display:'flex',alignItems:'center',gap:10}}>
-                        <div style={{width:32,height:32,background:'rgba(0,0,0,0.4)',border:`1px solid ${TIER_COLORS[a.tier]}`,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
-                          <img src={getAugmentIconUrl(a)} style={{width:'80%',height:'80%',objectFit:'contain'}} onError={e => e.target.style.display='none'}/>
-                        </div>
-                        <div>
-                          <div style={{fontSize:11,fontWeight:900,color:TIER_COLORS[a.tier],lineHeight:1.1}}>{a.name}</div>
-                          {/* 🌟 3. ティア（GOLDなど）の文字を削除しました */}
+                      <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.3)', padding: '10px 8px', borderRadius: 8, border: `1px solid ${TIER_COLORS[a.tier]}44` }}>
+                     
+                        
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between' }}>
+                          {[0, 1, 2].map(slotIdx => {
+                            const initAug = a.history?.initialChoices[slotIdx];
+                            const finalAug = a.history?.finalChoices[slotIdx];
+                            const isRerolled = a.history?.rerolledSlots[slotIdx];
+                            const isPicked = finalAug?.id === a.id;
+
+                            if (!finalAug) return null;
+
+                            return (
+                              <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
+                                
+                                {/* 🌟 リロールされた場合、元のオーグメントを名前付きで表示 */}
+                                {isRerolled && (
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
+                                    <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} />
+                                    {/* 👇 名前を表示し、取り消し線（line-through）を引く */}
+                                    <div style={{ fontSize: 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px' }}>{initAug.name}</div>
+                                    <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
+                                  </div>
+                                )}
+                                
+                                {/* 最終的なオーグメント */}
+                                <img src={getAugmentIconUrl(finalAug)} style={{ width: 28, height: 28, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
+                                <div style={{ fontSize: 10, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400 }}>{finalAug.name}</div>
+                                
+                                {/* 選んだものにはチェックマーク */}
+                                {isPicked && (
+                                  <div style={{ position: 'absolute', top: -6, right: -6, background: 'var(--blue)', border: '1px solid var(--bg0)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'white', fontWeight: 900 }}>✓</div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     ))}
@@ -2018,7 +2053,7 @@ const handleAugmentPick = (aug) => {
             <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.02)',borderRadius:12,border:'1px solid var(--border)',padding:'24px 16px',minWidth:340, gap: 16}}>
               
               {/* 🌟 上部エリア：左にアイテム、右に盤面（主役） */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, width: '100%' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, width: '100%',transform: 'translateX(30px)' }}>
                 
                 {/* 🌟 アイテム一覧（左側に配置、縦長） */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(0,0,0,0.3)', padding: '12px 10px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', alignItems: 'center', minHeight: 120, minWidth: 50 }}>
@@ -2046,7 +2081,7 @@ const handleAugmentPick = (aug) => {
                 </div>
 
                 {/* 🌟 盤面（主役なので大きく表示） */}
-                <div style={{transform:'scale(0.8)',transformOrigin:'center center'}}>
+                <div style={{transform:'scale(0.8) translateX(-40px)',transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
                     <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
                       {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60}/>)}
