@@ -173,7 +173,7 @@ const CHAMPS=[
   {id:'kaisa', name:"Kai'Sa", jaName:'カイ=サ', cost:3, traits:['Dark Star', 'Rogue'], img:'Kaisa'},
   {id:'lulu', name:'Lulu', jaName:'ルル', cost:3, traits:['Stargazer', 'Replicator'], img:'Lulu'},
   {id:'maokai', name:'Maokai', jaName:'マオカイ', cost:3, traits:['N.O.V.A.', 'Brawler'], img:'Maokai'},
-  {id:'missfortune', name:'Miss Fortune', jaName:'ミス・フォーチュン', cost:3, traits:['missfortuneuniquetrait','Channeler', 'Challenger', 'Replicator'], img:'MissFortune'},
+  {id:'missfortune', name:'Miss Fortune', jaName:'ミス・フォーチュン', cost:3, traits:['missfortuneuniquetrait'], img:'MissFortune'},
   {id:'ornn', name:'Ornn', jaName:'オーン', cost:3, traits:['Space Groove', 'Bastion'], img:'Ornn'},
   {id:'rhaast', name:'Rhaast', jaName:'ラスート', cost:3, traits:['Redeemer'], img:'Rhaast'},
   {id:'samira', name:'Samira', jaName:'サミーラ', cost:3, traits:['Space Groove', 'Sniper'], img:'Samira'},
@@ -182,6 +182,7 @@ const CHAMPS=[
 ];
 
 const TRAIT_JA = {
+  'unselected': '未選択',
   'missfortuneuniquetrait':'銃装機神', 'N.O.V.A.': 'N.O.V.A.', 'Bastion': 'バスティオン',
   'Anima': 'アニマ', 'Primordian': 'プライモーディアン', 'Rogue': 'ローグ',
   'Fateweaver': 'フェイトウィーバー', 'Dark Star': 'ダークスター', 'Brawler': 'ブローラー',
@@ -272,6 +273,33 @@ const PSIONIC_ITEMS = [
   { name: 'tft17_item_psyops_chemicalcapacitormod', jaName: 'マルウェア マトリックス' },
   { name: 'tft17_item_psyops_grenademod', jaName: 'バイオ物質保存装置' }
 ];
+
+
+/* ── アービター原因・結果データ ── */
+const ARBITER_CAUSES = [
+  { id: 'c1', text: '各「アービター」の体力が初めて40%未満になったとき' },
+  { id: 'c2', text: '戦闘開始時: 獲得予定の利子ごとに、さらに' },
+  { id: 'c3', text: '戦闘開始時: 「アービター」のスターレベルごとに' },
+  { id: 'c4', text: '「アービター」が10回ダメージを与えたとき' },
+  { id: 'c5', text: '「アービター」が50マナを消費すると' },
+  { id: 'c6', text: '「アービター」が3回攻撃すると' },
+  { id: 'c7', text: '戦闘開始時: 直前の戦闘準備フェーズ中にリロールした場合' },
+  { id: 'c8', text: '4秒ごとに' },
+  { id: 'c9', text: '敵が倒されると' }
+];
+
+const ARBITER_EFFECTS = [
+  { id: 'e1', text: 'すべての「アービター」の攻撃速度がX%増加する。' },
+  { id: 'e2', text: '戦闘終了時、X%の確率でレオナを1体獲得する。' },
+  { id: 'e3', text: 'すべての「アービター」Xマナを獲得する。' },
+  { id: 'e4', text: 'すべての「アービター」の魔力がX増加する。' },
+  { id: 'e5', text: '戦闘終了時、25%の確率で3ゴールドを獲得する。' },
+  { id: 'e6', text: 'すべての「アービター」の最大体力が恒久的にX増加する。' },
+  { id: 'e7', text: 'すべての「アービター」の物理防御と魔法防御がX増加する。' },
+  { id: 'e8', text: '戦闘終了時、X%の確率で無料リロールをX回獲得する。' },
+  { id: 'e9', text: 'X秒間、すべての「アービター」が最大体力のX%にあたる耐久値を持つシールドを獲得する。' }
+];
+
 
 
 
@@ -946,16 +974,25 @@ const ChampionTooltip = ({ data }) => {
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 80%)' }} />
         <div style={{ position:'absolute', top:10, left:10 }}><div style={{ color:'white', fontSize:18, fontWeight:900, textShadow:'1px 1px 2px #000' }}>{champ.jaName}</div></div>
-        <div style={{ position:'absolute', bottom:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
-          {champ.traits.map(t => (<div key={t} style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0) invert(1)' }} onError={(e)=>e.target.style.display='none'} /><span style={{ color:'white', fontWeight:700, fontSize:11, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span></div>))}
+<div style={{ position:'absolute', bottom:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
+    {(() => {
+      let displayTraits = [...champ.traits];
+      if (champ.traits.includes('missfortuneuniquetrait')) displayTraits.push(champ.selectedMode || 'unselected');
+      return displayTraits.map(t => (
+        <div key={t} style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter: t==='unselected'?'grayscale(1) opacity(0.5)':'brightness(0) invert(1)' }} onError={(e)=>{if(t==='unselected')e.target.src="https://cdn.metatft.com/file/metatft/traits/unknown.png";else e.target.style.display='none';}}/>
+          <span style={{ color: t==='unselected'?'var(--textdim)':'white', fontWeight:700, fontSize:11, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span>
         </div>
+      ));
+    })()}
+  </div>
         <div style={{ position:'absolute', bottom:0, right:0, background:'rgba(10,15,25,0.9)', color:COST_COLORS[champ.cost], borderTopLeftRadius:6, borderTop:`1px solid ${COST_COLORS[champ.cost]}`, borderLeft:`1px solid ${COST_COLORS[champ.cost]}`, padding:'2px 10px', fontWeight:900, fontSize:13, display:'flex', alignItems:'center', gap:4 }}><span style={{color:'var(--gold2)'}}>💰</span>{champ.cost}</div>
       </div>
     </div>
   );
 };
 
-const TraitTooltip = ({ data, stargazerDesc, psionicItems }) => {
+const TraitTooltip = ({ data, stargazerDesc, psionicItems, arbiterRule }) => {
   if (!data) return null;
   const { trait, count, x, y } = data;
   const jaName = getTraitJaName(trait);
@@ -965,8 +1002,14 @@ const TraitTooltip = ({ data, stargazerDesc, psionicItems }) => {
   if (trait === 'Stargazer') {
     desc = stargazerDesc;
   } else if (trait === 'Psionic' && psionicItems) {
-    // 🌟 サイオニックの場合はテキストをランダムなアイテム名で書き換える
     desc = `任意の味方に装備できる「サイオニック」アイテムを獲得する。\n\n(2) 「${psionicItems[0].jaName}」を獲得する。\n(4) 「${psionicItems[1].jaName}」を獲得する。\n\n「サイオニック」アイテムを装備した「サイオニック」ユニットは追加効果を獲得する`;
+  } else if (trait === 'Arbiter') {
+    // 🌟 アービター専用の書き換え処理
+    if (arbiterRule) {
+      desc = `独自の聖なる掟を定め、所定の原因が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n【現在の掟】\n⚖️ ${arbiterRule.cause.text}、${arbiterRule.effect.text}\n\n(2) 効果を発動\n(3) 効果が強化される`;
+    } else {
+      desc = `独自の聖なる掟を定め、所定の原因が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n(2) 自分の掟の原因と結果を選択する。\n(3) 効果が強化される。`;
+    }
   }
 
   const members = CHAMPS.filter(c => c.traits.includes(trait));
@@ -1150,15 +1193,31 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
 };
 
 /* ── メインアプリ ── */
+/* ── メインアプリ ── */
 function Main() {
-  const [view, setView] = useState('MENU');
-  const [seed, setSeed] = useState("");
+  // 🌟 URLからシード値を取得する処理
+  const initialSeed = useMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('seed');
+  }, []);
+
+  // 🌟 URLにシードがあれば初期状態をGAMEにする
+  const [view, setView] = useState(initialSeed ? 'GAME' : 'MENU');
+  const [seed, setSeed] = useState(initialSeed ? initialSeed.toUpperCase() : "");
   const [gameKey, setGameKey] = useState(0);
+
   const startWithSeed = (targetSeed) => {
-    setSeed(targetSeed || Math.random().toString(36).substring(2, 9).toUpperCase());
+    const newSeed = targetSeed || Math.random().toString(36).substring(2, 9).toUpperCase();
+    setSeed(newSeed);
+    
+    // 🌟 ゲーム開始時にURLをシード付きに書き換える（リロードなし）
+    const newUrl = `${window.location.pathname}?seed=${newSeed}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+
     setGameKey(prev => prev + 1);
     setView('GAME');
   };
+
 
   if (view === 'MENU') {
     return (
@@ -1180,8 +1239,7 @@ function Main() {
 </div>
         <button className="menu-btn" style={{ width:220, boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
         <div style={{ display:'flex', gap:5, background:'rgba(0,0,0,0.5)', padding:'10px', borderRadius:'12px', backdropFilter:'blur(6px)' }}>
-          <input style={{ padding:12, borderRadius:8, border:'1px solid var(--border)', background:'var(--bg1)', color:'white', fontFamily:'Orbitron', width:160 }} placeholder="シード値..." value={seed} onChange={(e) => setSeed(e.target.value.toUpperCase())} />
-          <button className="menu-btn" onClick={() => startWithSeed(seed)}>開始</button>
+
         </div>
       </div>
     );
@@ -1234,15 +1292,55 @@ function App({ seed, onRestart, onNewGame }) {
   const hoverTimer = useRef(null);
   const [pendingUnits, setPendingUnits] = useState([]);
 
-  // 4. boardが定義された後に特性を計算する 🌟
+
+
+  // 🌟 アービター関連のState
+  const [arbiterRule, setArbiterRule] = useState(null);
+  const [showArbiterPopup, setShowArbiterPopup] = useState(false);
+  const [arbiterStep, setArbiterStep] = useState('cause');
+  const [tempCause, setTempCause] = useState(null);
+
+  const [showMfPopup, setShowMfPopup] = useState(false);
+  const [mfTargetUid, setMfTargetUid] = useState(null);
+
+
+  // シード値を基準にシャッフルして3つずつ抽出
+  const arbiterOptions = useMemo(() => {
+    const causes = [...ARBITER_CAUSES].sort(() => rng() - 0.5).slice(0, 3);
+    const effects = [...ARBITER_EFFECTS].sort(() => rng() - 0.5).slice(0, 3);
+    return { causes, effects };
+  }, [rng]);
+
+// ==========================================
+  // 🌟 特性を計算する
+  // ==========================================
   const traitCounts = {}; 
   const seenIds = new Set();
   board.filter(Boolean).forEach(c => { 
     if (!seenIds.has(c.id)) { 
       seenIds.add(c.id); 
       c.traits.forEach(t => { traitCounts[t] = (traitCounts[t]||0)+1; }); 
+      
+      // 🌟 ミス・フォーチュンがモードを選択済みなら、それも追加カウント
+      if (c.selectedMode) {
+        traitCounts[c.selectedMode] = (traitCounts[c.selectedMode] || 0) + 1;
+      }
     } 
   });
+
+  // ==========================================
+  // 🌟 修正：特性を計算した「後」に監視ロジックを置く！
+  // ==========================================
+  useEffect(() => {
+    const count = traitCounts['Arbiter'] || 0;
+    // アービターが(2)以上になり、かつまだルールが決まっていない場合にPOPを表示
+    if (count >= 2 && !arbiterRule && !showArbiterPopup) {
+      setShowArbiterPopup(true);
+      setArbiterStep('cause'); // 開くときは必ず「原因」から
+    }
+  }, [traitCounts['Arbiter'], arbiterRule, showArbiterPopup]);
+
+
 
   // 5. サイオニックアイテムの自動管理（inventoryの更新）
   useEffect(() => {
@@ -1992,11 +2090,27 @@ const handleAugmentPick = (aug, historyContext) => {
       if (mover) {
         const target = targetType === 'bench' ? nb : nbrd; 
         const ex = target[targetIdx]; 
+
+        // 🌟 追加：ベンチに移動するコマがMFならモードをリセット（未選択に戻す）
+        if (targetType === 'bench' && mover.traits.includes('missfortuneuniquetrait')) {
+          delete mover.selectedMode;
+        }
+
         target[targetIdx] = mover;
         if (ex) { 
+          // 🌟 追加：入れ替わりでベンチに戻るコマがMFなら、そちらもモードをリセット
+          if (dragSrc.type === 'bench' && ex.traits.includes('missfortuneuniquetrait')) {
+            delete ex.selectedMode;
+          }
+
           if (dragSrc.type === 'bench') nb[dragSrc.idx] = ex; 
           else nbrd[dragSrc.idx] = ex; 
         }
+      }
+
+      if (targetType === 'board' && mover && mover.traits.includes('missfortuneuniquetrait') && !mover.selectedMode) {
+        setMfTargetUid(mover.uid);
+        setShowMfPopup(true);
       }
     }
 
@@ -2075,9 +2189,14 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{display:'flex',gap:12,marginBottom:5}}>
           <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13}}>同じシードで再挑戦</button>
           <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13}}>新しいゲーム</button>
-          <button className="menu-btn" onClick={() => { navigator.clipboard.writeText(seed); showMsg('シード値をコピーしました'); }} style={{padding:'10px 20px',fontSize:13, borderColor:'var(--gold)', color:'var(--gold2)'}}>
-            シード値をコピー
-          </button>
+<button className="menu-btn" onClick={() => { 
+  // 🌟 現在のシード値が含まれたフルURLを生成してコピー
+  const shareUrl = `${window.location.origin}${window.location.pathname}?seed=${seed}`;
+  navigator.clipboard.writeText(shareUrl); 
+  showMsg('共有URLをコピーしました！'); 
+}} style={{padding:'10px 20px',fontSize:13, borderColor:'var(--gold)', color:'var(--gold2)'}}>
+  共有URLをコピー
+</button>
         </div>
 
         {/* 🌟 キャプチャ対象エリア */}
@@ -2287,7 +2406,143 @@ const handleAugmentPick = (aug, historyContext) => {
 
 
       <ChampionTooltip data={tooltipData} />
-      <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} />
+
+
+      {/* 🌟 アービターの掟選択POPアップ */}
+      {showArbiterPopup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
+          <h2 style={{ color: 'var(--gold)', fontSize: 28, marginBottom: 40, fontFamily: 'Noto Sans JP', fontWeight: 900, textShadow: '0 0 20px var(--gold)' }}>
+            アービター：掟を定めてください
+          </h2>
+
+          {/* 左右に並べるコンテナ */}
+          <div style={{ display: 'flex', gap: 60, alignItems: 'flex-start' }}>
+            
+            {/* 左カラム：原因 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
+              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【原因】</div>
+              {arbiterOptions.causes.map((opt, i) => {
+                const isSelected = tempCause?.id === opt.id;
+                return (
+                  <div 
+                    key={`cause-${i}`} 
+                    onClick={() => setTempCause(opt)} // 原因をセット
+                    style={{ 
+                      width: 240, height: 80, 
+                      background: isSelected ? 'var(--blue)' : 'var(--bg2)', // 選ばれたら青く
+                      border: `2px solid ${isSelected ? 'white' : 'var(--gold)'}`, 
+                      borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      cursor: 'pointer', padding: '15px', textAlign: 'center', 
+                      color: 'white', fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
+                      transition: 'all 0.2s', 
+                      boxShadow: isSelected ? '0 0 20px var(--blue)' : '0 0 10px rgba(200,169,110,0.1)',
+                      transform: isSelected ? 'scale(1.05)' : 'scale(1)' // 選ばれたら少し大きく
+                    }} 
+                    onMouseEnter={e => { if(!isSelected) { e.currentTarget.style.background='var(--bg3)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
+                    onMouseLeave={e => { if(!isSelected) { e.currentTarget.style.background='var(--bg2)'; e.currentTarget.style.transform='translateY(0)'; } }}
+                  >
+                    {opt.text}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 右カラム：結果 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
+              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【結果】</div>
+              {arbiterOptions.effects.map((opt, i) => {
+                const isEnabled = !!tempCause; // 原因が選ばれていれば有効
+                return (
+                  <div 
+                    key={`effect-${i}`} 
+                    onClick={() => {
+                      if (!isEnabled) return; // 有効でなければ何もしない
+                      setArbiterRule({ cause: tempCause, effect: opt }); // 決定！
+                      setShowArbiterPopup(false);
+                      showMsg(
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontSize:18 }}>⚖️</span>
+                          <span>掟が決定しました: {tempCause.text} ➔ {opt.text}</span>
+                        </div>
+                      );
+                    }} 
+                    style={{ 
+                      width: 240, height: 80, 
+                      background: 'var(--bg2)', 
+                      border: `2px solid ${isEnabled ? 'var(--gold)' : 'var(--border)'}`, 
+                      borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                      cursor: isEnabled ? 'pointer' : 'not-allowed', 
+                      padding: '15px', textAlign: 'center', 
+                      color: isEnabled ? 'white' : 'var(--textdim)', 
+                      fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
+                      transition: 'all 0.2s', 
+                      opacity: isEnabled ? 1 : 0.4, // 選べない時は暗くする
+                      boxShadow: isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'
+                    }} 
+                    onMouseEnter={e => { if(isEnabled) { e.currentTarget.style.background='var(--bg3)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
+                    onMouseLeave={e => { if(isEnabled) { e.currentTarget.style.background='var(--bg2)'; e.currentTarget.style.transform='translateY(0)'; } }}
+                  >
+                    {opt.text}
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+
+          {/* ユーザーへの操作案内 */}
+          <div style={{ marginTop: 40, color: tempCause ? 'var(--gold)' : 'var(--textdim)', fontSize: 16, fontWeight: 700, animation: 'pulse 2s infinite' }}>
+            {!tempCause ? 'まずは左側の【原因】を選択してください' : '次に右側の【結果】を選択して掟を決定します'}
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 銃装機神（ミス・フォーチュン）のモード選択POPアップ */}
+      {showMfPopup && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
+          <h2 style={{ color: 'var(--red)', fontSize: 28, marginBottom: 40, fontFamily: 'Noto Sans JP', fontWeight: 900, textShadow: '0 0 20px var(--red)' }}>
+            ミス・フォーチュン：武装モードを選択
+          </h2>
+          <div style={{ display: 'flex', gap: 30 }}>
+            {['Channeler', 'Challenger', 'Replicator'].map(mode => (
+              <div 
+                key={mode}
+                onClick={() => {
+                  const updateUnit = u => (u && u.uid === mfTargetUid) ? { ...u, selectedMode: mode } : u;
+                  setBoard(prev => prev.map(updateUnit));
+                  setBench(prev => prev.map(updateUnit));
+                  setShowMfPopup(false);
+                  setMfTargetUid(null);
+                  showMsg(
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:18 }}>🔫</span>
+                      <span>武装を【{TRAIT_JA[mode]}】に設定しました！</span>
+                    </div>
+                  );
+                }}
+                style={{ 
+                  width: 220, height: 160, background: 'var(--bg2)', 
+                  border: '2px solid var(--red)', borderRadius: 12, 
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                  cursor: 'pointer', padding: '20px', textAlign: 'center', color: 'white', 
+                  transition: 'all 0.2s', boxShadow: '0 0 15px rgba(255,68,85,0.2)' 
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background='var(--bg3)'; e.currentTarget.style.transform='translateY(-5px)'; }} 
+                onMouseLeave={e => { e.currentTarget.style.background='var(--bg2)'; e.currentTarget.style.transform='translateY(0)'; }}
+              >
+                <img src={getTraitIconUrl(mode)} style={{ width: 50, height: 50, marginBottom: 15, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' }} onError={e => e.target.style.display='none'} />
+                <div style={{ fontWeight: 900, fontSize: '18px', fontFamily: 'Noto Sans JP' }}>{TRAIT_JA[mode]}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
+
+
+
+      <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} arbiterRule={arbiterRule} />
       {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rng} augmentTierBoost={augmentTierBoost} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:12, textAlign:'center', maxWidth:'90%' }}>{dropMsg}</div>}
       {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
@@ -2392,40 +2647,85 @@ const handleAugmentPick = (aug, historyContext) => {
         position: 'relative'
       }}>
         
-        {/* 左側：シード値 */}
-        <div style={{ position: 'absolute', left: 20, fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6 }}>
-          {seed}
+        {/* 左側：シード値（元に戻しました） */}
+        <div style={{ position: 'absolute', left: 20, fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
+          SEED: {seed}
         </div>
 
-        {/* 🌟 中央：大きく表示されるステージ番号 */}
+        {/* 🌟 中央：神様 ＋ ステージ番号 ＋ 神様 */}
         <div style={{ 
-          fontFamily: 'Orbitron', 
-          fontSize: '32px', // 大きく！
-          fontWeight: 900, 
-          color: 'white', 
-          letterSpacing: '4px',
-          textShadow: '0 0 15px rgba(26,159,255,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 15
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: 20 // 神様とステージ番号の間隔
         }}>
-          {round}
-          {afkRoundsLeft > 0 && (
-            <span style={{ fontSize: '12px', color: 'var(--red)', background: 'rgba(255,68,85,0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--red)', letterSpacing: '0' }}>
-              💤 AFK {afkRoundsLeft}
-            </span>
-          )}
+          
+          {/* 左の神様 (1-2以降) */}
+{round !== '1-1' && encounterGods[0] && (
+  <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.03)',border:`1px solid ${encounterGods[0].color}33`,borderRadius:8,padding:'4px 12px'}}>
+    {/* 🌟 修正ポイント：crossOriginを削除し、onErrorを追加 */}
+    <img 
+      src={encounterGods[0].imgUrl} 
+      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover'}} 
+      onError={(e) => {
+        // もし読み込めなかったら、代わりの画像（あるいは透明な1px画像）を入れる
+        e.target.src = "https://via.placeholder.com/50?text=G";
+      }}
+    />
+    <div>
+      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+      <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
+    </div>
+  </div>
+)}
+
+          {/* ステージ番号 */}
+          <div style={{ 
+            fontFamily: 'Orbitron', 
+            fontSize: '32px', 
+            fontWeight: 900, 
+            color: 'white', 
+            letterSpacing: '4px',
+            textShadow: '0 0 15px rgba(26,159,255,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 15
+          }}>
+            {round}
+            {afkRoundsLeft > 0 && (
+              <span style={{ fontSize: '12px', color: 'var(--red)', background: 'rgba(255,68,85,0.1)', padding: '2px 8px', borderRadius: 4, border: '1px solid var(--red)', letterSpacing: '0' }}>
+                💤 AFK {afkRoundsLeft}
+              </span>
+            )}
+          </div>
+
+{/* 右の神様 (1-2以降) */}
+{round !== '1-1' && encounterGods[1] && (
+  <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(255,255,255,0.03)',border:`1px solid ${encounterGods[1].color}33`,borderRadius:8,padding:'4px 12px'}}>
+    <div style={{textAlign: 'right'}}>
+      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+      <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
+    </div>
+    {/* 🌟 修正ポイント：crossOriginを削除し、onErrorを追加 */}
+    <img 
+      src={encounterGods[1].imgUrl} 
+      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover'}} 
+      onError={(e) => {
+        e.target.src = "https://via.placeholder.com/50?text=G";
+      }}
+    />
+  </div>
+)}
+
         </div>
 
-        {/* 右側：ボタン類 */}
+        {/* 右側：ボタン類（変更なし） */}
         <div style={{ position: 'absolute', right: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
           {freeRerolls > 0 && (
             <div style={{ background:'rgba(0,229,192,0.15)', border:'1px solid var(--teal)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--teal)', fontWeight:700 }}>
               🎲 ×{freeRerolls}
             </div>
           )}
-          {/*  <button onClick={debugDropAllItems} style={{ background:'rgba(200,169,110,.1)', border:'1px solid rgba(200,169,110,0.3)', borderRadius:6, padding:'6px 10px', fontFamily:'Noto Sans JP', fontSize:10, color:'var(--gold)', cursor:'pointer' }}>DEBUG</button>*/}
-          
         </div>
       </div>
 
@@ -2698,9 +2998,18 @@ const handleAugmentPick = (aug, historyContext) => {
                           <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(10,15,25,1) 0%, transparent 45%, rgba(10,15,25,0.7) 100%)' }}></div>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
-                          <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
-                            {champ.traits.map(t => (<div key={t} style={{ display:'flex', alignItems:'center', gap:4 }}><img src={getTraitIconUrl(t)} style={{ width:12, height:12, filter:'drop-shadow(1px 1px 2px #000)' }} onError={(e) => e.target.style.display='none'}/><span style={{ fontSize:10, color:'white', fontWeight:600, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span></div>))}
-                          </div>
+<div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
+    {(() => {
+      let displayTraits = [...champ.traits];
+      if (champ.traits.includes('missfortuneuniquetrait')) displayTraits.push(champ.selectedMode || 'unselected');
+      return displayTraits.map(t => (
+        <div key={t} style={{ display:'flex', alignItems:'center', gap:4 }}>
+          <img src={getTraitIconUrl(t)} style={{ width:12, height:12, filter: t==='unselected'?'grayscale(1) opacity(0.5)':'drop-shadow(1px 1px 2px #000)' }} onError={(e)=>{if(t==='unselected')e.target.src="https://cdn.metatft.com/file/metatft/traits/unknown.png";else e.target.style.display='none';}}/>
+          <span style={{ fontSize:10, color: t==='unselected'?'var(--textdim)':'white', fontWeight:600, textShadow:'1px 1px 2px #000' }}>{getTraitJaName(t)}</span>
+        </div>
+      ));
+    })()}
+  </div>
                           <div style={{ position:'absolute', bottom:4, left:6, right:6, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
                             <span style={{ fontSize:12, fontWeight:900, color:'white', textShadow:'1px 1px 2px #000', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{champ.jaName}</span>
                             <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'1px 1px 2px #000', fontFamily:'Orbitron' }}>💰 {champ.cost}</span>
