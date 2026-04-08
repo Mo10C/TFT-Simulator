@@ -1102,26 +1102,6 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       pointerEvents: 'auto'
     }}>
       
-      {/* 🌟 盤面確認ボタン（操作ロックの「ガラス」の上に配置） */}
-      <button 
-        onClick={() => setViewBoard(!viewBoard)}
-        className="menu-btn"
-        style={{
-          position: 'fixed',
-          bottom: 30,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 2100,
-          boxShadow: '0 0 20px rgba(0,0,0,0.8)',
-          background: viewBoard ? 'var(--blue)' : 'var(--bg2)',
-          fontSize: '13px',
-          padding: '8px 24px',
-          // このボタンだけは常に触れる
-          pointerEvents: 'auto'
-        }}
-      >
-        {viewBoard ? '← オーグメント選択に戻る' : '盤面を確認する'}
-      </button>
 
       {/* 🌟 盤面確認中はカード全体を非表示に */}
       {!viewBoard && (
@@ -2189,12 +2169,26 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{display:'flex',gap:12,marginBottom:5}}>
           <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13}}>同じシードで再挑戦</button>
           <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13}}>新しいゲーム</button>
-<button className="menu-btn" onClick={() => { 
-  // 🌟 現在のシード値が含まれたフルURLを生成してコピー
-  const shareUrl = `${window.location.origin}${window.location.pathname}?seed=${seed}`;
-  navigator.clipboard.writeText(shareUrl); 
-  showMsg('共有URLをコピーしました！'); 
-}} style={{padding:'10px 20px',fontSize:13, borderColor:'var(--gold)', color:'var(--gold2)'}}>
+<button 
+  className="menu-btn" 
+  onClick={() => {
+    // URLを生成してコピー
+    const shareUrl = `${window.location.origin}${window.location.pathname}?seed=${seed}`;
+    navigator.clipboard.writeText(shareUrl); 
+    
+    // 🌟 アイコン付きのリッチな通知を出す
+    showMsg(
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+        <span style={{ fontSize: '18px' }}>🔗</span>
+        <div style={{ textAlign: 'left' }}>
+          <div style={{ fontWeight: 900, color: 'white' }}>URLをコピーしました！</div>
+          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>シード値: {seed} </div>
+        </div>
+      </div>
+    );
+  }} 
+  style={{padding:'10px 20px', fontSize:13, borderColor:'var(--gold)', color:'var(--gold2)'}}
+>
   共有URLをコピー
 </button>
         </div>
@@ -2388,6 +2382,19 @@ const handleAugmentPick = (aug, historyContext) => {
             <div style={{fontFamily:'Orbitron',fontSize:9,color:'var(--textdim)',letterSpacing:3}}>TFT SET 17 SIMULATOR</div>
           </div>
         </div>
+
+        {dropMsg && (
+          <div style={{ 
+            position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', 
+            background:'rgba(26,159,255,.95)', border:'1px solid white', borderRadius:10, 
+            padding:'12px 24px', zIndex:10000, fontFamily:'Noto Sans JP', fontSize:14, 
+            textAlign:'center', maxWidth:'90%', boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            animation: 'fadeIn 0.3s ease', color: 'white'
+          }}>
+            {dropMsg}
+          </div>
+        )}
+        
       </div>
     );
   }
@@ -2487,6 +2494,8 @@ const handleAugmentPick = (aug, historyContext) => {
                 );
               })}
             </div>
+
+            {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.95)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:10000, fontFamily:'Noto Sans JP', fontSize:14, textAlign:'center', color:'white', boxShadow:'0 4px 20px rgba(0,0,0,0.5)' }}>{dropMsg}</div>}
 
           </div>
 
