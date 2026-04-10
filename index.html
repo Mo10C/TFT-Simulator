@@ -967,15 +967,29 @@ const Stars = ({star}) => (
   </div>
 );
 
-const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseLeave }) => {
+const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseLeave, onTouchStartDrag, dropType, dropIdx }) => {
   const [over, setOver] = useState(false);
   return (
-    <div onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={e => { e.preventDefault(); setOver(false); onDrop && onDrop(e); }} style={{ width: size, height: size, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div
+      data-drop-type={dropType || 'board'}
+      data-drop-idx={dropIdx != null ? dropIdx : -1}
+      onDragOver={e => { e.preventDefault(); setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={e => { e.preventDefault(); setOver(false); onDrop && onDrop(e); }}
+      style={{ width: size, height: size, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+    >
       <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }} viewBox="0 0 78 78">
         <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : champ ? `${COST_COLORS[champ.cost]}12` : 'rgba(13,21,37,.7)'} stroke={over ? 'rgba(26,159,255,.9)' : champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.5)'} strokeWidth={champ ? 2 : 1} />
       </svg>
       {champ && (
-        <div draggable={!!onDragStart} onDragStart={(e) => { if (onMouseLeave) onMouseLeave(); if (onDragStart) onDragStart(e); }} onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)} onMouseLeave={onMouseLeave} style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}>
+        <div
+          draggable={!!onDragStart}
+          onDragStart={(e) => { if (onMouseLeave) onMouseLeave(); if (onDragStart) onDragStart(e); }}
+          onTouchStart={onTouchStartDrag ? (e) => { if (onMouseLeave) onMouseLeave(); onTouchStartDrag(e); } : undefined}
+          onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)}
+          onMouseLeave={onMouseLeave}
+          style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}
+        >
           <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
             {(champ.items || []).map((it, idx) => (
@@ -1299,7 +1313,103 @@ function App({ seed, onRestart, onNewGame }) {
   const hoverTimer = useRef(null);
   const [pendingUnits, setPendingUnits] = useState([]);
 
+  // 🌟 タッチドラッグ＆ピンチズーム用
+  const [boardZoom, setBoardZoom] = useState(1.0);
+  const touchDragRef = useRef(null); // { src, ghostEl }
+  const pinchRef = useRef(null); // { startDist, startZoom }
+  const boardContainerRef = useRef(null);
+  const hDropRef = useRef(null); // hDropの最新参照
 
+  // ── タッチドラッグ: ゴースト要素を生成して指で運ぶ ──
+  const startTouchDrag = useCallback((e, src) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+
+    // ゴースト（半透明コピー）を作る
+    const ghost = el.cloneNode(true);
+    ghost.style.cssText = `
+      position:fixed; pointer-events:none; z-index:99999;
+      width:${rect.width}px; height:${rect.height}px;
+      left:${touch.clientX - rect.width/2}px; top:${touch.clientY - rect.height/2}px;
+      opacity:0.7; transform:scale(1.1); transition:none;
+    `;
+    document.body.appendChild(ghost);
+    touchDragRef.current = { src, ghostEl: ghost };
+    setDragSrc(src);
+  }, [setDragSrc]);
+
+  const moveTouchDrag = useCallback((e) => {
+    if (!touchDragRef.current) return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const { ghostEl } = touchDragRef.current;
+    if (ghostEl) {
+      ghostEl.style.left = `${touch.clientX - parseFloat(ghostEl.style.width)/2}px`;
+      ghostEl.style.top  = `${touch.clientY - parseFloat(ghostEl.style.height)/2}px`;
+    }
+  }, []);
+
+  const endTouchDrag = useCallback((e) => {
+    if (!touchDragRef.current) return;
+    const touch = e.changedTouches[0];
+    const { ghostEl } = touchDragRef.current;
+    if (ghostEl) ghostEl.remove();
+    touchDragRef.current = null;
+
+    // 指を離した座標の要素を探してドロップターゲットを特定
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const dropTarget = el && el.closest('[data-drop-type]');
+    if (dropTarget && hDropRef.current) {
+      const type = dropTarget.getAttribute('data-drop-type');
+      const idx  = parseInt(dropTarget.getAttribute('data-drop-idx') || '-1');
+      const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+      hDropRef.current(type, idx)(syntheticE);
+    } else {
+      setDragSrc(null);
+    }
+  }, [setDragSrc]);
+
+  // ── ピンチズーム ──
+  const handleBoardTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchRef.current = { startDist: Math.hypot(dx, dy), startZoom: boardZoom };
+    }
+  }, [boardZoom]);
+
+  const handleBoardTouchMove = useCallback((e) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      e.preventDefault();
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / pinchRef.current.startDist;
+      const newZoom = Math.max(0.3, Math.min(1.2, pinchRef.current.startZoom * ratio));
+      setBoardZoom(newZoom);
+    }
+  }, []);
+
+  const handleBoardTouchEnd = useCallback((e) => {
+    if (e.touches.length < 2) pinchRef.current = null;
+  }, []);
+
+  // ── グローバルtouchmove（ドラッグ中のスクロール抑止） ──
+  useEffect(() => {
+    const onMove = (e) => { if (touchDragRef.current) moveTouchDrag(e); };
+    const onEnd  = (e) => { if (touchDragRef.current) endTouchDrag(e); };
+    document.addEventListener('touchmove',  onMove, { passive: false });
+    document.addEventListener('touchend',   onEnd);
+    document.addEventListener('touchcancel',onEnd);
+    return () => {
+      document.removeEventListener('touchmove',  onMove);
+      document.removeEventListener('touchend',   onEnd);
+      document.removeEventListener('touchcancel',onEnd);
+    };
+  }, [moveTouchDrag, endTouchDrag]);
 
   // 🌟 アービター関連のState
   const [arbiterRule, setArbiterRule] = useState(null);
@@ -1866,6 +1976,9 @@ const handleAugmentPick = (aug, historyContext) => {
   setTimeout(() => setDropMsg(null), 2000);
 };
 
+  // hDropRefを常に最新のhDropに同期
+  useEffect(() => { hDropRef.current = hDrop; });
+
   const debugDropAllItems = () => {
     const allComps = ITEMS.filter(it => it.type === 'comp');
     const allConsumables = Object.values(CONSUMABLES);
@@ -1880,6 +1993,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
     if (!dragSrc) return;
     let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
+
 
     // 🌟 【新規追加】ショップからドラッグし、ショップ以外にドロップされた場合はベンチに購入する
     if (dragSrc.type === 'shop' && targetType !== 'shop') {
@@ -2791,7 +2905,17 @@ const handleAugmentPick = (aug, historyContext) => {
           <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>
             <div style={{ fontSize:9, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center' }}>アイテム</div>
             {inventory.map((it, i) => (
-              <div key={i} draggable onDragStart={() => setDragSrc({ type:'inventory', idx:i })} onDragOver={e => e.preventDefault()} onDrop={hDrop('inventory', i)} title={it?.name ? getJaName(it.name) : ""} style={{ width:36, height:36, background:'var(--bg0)', borderRadius:6, border:`1px solid ${it?.type==='completed'?'var(--gold)':'var(--border)'}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none', position:'relative' }}>
+              <div
+                key={i}
+                data-drop-type="inventory"
+                data-drop-idx={i}
+                draggable
+                onDragStart={() => setDragSrc({ type:'inventory', idx:i })}
+                onTouchStart={(e) => startTouchDrag(e, { type:'inventory', idx:i })}
+                onDragOver={e => e.preventDefault()}
+                onDrop={hDrop('inventory', i)}
+                title={it?.name ? getJaName(it.name) : ""}
+                style={{ width:36, height:36, background:'var(--bg0)', borderRadius:6, border:`1px solid ${it?.type==='completed'?'var(--gold)':'var(--border)'}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none', position:'relative' }}>
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
                 {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
@@ -2806,12 +2930,34 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
 
         {/* 盤面 */}
-        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
-          <div style={{ transform: isLandscapeMobile ? 'scale(clamp(0.3,0.62,0.62))' : 'scale(clamp(0.4,0.9,0.9))', transition:'transform 0.3s' }}>
+        <div
+          ref={boardContainerRef}
+          onTouchStart={handleBoardTouchStart}
+          onTouchMove={handleBoardTouchMove}
+          onTouchEnd={handleBoardTouchEnd}
+          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}
+        >
+          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
               {[0,1,2,3].map(row => (
                 <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
-                  {[0,1,2,3,4,5,6].map(col => (<HexCell key={row*7+col} champ={board[row*7+col]} onDragStart={() => setDragSrc({ type:'board', idx:row*7+col })} onDrop={hDrop('board', row*7+col)} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />))}
+                  {[0,1,2,3,4,5,6].map(col => {
+                    const idx = row*7+col;
+                    return (
+                      <div key={idx} style={{ display:'contents' }}>
+                        <HexCell
+                          champ={board[idx]}
+                          dropType="board"
+                          dropIdx={idx}
+                          onDragStart={() => setDragSrc({ type:'board', idx })}
+                          onTouchStartDrag={(e) => startTouchDrag(e, { type:'board', idx })}
+                          onDrop={hDrop('board', idx)}
+                          onMouseEnter={handleMouseEnter}
+                          onMouseLeave={handleMouseLeave}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -2887,7 +3033,9 @@ const handleAugmentPick = (aug, historyContext) => {
       <div style={{ background:'rgba(8,13,26,.92)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '8px', display:'flex', justifyContent:'center', gap:4, flexShrink:0 }}>
         {bench.map((champ, i) => (
           <div 
-            key={i} 
+            key={i}
+            data-drop-type="bench"
+            data-drop-idx={i}
             onDragOver={e => e.preventDefault()} 
             onDrop={hDrop('bench', i)} 
             className="sp-bench-slot"
@@ -2896,9 +3044,7 @@ const handleAugmentPick = (aug, historyContext) => {
               height: isLandscapeMobile ? 42 : 54, 
               borderRadius:8, 
               background:'rgba(13,21,37,.5)', 
-              // 🌟 枠線の色をコストに合わせて動的に変更
               border: `1px solid ${champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.4)'}`,
-              // 🌟 ユニットがいる時は少しだけ発光させる
               boxShadow: champ ? `inset 0 0 10px ${COST_COLORS[champ.cost]}33` : 'none',
               display:'flex', 
               alignItems:'center', 
@@ -2908,7 +3054,14 @@ const handleAugmentPick = (aug, historyContext) => {
             }}
           >
             {champ && (
-              <div draggable onDragStart={() => setDragSrc({ type:'bench', idx:i })} onMouseEnter={(e) => handleMouseEnter(e, champ)} onMouseLeave={handleMouseLeave} style={{ width:'100%', height:'100%', cursor:'grab', position:'relative' }}>
+              <div
+                draggable
+                onDragStart={() => setDragSrc({ type:'bench', idx:i })}
+                onTouchStart={(e) => startTouchDrag(e, { type:'bench', idx:i })}
+                onMouseEnter={(e) => handleMouseEnter(e, champ)}
+                onMouseLeave={handleMouseLeave}
+                style={{ width:'100%', height:'100%', cursor:'grab', position:'relative' }}
+              >
                 <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
                 <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
                   {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:'1px solid white', borderRadius:2, background:'black' }} />))}
@@ -2988,7 +3141,10 @@ const handleAugmentPick = (aug, historyContext) => {
                 {/* チャンピオン枠 */}
                 <div style={{ display:'flex', gap:8, height:'100%', padding:'8px 0' }}>
                   {shop.map((champ, i) => (
-                    <div key={i} draggable={!!champ && gold>=champ.cost} onDragStart={champ ? () => setDragSrc({ type:'shop', idx:i }) : undefined}
+                    <div key={i}
+                      draggable={!!champ && gold>=champ.cost}
+                      onDragStart={champ ? () => setDragSrc({ type:'shop', idx:i }) : undefined}
+                      onTouchStart={champ && gold>=champ.cost ? (e) => startTouchDrag(e, { type:'shop', idx:i }) : undefined}
                       onClick={() => {
                         const unit = shop[i]; if (!unit || gold < unit.cost) return;
                         const slot = bench.findIndex(x => !x); if (slot === -1) return;
