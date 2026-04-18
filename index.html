@@ -241,6 +241,28 @@ const ITEM_JA = {
   'Champion Duplicator': 'チャンピオン複製機',
   'Reforger': '再合成装置',
   'Magnetic Remover': '磁力式除去装置',
+  'Spatula': '黄金のへら',
+  'Frying Pan': 'フライパン',
+  'Dark Star Emblem': 'ダークスターの紋章',
+  'pulsefire Emblem': 'タイムブレイカーの紋章',
+  'Stargazer Emblem': '星の観測者の紋章',
+  'Space Groove Emblem': 'スペースグルーヴの紋章',
+  'astronaut Emblem': 'ミィプルの紋章',
+  'favored Emblem': 'アービターの紋章',
+  'Primordian Emblem': 'プリモーディアンの紋章',
+  'drx Emblem': 'N.O.V.A.の紋章',
+  'meleetrait Emblem': '略奪者の紋章',
+  'astrait Emblem': 'チャレンジャーの紋章',
+  'flextrait Emblem': 'ボイジャーの紋章',
+  'summontrait Emblem': '導き手の紋章',
+  'resisttank Emblem': 'バスティオンの紋章',
+  'shieldtank Emblem': 'ヴァンガードの紋章',
+  'hptank Emblem': 'ブローラーの紋章',
+  'assassintrait Emblem': 'ローグの紋章',
+  'animasquad Emblem': 'アニマの紋章',
+  'Psyops Emblem': 'サイオニックの紋章',
+  'rangedtrait Emblem': 'スナイパーの紋章',
+  "forceofnature": 'タクティシャンの王冠',
 };
 
 const TRAIT_DESCS = {
@@ -289,7 +311,9 @@ const ITEMS=[
   {id:'chain', name:'Chain Vest', icon:'🛡️', type:'comp', imgId: 5}, 
   {id:'cloak', name:'Negatron Cloak', icon:'🧥', type:'comp', imgId: 6},
   {id:'belt', name:"Giant's Belt", icon:'💖', type:'comp', imgId: 7}, 
-  {id:'glove', name:'Sparring Gloves', icon:'🥊', type:'comp', imgId: 9}
+  {id:'glove', name:'Sparring Gloves', icon:'🥊', type:'comp', imgId: 9},
+  {id:'spatula', name:'Spatula', icon:'🍳', type:'comp', imgId: 8},
+  {id:'pan', name:'Frying Pan', icon:'🥘', type:'comp', imgId: 10}
 ];
 
 
@@ -331,7 +355,6 @@ const ARBITER_EFFECTS = [
 
 
 
-/* ── 神々（Set 17 遭遇ギミックデータ） ── */
 /* ── 神々（Set 17 遭遇ギミックデータ） ── */
 const GOD_DATA = [
   { id: 'soraka', name: '星々の神 ソラカ', desc: 'ソラカは「体力」を授ける', imgUrl: 'https://cmsassets.rgpub.io/sanity/images/dsfx7636/news_live/5290323ec83e76ae4dcce502e0242f6b8095eb8a-800x800.png', color: '#e8a0ff' },
@@ -381,7 +404,27 @@ const ITEM_RECIPES = {
   'cloak_glove':{id:'quicksilver', name:'Quicksilver', icon:'🧣', imgId: 69}, 
   'belt_belt':{id:'warmog', name:"Warmog's Armor", icon:'🌿', imgId: 77}, 
   'belt_glove':{id:'guardbreaker', name:'powergauntlet', icon:'🔨', imgId: 79}, 
-  'glove_glove':{id:'thiefs', name:"Thief's Gloves", icon:'🧤', imgId: 99}
+  'glove_glove':{id:'thiefs', name:"Thief's Gloves", icon:'🧤', imgId: 99},
+  'spatula_bf':{id:'emblem_darkstar', name:'Dark Star Emblem', icon:'🛡️', imgId: 81, grantedTrait: 'Dark Star'}, 
+  'spatula_bow':{id:'emblem_timebreaker', name:'pulsefire Emblem', icon:'🏹', imgId: 82, grantedTrait: 'Timebreaker'},
+  'spatula_rod':{id:'emblem_stargazer', name:'Stargazer Emblem', icon:'🔮', imgId: 83, grantedTrait: 'Stargazer'}, 
+  'spatula_tear':{id:'emblem_spacegroove', name:'SpaceGroove Emblem', icon:'💧', imgId: 84, grantedTrait: 'Space Groove'},
+  'spatula_chain':{id:'emblem_meeple', name:'astronaut Emblem', icon:'🛡️', imgId: 85, grantedTrait: 'Meeple'}, 
+  'spatula_cloak':{id:'emblem_arbiter', name:'favored Emblem', icon:'🧥', imgId: 86, grantedTrait: 'Arbiter'},
+  'spatula_belt':{id:'emblem_primordian', name:'Primordian Emblem', icon:'💖', imgId: 87, grantedTrait: 'Primordian'}, 
+  'spatula_glove':{id:'emblem_nova', name:'drx Emblem', icon:'🥊', imgId: 89, grantedTrait: 'N.O.V.A.'},
+  'spatula_spatula':{id:'tacticians_crown', name:"forceofnature", icon:'👑', imgId: 88, teamSizeBonus: 1},
+  'pan_bf':{id:'emblem_marauder', name:'meleetrait Emblem', icon:'🛡️', imgId: 91, grantedTrait: 'Marauder'},
+  'pan_bow':{id:'emblem_challenger', name:'astrait Emblem', icon:'🏹', imgId: 92, grantedTrait: 'Challenger'},
+  'pan_rod':{id:'emblem_voyager', name:'flextrait Emblem', icon:'🔮', imgId: 93, grantedTrait: 'Voyager'},
+  'pan_tear':{id:'emblem_shepherd', name:'summontrait Emblem', icon:'💧', imgId: 94, grantedTrait: 'Shepherd'},
+  'pan_chain':{id:'emblem_bastion', name:'resisttank Emblem', icon:'🛡️', imgId: 95, grantedTrait: 'Bastion'},
+  'pan_cloak':{id:'emblem_vanguard', name:'shieldtank Emblem', icon:'🧥', imgId: 96, grantedTrait: 'Vanguard'},
+  'pan_belt':{id:'emblem_brawler', name:'hptank Emblem', icon:'💖', imgId: 97, grantedTrait: 'Brawler'},
+  'pan_glove':{id:'emblem_rogue', name:'assassintrait Emblem', icon:'🥊', imgId: 98, grantedTrait: 'Rogue'},
+  'unbuildable_anima': {id:'emblem_anima', name:'animasquad Emblem', icon:'🛡️', imgId: 101, grantedTrait: 'Anima'},
+  'unbuildable_psionic': {id:'emblem_psionic', name:'Psyops Emblem', icon:'🔮', imgId: 102, grantedTrait: 'Psionic'},
+  'unbuildable_sniper': {id:'emblem_sniper', name:'rangedtrait Emblem', icon:'🏹', imgId: 103, grantedTrait: 'Sniper'}
 };
 
 const CONSUMABLES = {
@@ -392,6 +435,7 @@ const CONSUMABLES = {
 };
 
 /* ── オーグメントデータ ── */
+ //シルバーオーグメント
 const AUGMENTS_DATA = {
   silver: [
     {
@@ -494,10 +538,14 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'focused_fire', name: 'エクスペディション', tier: 'silver', category: 'combat', imgName: 'expedition_i',
-      desc: '各ラウンドの開始時、ベンチの一番右にいるチャンピオンを失う。この方法で33ゴールド分のチャンピオンを失うと、強力な報酬を獲得する。コスト3のチャンピオンを即座に獲得する。',
+      desc: '各ラウンドの開始時、ベンチの一番右にいるチャンピオンを失う。この方法で33ゴールド分のチャンピオンを失うと、強力な報酬を獲得する。即座にコスト3のチャンピオンを1体獲得する。',
       icon: '🔥',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'focused_fire', value: 10 });
+        const pool = CHAMPS.filter(c => c.cost === 3);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        const unitData = { ...chosen, star: 1, uid: rng(), items: [] };
+        helpers.addPendingUnits([unitData]);
       }
     },
     {
@@ -524,8 +572,85 @@ const AUGMENTS_DATA = {
         helpers.addItem({...CONSUMABLES.LESSER_DUPE});
       }
     },
+    {
+      id: 'branching_out', name: '構成拡大', tier: 'silver', category: 'item', imgName: 'branching-out-i',
+      desc: 'ランダムな紋章アイテムを1個獲得する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const randomEmblem = { ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' };
+        helpers.addItem(randomEmblem);
+      }
+    },
+    {
+      id: 'kickstart', name: 'キックスタート', tier: 'silver', category: 'economy', imgName: 'kickstart_i',
+      desc: 'ランダムな★2のコスト2チャンピオンを1体と1ゴールドを獲得する。',
+      icon: '⚡',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(1);
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        const unitData = { ...chosen, star: 2, uid: rng(), items: [] };
+        helpers.addPendingUnits([unitData]);
+      }
+    },
+    {
+      id: 'fire_sale', name: 'ファイアセール', tier: 'silver', category: 'economy', imgName: 'firesale_i',
+      desc: '毎ラウンド、ショップからランダムなコスト3以下のチャンピオンを1体盗む。1ゴールドを獲得する。',
+      icon: '🔥',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(1);
+        helpers.showMsg('🔥 ファイアセール: 1Gを獲得しました！');
+      }
+    },
+    {
+      id: 'ordinary_days', name: '普通の日々', tier: 'silver', category: 'economy', imgName: 'slice_of_life_i',
+      desc: 'ステージごとに2回、ランダムなチャンピオンを1体獲得する。そのコストはステージごとに増加する。この効果はコスト5のチャンピオンを1体入手すると終了する。',
+      icon: '📆',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'ordinary_days' });
+      }
+    },
+    {
+      id: 'well_earned_1', name: '有効活用 I', tier: 'silver', category: 'economy', imgName: 'good-for-something-i',
+      desc: 'アイテムを装備していないチャンピオンが、デス時に40%の確率で1ゴールドをドロップする。',
+      icon: '💰',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'well_earned_1' });
+      }
+    },
+    {
+      id: 'support_bow', name: '援護の弓', tier: 'silver', category: 'item', imgName: 'recurvewrecker_i',
+      desc: '「リカーブ ボウ」を1個獲得する。味方チームが通常攻撃を1000回行うと、さらに2個獲得する。',
+      icon: '🏹',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='bow')});
+      }
+    },
+    {
+      id: 'masterful_crafting', name: '巧みなクラフト', tier: 'silver', category: 'economy', imgName: 'craftedcrafting_i',
+      desc: '完成アイテムを作成するたびに、リロールを2回獲得する。',
+      icon: '🛠️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'masterful_crafting' });
+      }
+    },
   ],
+
+  //ゴールドオーグメント
   gold: [
+    {
+      id: 'legion_of_three', name: '3の軍団', tier: 'gold', category: 'item', imgName: 'legionofthrees_ii',
+      desc: 'ランダムな紋章アイテムを1個獲得する。味方のコスト3チャンピオンと紋章アイテムを装備したすべての味方の体力が150、攻撃速度が12%増加する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const randomEmblem = { ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' };
+        helpers.addItem(randomEmblem);
+      }
+    },
     {
       id: 'epoch', name: 'エポック', tier: 'gold', category: 'economy', imgName: 'epoch_ii',
       desc: 'このオーグメント獲得時、および各ステージ開始時に4 XPの経験値を獲得する。また、2回分の無料リロールを獲得する。',
@@ -578,7 +703,7 @@ const AUGMENTS_DATA = {
       icon: '📦',
       effect: (state, rng, helpers) => {
         // 🌟 素材アイテムを2個即座に獲得する処理を追加
-        const comps = ITEMS.filter(x => x.type === 'comp');
+        const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         
@@ -591,7 +716,7 @@ const AUGMENTS_DATA = {
       icon: '🥊',
       effect: (state, rng, helpers) => {
         // 🌟 素材アイテムを2個即座に獲得する処理を追加
-        const comps = ITEMS.filter(x => x.type === 'comp');
+        const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         
@@ -730,6 +855,204 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'infinity_guardian' });
       }
     },
+    {
+      id: 'anima_commander', name: 'アニマ司令官', tier: 'gold', category: 'combat', imgName: 'animacommander_ii',
+      desc: 'ブライアー、ジンクス、イラオイを1体ずつ獲得する。プレイヤーの現在体力と最大体力が10増加する。',
+      icon: '🐰',
+      effect: (state, rng, helpers) => {
+        const briar = CHAMPS.find(c => c.id === 'briar');
+        const jinx = CHAMPS.find(c => c.id === 'jinx');
+        const illaoi = CHAMPS.find(c => c.id === 'illaoi');
+        const units = [briar, jinx, illaoi].map(c => ({ ...c, star: 1, uid: rng(), items: [] }));
+        helpers.addPendingUnits(units);
+      }
+    },
+    {
+      id: 'urf', name: 'U.R.F.', tier: 'gold', category: 'item', imgName: 'ultrarapidfire_ii',
+      desc: '「へら」を1個獲得する。「へら」または「フライパン」アイテムを装備しているチャンピオンの攻撃速度が15%、マナ自動回復が2増加する。',
+      icon: '🍳',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='spatula')});
+      }
+    },
+    {
+      id: 'backline_blueprint', name: '後衛の設計図', tier: 'gold', category: 'combat', imgName: 'backlineblueprint_ii',
+      desc: 'タンク以外のコスト3チャンピオン1体と、そのチャンピオンの一番最後に記載されている特性の「紋章」を獲得する。',
+      icon: '📜',
+      effect: (state, rng, helpers) => {
+        const tankTraits = ['Bastion', 'Brawler', 'Vanguard'];
+        const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
+        const availableEmblemTraits = emblems.map(e => e.grantedTrait);
+        
+        // タンク特性を持たず、かつ最後の特性の紋章が存在する3コストチャンピオンを抽出
+        const validPool = CHAMPS.filter(c => {
+          if (c.cost !== 3) return false;
+          if (c.traits.some(t => tankTraits.includes(t))) return false;
+          const lastTrait = c.traits[c.traits.length - 1];
+          return availableEmblemTraits.includes(lastTrait);
+        });
+
+        if (validPool.length > 0) {
+          const chosen = validPool[Math.floor(rng() * validPool.length)];
+          const lastTrait = chosen.traits[chosen.traits.length - 1];
+          const emblem = emblems.find(e => e.grantedTrait === lastTrait);
+
+          helpers.addPendingUnits([{ ...chosen, star: 1, uid: rng(), items: [] }]);
+          if (emblem) helpers.addItem({ ...emblem, type: 'completed' });
+          helpers.showMsg(`📜 後衛の設計図: ${chosen.jaName} と ${helpers.getJaName(emblem.name)} を獲得！`);
+        }
+      }
+    },
+    {
+      id: 'frontline_foundation', name: '前衛の礎', tier: 'gold', category: 'combat', imgName: 'frontlinefoundation_ii',
+      desc: '★2のコスト1タンクチャンピオン1体と、そのチャンピオンの一番最後に記載されている特性に一致する「紋章」を獲得する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        const tankTraits = ['Bastion', 'Brawler', 'Vanguard'];
+        const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
+        const availableEmblemTraits = emblems.map(e => e.grantedTrait);
+        
+        // タンク特性を持ち、かつ最後の特性の紋章が存在する1コストチャンピオンを抽出
+        const validPool = CHAMPS.filter(c => {
+          if (c.cost !== 1) return false;
+          if (!c.traits.some(t => tankTraits.includes(t))) return false;
+          const lastTrait = c.traits[c.traits.length - 1];
+          return availableEmblemTraits.includes(lastTrait);
+        });
+
+        if (validPool.length > 0) {
+          const chosen = validPool[Math.floor(rng() * validPool.length)];
+          const lastTrait = chosen.traits[chosen.traits.length - 1];
+          const emblem = emblems.find(e => e.grantedTrait === lastTrait);
+
+          helpers.addPendingUnits([{ ...chosen, star: 2, uid: rng(), items: [] }]);
+          if (emblem) helpers.addItem({ ...emblem, type: 'completed' });
+          helpers.showMsg(`🛡️ 前衛の礎: ★★${chosen.jaName} と ${helpers.getJaName(emblem.name)} を獲得！`);
+        }
+      }
+    },
+    {
+      id: 'spreading_roots', name: '広がる根', tier: 'gold', category: 'item', imgName: 'spreadingroots_ii',
+      desc: 'ランダムな紋章アイテム2個と1ゴールドを獲得する。',
+      icon: '🌿',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(1);
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        helpers.addItem({ ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' });
+        helpers.addItem({ ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' });
+      }
+    },
+    {
+      id: 'early_education', name: '早期教育', tier: 'gold', category: 'combat', imgName: 'earlylearning_ii',
+      desc: '味方チームの攻撃力と魔力が8%増加する。この効果は各対人戦終了後に1%増加する。コスト1のチャンピオンは増加量が2倍になる',
+      icon: '📚',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'early_education' });
+      }
+    },
+    {
+      id: 'no_scouting_no_pivoting', name: '偵察なし、変更なし', tier: 'gold', category: 'combat', imgName: 'noscoutnopivot_ii',
+      desc: '対人戦に参加するチャンピオンはベンチに戻すことも、売却することもできない。対人戦後、味方チームの体力が1%、攻撃力と魔力が1.5%増加する。',
+      icon: '🚫',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'no_scouting_no_pivoting' });
+      }
+    },
+    {
+      id: 'two_for_one', name: 'お得な2', tier: 'gold', category: 'economy', imgName: 'twomuchvalue_ii',
+      desc: '前回の対人戦でボード上に配置していた種類の異なるコスト2のチャンピオン2体ごとに、1回のリロールを獲得する。コスト2のチャンピオンを1体獲得する。',
+      icon: '✌️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'two_for_one' });
+        // コスト2のチャンピオンを1体獲得
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        helpers.addPendingUnits([{ ...chosen, star: 1, uid: rng(), items: [] }]);
+      }
+    },
+    {
+      id: 'advance_payment', name: '前借り', tier: 'gold', category: 'economy', imgName: 'advancedloan_ii',
+      desc: '20ゴールドを獲得する。次のオーグメントのティアが1つ低くなる。',
+      icon: '💸',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(20);
+        helpers.showMsg('💸 前借り: 20Gを獲得しました！');
+      }
+    },
+    {
+      id: 'cluttered_mind', name: '乱れる思考', tier: 'gold', category: 'economy', imgName: 'dizzy-ii',
+      desc: '今すぐランダムなコスト1のチャンピオンを4体獲得する。対人戦ラウンド終了時にベンチが満員の場合、3 XPの経験値を獲得する。',
+      icon: '🧠',
+      effect: (state, rng, helpers) => {
+        const pool = CHAMPS.filter(c => c.cost === 1);
+        const selectedTypes = [];
+        const tempPool = [...pool];
+        
+        for(let i = 0; i < 4; i++) {
+          if (tempPool.length === 0) break;
+          const idx = Math.floor(rng() * tempPool.length);
+          selectedTypes.push(tempPool.splice(idx, 1)[0]);
+        }
+        const units = selectedTypes.map(c => ({ ...c, star: 1, uid: rng(), items: [] }));
+        helpers.addPendingUnits(units);
+        helpers.showMsg('🧠 乱れる思考: 異なる1コストチャンピオンを4体獲得しました！');
+      }
+    },
+    {
+      id: 'salvage_bin', name: '回収箱', tier: 'gold', category: 'item', imgName: 'salvage2',
+      desc: '即座にランダムな完成アイテムを1個獲得する。また、対人戦を8回終えると、素材アイテムを1個獲得する。チャンピオンを売却すると、完成アイテムが素材に解体される(タクティシャンアイテムと紋章は除く)。',
+      icon: '♻️',
+      effect: (state, rng, helpers) => {
+        const entries = Object.entries(ITEM_RECIPES);
+        const normalComps = entries.filter(([k]) => !k.includes('spatula') && !k.includes('pan') && !k.includes('unbuildable')).map(e => e[1]);
+        helpers.addItem({ ...normalComps[Math.floor(rng() * normalComps.length)], type: 'completed' });
+      }
+    },
+    {
+      id: 'two_tanks', name: '2体のタンク', tier: 'gold', category: 'combat', imgName: 'two-tanky-ii',
+      desc: 'フィールド上にまったく同じチャンピオンを2体配置すると、両者の体力が600増加する。そのチャンピオンのいずれかが倒されると、もう一体のチャンピオンは12秒間、最大体力の40%の耐久値のシールドを獲得する。★3にアップグレードすると、★2のコピーを1体獲得する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'two_tanks' });
+      }
+    },
+    {
+      id: 'birthday_reunion', name: 'バースデー リユニオン', tier: 'gold', category: 'combat', imgName: 'birthdayreunion_ii',
+      desc: 'ランダムな★2のコスト2チャンピオンを1体獲得する。レベル7に到達すると、「盗賊のグローブ」を1個獲得する。レベル9に到達すると、ランダムな★2のコスト5チャンピオンを1体獲得する。',
+      icon: '🎉',
+      effect: (state, rng, helpers) => {
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        const unitData = { ...chosen, star: 2, uid: rng(), items: [] };
+        helpers.addPendingUnits([unitData]);
+      }
+    },
+    {
+      id: 'studious', name: '研究熱心', tier: 'gold', category: 'economy', imgName: 'earning-from-experience-ii',
+      desc: '対人戦ラウンドに勝利すると経験値を2 XP、敗北すると経験値を3 XP獲得する。',
+      icon: '📚',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'studious' });
+      }
+    },
+    {
+      id: 'sunfire_board', name: 'サンファイア ボード', tier: 'gold', category: 'combat', imgName: 'sunfireboard2',
+      desc: '戦闘開始時: すべての敵を焼き、15秒かけて対象の最大体力の15%にあたるダメージを与え、対象が受ける回復効果を33%低下させる。',
+      icon: '🔥',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'sunfire_board' });
+      }
+    },
+    {
+      id: 'hustler', name: 'ハスラー', tier: 'gold', category: 'economy', imgName: 'hyperroll2',
+      desc: '利子を獲得できなくなる代わりに、対人戦ラウンドの開始時に毎回3ゴールドを獲得する。即座に3ゴールドを獲得する。',
+      icon: '🎲',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(3);
+        helpers.showMsg('🎲 ハスラー: 3Gを獲得しました！');
+      }
+    },
   ],
   prismatic: [
     {
@@ -774,6 +1097,11 @@ const AUGMENTS_DATA = {
       icon: '🌟',
       effect: (state, rng, helpers) => {
         helpers.addGold(8);
+        const pool = CHAMPS.filter(c => c.cost === 1);
+        const chosen = pool[Math.floor(rng() * pool.length)];
+        const unitData = { ...chosen, star: 3, uid: rng(), items: [] };
+        helpers.addPendingUnits([unitData]);
+        helpers.showMsg(`★★★${chosen.jaName} と 8G を獲得！`);
       }
     },
     {
@@ -884,6 +1212,47 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'birthday_gift' });
       }
     },
+    {
+      id: 'tacticians_kitchen', name: 'タクティシャンの台所', tier: 'prismatic', category: 'item', imgName: 'tacticianskitchen_iii',
+      desc: 'ランダムな紋章アイテムを1個獲得する。3ラウンド終了後に「タクティシャンのケープ」を1個獲得する。',
+      icon: '🍳',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const randomEmblem = { ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' };
+        helpers.addItem(randomEmblem);
+      }
+    },
+    {
+      id: 'trait_tree', name: '特性の木', tier: 'prismatic', category: 'item', imgName: 'thetraittree_iii',
+      desc: 'ランダムな紋章アイテム3個、「再合成装置」1個と2ゴールドを獲得する。',
+      icon: '🌳',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(2);
+        helpers.addItem({...CONSUMABLES.REFORGER});
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const tempEmblems = [...emblems];
+        const selectedEmblems = [];
+        
+        for (let i = 0; i < 3; i++) {
+          if (tempEmblems.length === 0) break;
+          const idx = Math.floor(rng() * tempEmblems.length);
+          selectedEmblems.push(tempEmblems.splice(idx, 1)[0]);
+        }
+        
+        selectedEmblems.forEach(emblem => helpers.addItem({ ...emblem, type: 'completed' }));
+      }
+    },
+    {
+      id: 'buried_treasures', name: '埋もれた宝物', tier: 'prismatic', category: 'item', imgName: 'buried-treasures-iii',
+      desc: '即座にランダムな素材アイテムを1個獲得し、次の5ラウンドに渡って、ラウンド開始時にランダムな素材アイテムを1個ずつ獲得する。',
+      icon: '💎',
+      effect: (state, rng, helpers) => {
+        const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+      }
+    },
   ]
 };
 
@@ -908,6 +1277,12 @@ const getMetaTFTItemUrl = (item) => {
   // 1. サイオニック専用（ファイル名そのものが入っている場合）
   if (nameInput.startsWith('tft17_item_psyops_')) {
     return `https://cdn.metatft.com/file/metatft/items/${nameInput}.png`;
+  }
+
+  // 1.5 紋章専用のURLフォーマット
+  if (nameInput.includes('Emblem')) {
+    const traitName = nameInput.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
+    return `https://cdn.metatft.com/file/metatft/items/tft17_item_${traitName}emblemitem.png`;
   }
 
   // 2. 特殊消費アイテム
@@ -1143,7 +1518,34 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       // 🌟 pointer-eventsは常にautoにすることで、下の盤面操作をブロック
       pointerEvents: 'auto'
     }}>
-      
+
+      {/* 👇 盤面確認切り替えボタンを追加 */}
+      <button 
+        onClick={() => setViewBoard(!viewBoard)}
+        style={{
+          position: 'absolute',
+          bottom: 30,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'var(--blue)',
+          color: 'white',
+          border: '1px solid white',
+          borderRadius: '8px',
+          padding: '12px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          fontFamily: 'Noto Sans JP',
+          cursor: 'pointer',
+          boxShadow: '0 0 15px rgba(26,159,255,0.6)',
+          zIndex: 2001
+        }}
+        title={viewBoard ? "オーグメント選択に戻る" : "盤面を確認する"}
+      >
+        {viewBoard ? '🔙 選択に戻る' : '👁️ 盤面を確認する'}
+      </button>
 
       {/* 🌟 盤面確認中はカード全体を非表示に */}
       {!viewBoard && (
@@ -1447,12 +1849,17 @@ function App({ seed, onRestart, onNewGame }) {
   board.filter(Boolean).forEach(c => { 
     if (!seenIds.has(c.id)) { 
       seenIds.add(c.id); 
-      c.traits.forEach(t => { traitCounts[t] = (traitCounts[t]||0)+1; }); 
       
-      // 🌟 ミス・フォーチュンがモードを選択済みなら、それも追加カウント
-      if (c.selectedMode) {
-        traitCounts[c.selectedMode] = (traitCounts[c.selectedMode] || 0) + 1;
+      const unitTraits = new Set(c.traits);
+      if (c.selectedMode) unitTraits.add(c.selectedMode);
+      
+      if (c.items) {
+        c.items.forEach(it => {
+          if (it.grantedTrait) unitTraits.add(it.grantedTrait);
+        });
       }
+      
+      unitTraits.forEach(t => { traitCounts[t] = (traitCounts[t]||0)+1; }); 
     } 
   });
 
@@ -1760,7 +2167,7 @@ useEffect(() => {
       }
       
       if (isItem) {
-        const comps = ITEMS.filter(it => it.type === 'comp');
+        const comps = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
         let availableComps = comps.filter(c => !droppedComps.includes(c.id) && !newlyDroppedIds.includes(c.id));
         
         if (availableComps.length === 0) {
@@ -1982,10 +2389,11 @@ const handleAugmentPick = (aug, historyContext) => {
 
   const debugDropAllItems = () => {
     const allComps = ITEMS.filter(it => it.type === 'comp');
-    const allConsumables = Object.values(CONSUMABLES);
-    setInventory(prev => [...prev, ...allComps, ...allConsumables]);
-    setDropMsg("🛠️ デバッグ: 全アイテム追加");
-    setTimeout(() => setDropMsg(null), 2000);
+    const allEmblems = Object.values(ITEM_RECIPES)
+      .filter(recipe => recipe.grantedTrait || recipe.id === 'tacticians_crown')
+      .map(recipe => ({ ...recipe, type: 'completed' }));
+    setInventory(prev => [...prev, ...allComps, ...allEmblems]);
+    showMsg("🛠️ デバッグ: 素材と紋章をすべて追加しました");
   };
 
   const hDrop = (targetType, targetIdx) => (e) => {
@@ -1995,6 +2403,31 @@ const handleAugmentPick = (aug, historyContext) => {
     if (!dragSrc) return;
     let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
 
+    // --- リフォージ用の抽選ロジック ---
+    const getReforgeTarget = (itemToReforge) => {
+      if (itemToReforge.type === 'comp') {
+        if (itemToReforge.id === 'spatula') return { ...ITEMS.find(x => x.id === 'pan') };
+        if (itemToReforge.id === 'pan') return { ...ITEMS.find(x => x.id === 'spatula') };
+        
+        const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== itemToReforge.id && x.id !== 'spatula' && x.id !== 'pan');
+        const pool = comps.length > 0 ? comps : ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
+        return { ...pool[Math.floor(rng() * pool.length)] };
+      }
+      if (itemToReforge.type === 'completed') {
+        if (itemToReforge.id === 'tacticians_crown') return itemToReforge; // 王冠はそのまま
+        const entries = Object.entries(ITEM_RECIPES);
+        const normalComps = entries.filter(([k]) => !k.includes('spatula') && !k.includes('pan') && !k.includes('unbuildable')).map(e => e[1]);
+        const craftEmblems = entries.filter(([k, v]) => (k.includes('spatula') || k.includes('pan')) && v.id !== 'tacticians_crown').map(e => e[1]);
+        const uncraftEmblems = entries.filter(([k]) => k.includes('unbuildable')).map(e => e[1]);
+        let pool = normalComps;
+        if (uncraftEmblems.some(e => e.id === itemToReforge.id)) pool = uncraftEmblems;
+        else if (craftEmblems.some(e => e.id === itemToReforge.id)) pool = craftEmblems;
+        const validPool = pool.filter(e => e.id !== itemToReforge.id);
+        const targetPool = validPool.length > 0 ? validPool : pool;
+        return { ...targetPool[Math.floor(rng() * targetPool.length)], type: 'completed' };
+      }
+      return itemToReforge;
+    };
 
     // 🌟 【新規追加】ショップからドラッグし、ショップ以外にドロップされた場合はベンチに購入する
     if (dragSrc.type === 'shop' && targetType !== 'shop') {
@@ -2078,11 +2511,7 @@ const handleAugmentPick = (aug, historyContext) => {
           
           else if (newItem.id === 'reforger') {
             if (unit.items.length === 0) { showMsg("⚠️ アイテムを持っていません！"); setDragSrc(null); return; }
-            const newItems = unit.items.map(it => {
-              if (it.type === 'comp') { const comps = ITEMS.filter(x => x.type === 'comp'); return comps[Math.floor(rng() * comps.length)]; }
-              else if (it.type === 'completed') { const recipes = Object.values(ITEM_RECIPES); const r = recipes[Math.floor(rng() * recipes.length)]; return { ...r, type:'completed' }; }
-              return it;
-            });
+            const newItems = unit.items.map(it => getReforgeTarget(it));
             ninv.push(...newItems); unit.items = []; ninv.splice(dragSrc.idx, 1);
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成して取り外しました</span></div>);
           } else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe') {
@@ -2118,13 +2547,44 @@ const handleAugmentPick = (aug, historyContext) => {
             const itemA = unit.items[existingCompIdx], itemB = newItem;
             const recipe = ITEM_RECIPES[`${itemA.id}_${itemB.id}`] || ITEM_RECIPES[`${itemB.id}_${itemA.id}`];
             if (recipe) {
-              unit.items[existingCompIdx] = { ...recipe, type:'completed' }; merged = true;
-              showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>合成成功: {getJaName(recipe.name)}!</span></div>);
+              let bounced = false;
+              if (recipe.grantedTrait) {
+                const currentTraits = new Set(unit.traits);
+                if (unit.selectedMode) currentTraits.add(unit.selectedMode);
+                unit.items.forEach(it => { if (it !== itemA && it.grantedTrait) currentTraits.add(it.grantedTrait); });
+                
+                if (currentTraits.has(recipe.grantedTrait)) {
+                  bounced = true;
+                }
+              }
+
+              if (bounced) {
+                unit.items.splice(existingCompIdx, 1);
+                ninv.push({ ...recipe, type:'completed' });
+                merged = true;
+                showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>{getJaName(recipe.name)}完成 (特性重複のためインベントリへ)</span></div>);
+                if (passiveBuffs.some(b => b.type === 'masterful_crafting')) setFreeRerolls(fr => fr + 2);
+              } else {
+                unit.items[existingCompIdx] = { ...recipe, type:'completed' }; merged = true;
+                showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>合成成功: {getJaName(recipe.name)}!</span></div>);
+                if (passiveBuffs.some(b => b.type === 'masterful_crafting')) setFreeRerolls(fr => fr + 2);
+              }
             }
           }
         }
         if (!merged) {
           if (unit.items.length < 3) {
+            if (newItem.grantedTrait) {
+              const currentTraits = new Set(unit.traits);
+              if (unit.selectedMode) currentTraits.add(unit.selectedMode);
+              unit.items.forEach(it => { if (it.grantedTrait) currentTraits.add(it.grantedTrait); });
+              
+              if (currentTraits.has(newItem.grantedTrait)) {
+                showMsg("⚠️ このユニットはすでにその特性を持っています！");
+                setDragSrc(null);
+                return;
+              }
+            }
             // 判定は id または 英語名で行うのが確実
             if (newItem.id === 'thiefs' || newItem.name === "Thief's Gloves") {
               unit.items.push(newItem);
@@ -2135,7 +2595,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 isTGGenerated: true 
               };
               unit.items.push(randomFullItem);
-              const comps = ITEMS.filter(it => it.type === 'comp');
+              const comps = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
               const randomCompItem = { 
                 ...comps[Math.floor(rng() * comps.length)],
                 isTGGenerated: true 
@@ -2182,13 +2642,12 @@ const handleAugmentPick = (aug, historyContext) => {
             if (recipe) {
               ninv[targetIdx] = { ...recipe, type:'completed' }; ninv.splice(srcIdx, 1); setInventory(ninv.filter(Boolean));
               showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(recipe.name)} style={{ width:18, height:18 }} /><span>作成完了: {getJaName(recipe.name)}</span></div>);
+              if (passiveBuffs.some(b => b.type === 'masterful_crafting')) setFreeRerolls(fr => fr + 2);
               setDragSrc(null); return;
             }
           }
           if (itemA.id === 'reforger' && (itemB.type === 'comp' || itemB.type === 'completed')) {
-            let transformedItem;
-            if (itemB.type === 'comp') { const comps = ITEMS.filter(x => x.type === 'comp'); transformedItem = comps[Math.floor(rng() * comps.length)]; }
-            else { const recipes = Object.values(ITEM_RECIPES); const r = recipes[Math.floor(rng() * recipes.length)]; transformedItem = { ...r, type:'completed' }; }
+            const transformedItem = getReforgeTarget(itemB);
             ninv[targetIdx] = transformedItem; ninv.splice(srcIdx, 1); setInventory(ninv.filter(Boolean));
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(transformedItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成しました！</span></div>);
             setDragSrc(null); return;
@@ -2204,7 +2663,16 @@ const handleAugmentPick = (aug, historyContext) => {
     if (targetType === 'shop') {
       const src = dragSrc.type === 'bench' ? nb : nbrd;
       const mover = src[dragSrc.idx];
-      if (mover) { setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1)))); src[dragSrc.idx] = null; }
+      if (mover) { 
+        setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1)))); 
+        
+        // 🌟 アイテムをインベントリに戻す処理を追加（盗賊のグローブ追加分やサイオニック専用アイテムは除く）
+        if (mover.items && mover.items.length > 0) {
+          const itemsToReturn = mover.items.filter(it => !it.isTGGenerated && !it.isPsionic);
+          ninv.push(...itemsToReturn);
+        }
+        src[dragSrc.idx] = null; 
+      }
     } else {
       // 🌟 何もない場所(anywhere) へのドロップ判定
       if (targetType === 'anywhere') {
@@ -2215,8 +2683,13 @@ const handleAugmentPick = (aug, historyContext) => {
       const src = dragSrc.type === 'bench' ? nb : nbrd; 
       let mover = src[dragSrc.idx];
       
-      if (dragSrc.type === 'bench' && targetType === 'board' && !nbrd[targetIdx] && nbrd.filter(Boolean).length >= level + (passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0)) {
-        showMsg("⚠️ 盤面が一杯です！"); setDragSrc(null); return;
+      if (dragSrc.type === 'bench' && targetType === 'board' && !nbrd[targetIdx]) {
+        const cursedCrownBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
+        const crownBonus = nbrd.filter(Boolean).reduce((acc, c) => acc + (c.items ? c.items.filter(it => it.id === 'tacticians_crown').reduce((s, it) => s + (it.teamSizeBonus || 0), 0) : 0), 0);
+        const currentMaxTeamSize = level + cursedCrownBonus + crownBonus;
+        if (nbrd.filter(Boolean).length >= currentMaxTeamSize) {
+          showMsg("⚠️ 盤面が一杯です！"); setDragSrc(null); return;
+        }
       }
       src[dragSrc.idx] = null;
       if (mover) {
@@ -2552,7 +3025,9 @@ const handleAugmentPick = (aug, historyContext) => {
   }
 
   const xpCost = Math.max(1, 4 - xpCostReduction);
-  const teamSizeBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
+  const cursedCrownBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
+  const crownBonus = board.filter(Boolean).reduce((acc, c) => acc + (c.items ? c.items.filter(it => it.id === 'tacticians_crown').reduce((s, it) => s + (it.teamSizeBonus || 0), 0) : 0), 0);
+  const teamSizeBonus = cursedCrownBonus + crownBonus;
 
   return (
 
@@ -2887,6 +3362,17 @@ const handleAugmentPick = (aug, historyContext) => {
               🎲 ×{freeRerolls}
             </div>
           )}
+
+{/* 
+          <button 
+            onClick={debugDropAllItems}
+            style={{ background:'rgba(200,169,110,0.15)', border:'1px solid var(--gold)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--gold)', fontWeight:700, cursor:'pointer' }}
+            title="すべての素材と紋章をインベントリに追加します"
+          >
+            🛠️ アイテム追加
+          </button>*/}
+
+
         </div>
       </div>
 
