@@ -2054,7 +2054,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           </div>
                         )}
                       </div>
-                    )) : <div style={{ fontSize: 10, color: 'var(--textdim)', padding: '6px 0', textAlign: 'center' }}>なし</div>}
+                    )) : <div style={{ fontSize: 10, color: 'var(--text)', padding: '6px 0', textAlign: 'center' }}>なし</div>}
                   </div>
                 </div>
 
@@ -2735,7 +2735,43 @@ const handleAugmentPick = (aug, historyContext) => {
         
         {/* 左側〜中央：ショップ内容（ドロップ判定はここに残す） */}
         <div onDragOver={e => e.preventDefault()} onDrop={hDrop('shop', -1)} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {round !== '1-1' && round !== '1-2' && !showAugment ? (
+          {anvilOptions ? (
+            /* 🌟 金床のアイテム選択UI（ショップエリアを置き換え） */
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '8px 10px', background: 'rgba(15,23,42,0.95)' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 8, fontFamily: 'Noto Sans JP' }}>
+                アイテムを1つ選択してください
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flex: 1, paddingBottom: 4 }}>
+                {anvilOptions.items.map((it, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleAnvilSelect(it)}
+                    style={{
+                      flex: 1,
+                      maxWidth: 140,
+                      background: 'rgba(30,45,74,0.6)',
+                      border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : 'var(--gold)'}`,
+                      borderRadius: 8,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      textAlign: 'center',
+                      transition: 'all 0.2s',
+                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
+                  >
+                    <img src={getMetaTFTItemUrl(it)} style={{ width: 44, height: 44, borderRadius: 6, marginBottom: 4 }} />
+                    <div style={{ fontSize: 11, fontWeight: 900, color: 'white', lineHeight: 1.1, wordBreak: 'keep-all' }}>{getJaName(it.name || it.id)}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : round !== '1-1' && round !== '1-2' && !showAugment ? (
             <React.Fragment>
               {/* ヘッダー情報（レベル・XP・ゴールド・確率） */}
               <div className="sp-shop-header" style={{ height: isLandscapeMobile ? 20 : 26, display:'flex', alignItems:'center', padding:'0 15px', background:'var(--bg2)', borderBottom:'1px solid var(--border)', fontFamily:'Orbitron', position:'relative' }}>
@@ -2915,30 +2951,6 @@ const handleAugmentPick = (aug, historyContext) => {
 
       </div>
 
-      {/* 🌟 金床ポップアップ */}
-      {anvilOptions && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease' }}>
-          <h2 style={{ color: 'white', fontSize: 24, marginBottom: 30, fontFamily: 'Noto Sans JP', fontWeight: 900 }}>アイテムを1つ選択してください</h2>
-          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
-            {anvilOptions.items.map((it, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleAnvilSelect(it)}
-                style={{
-                  width: 140, height: 180, background: 'rgba(30,45,74,0.6)', border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : 'var(--gold)'}`,
-                  borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-                  padding: 10, textAlign: 'center', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
-              >
-                <img src={getMetaTFTItemUrl(it)} style={{ width: 64, height: 64, borderRadius: 8, marginBottom: 15 }} />
-                <div style={{ fontSize: 13, fontWeight: 900, color: 'white', lineHeight: 1.3 }}>{getJaName(it.name || it.id)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
