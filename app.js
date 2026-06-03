@@ -359,8 +359,10 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
 };
 
 /* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
-const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false }) => {
+const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0 }) => {
+  const maxRerolls = 1 + (rerollBonus || 0); // 各枠のリロール可能回数（タロンで+1）
   const [tier] = useState(() => {
+    if (forceTier) return forceTier;          // 遭遇によるティア強制（TF=gold / シェン・モルガナ=prismatic）
     const baseTierRoll = rng() * 100;
     const adjusted = baseTierRoll - (augmentTierBoost * 30);
     if (adjusted < 9) return 'prismatic';
@@ -372,23 +374,31 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
 
   const [augmentSetup] = useState(() => {
     const pool = [...AUGMENTS_DATA[tier]];
+    const need = 3 + 3 * maxRerolls;          // 初期3 + (枠ごとmaxRerolls個)の控え
     const drawn = [];
-    while (drawn.length < 6 && pool.length > 0) {
+    while (drawn.length < need && pool.length > 0) {
       const idx = Math.floor(rng() * pool.length);
       drawn.push(pool.splice(idx, 1)[0]);
     }
-    return { initial: drawn.slice(0, 3), backups: drawn.slice(3, 6) };
+    const initial = drawn.slice(0, 3);
+    const backups = [[], [], []];             // 枠ごとの控え（複数回リロール対応）
+    let k = 3;
+    for (let r = 0; r < maxRerolls; r++) {
+      for (let s = 0; s < 3; s++) { if (drawn[k]) backups[s].push(drawn[k]); k++; }
+    }
+    return { initial, backups };
   });
 
   const [choices, setChoices] = useState(augmentSetup.initial);
-  const [rerolledSlots, setRerolledSlots] = useState([false, false, false]);
+  const [rerollUsed, setRerollUsed] = useState([0, 0, 0]); // 各枠の使用済みリロール回数
 
   const handleReroll = (idx) => {
-    if (rerolledSlots[idx]) return;
-    const nextAug = augmentSetup.backups[idx];
+    const used = rerollUsed[idx];
+    if (used >= maxRerolls) return;
+    const nextAug = augmentSetup.backups[idx][used];
     if (nextAug) {
       const nc = [...choices]; nc[idx] = nextAug; setChoices(nc);
-      const nr = [...rerolledSlots]; nr[idx] = true; setRerolledSlots(nr);
+      const nr = [...rerollUsed]; nr[idx] = used + 1; setRerollUsed(nr);
     }
   };
 
@@ -461,7 +471,7 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                   onClick={() => onPick(aug, { 
                     tier, 
                     initialChoices: augmentSetup.initial, 
-                    rerolledSlots, 
+                    rerolledSlots: rerollUsed.map(u => u > 0), 
                     finalChoices: choices 
                   })}
                   className={`aug-card-${aug.tier}`}
@@ -488,16 +498,16 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
 
                 <button
                   onClick={() => handleReroll(i)}
-                  disabled={rerolledSlots[i]}
+                  disabled={rerollUsed[i] >= maxRerolls}
                   style={{
-                    background: rerolledSlots[i] ? 'rgba(30,45,74,.4)' : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${rerolledSlots[i] ? 'var(--border)' : TIER_COLORS[tier]}`,
-                    color: rerolledSlots[i] ? 'rgba(255,255,255,0.3)' : 'white',
-                    borderRadius: 8, padding: '10px', cursor: rerolledSlots[i] ? 'default' : 'pointer',
+                    background: rerollUsed[i] >= maxRerolls ? 'rgba(30,45,74,.4)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${rerollUsed[i] >= maxRerolls ? 'var(--border)' : TIER_COLORS[tier]}`,
+                    color: rerollUsed[i] >= maxRerolls ? 'rgba(255,255,255,0.3)' : 'white',
+                    borderRadius: 8, padding: '10px', cursor: rerollUsed[i] >= maxRerolls ? 'default' : 'pointer',
                     fontFamily: 'Noto Sans JP', fontSize: 12, fontWeight: 700, transition: 'all 0.2s'
                   }}
                 >
-                  {rerolledSlots[i] ? '再抽選済み' : '再抽選'}
+                  {rerollUsed[i] >= maxRerolls ? '再抽選済み' : (maxRerolls > 1 ? `再抽選 (残り${maxRerolls - rerollUsed[i]})` : '再抽選')}
                 </button>
               </div>
             ))}
@@ -570,6 +580,7 @@ function App({ seed, onRestart, onNewGame }) {
   const rngDrop = useMemo(() => createRNG(seed + "_drop"), [seed]);
   const rngAug = useMemo(() => createRNG(seed + "_aug"), [seed]);
   const rngMisc = useMemo(() => createRNG(seed + "_misc"), [seed]);
+  const rngEnc  = useMemo(() => createRNG(seed + "_enc"),  [seed]);
 
   const currentStargazerDesc = useMemo(() => stargazerVariants[Math.floor(rngSys() * stargazerVariants.length)], [rngSys]);
 
@@ -584,6 +595,20 @@ function App({ seed, onRestart, onNewGame }) {
     const shuffled = shuffleArray(PSIONIC_ITEMS, rngSys);
     return [shuffled[0], shuffled[1]];
   }, [rngSys]);
+
+  // 🌟 遭遇（Opening Encounter）の抽選 ── 神(GOD_DATA)とは別枠。専用RNGで出現確率(prob)による加重抽選。
+  const encounter = useMemo(() => {
+    const total = ENCOUNTERS.reduce((sum, e) => sum + (e.prob || 0), 0);
+    let r = rngEnc() * total;
+    for (const e of ENCOUNTERS) { r -= (e.prob || 0); if (r <= 0) return e; }
+    return ENCOUNTERS[ENCOUNTERS.length - 1];
+  }, [rngEnc]);
+  const encounterAppliedRef = useRef(false);    // 1-1→1-2 の開始効果ガード
+  const encounter21AppliedRef = useRef(false);  // 2-1 到達時の効果ガード
+  useEffect(() => {
+    encounterAppliedRef.current = false;
+    encounter21AppliedRef.current = false;
+  }, [encounter]);
 
   // 3. 基本的なState（boardなど）を先に定義する 🌟重要
   const initBoard = () => Array(28).fill(null);
@@ -1202,7 +1227,17 @@ useEffect(() => {
 
 
       // 1-2用の巨大POP（名前やアイコンのサイズはお好みで調整してください）
-      
+
+      // 🌟 遭遇（Opening Encounter）の開始効果を発動（1ゲーム1回だけ）
+      if (encounter && encounter.effect && !encounterAppliedRef.current) {
+        encounterAppliedRef.current = true;
+        try {
+          encounter.effect({ gold, level, xp }, rngEnc, augmentHelpers);
+        } catch (e) {
+          console.error('encounter effect error', e);
+        }
+      }
+
     } 
     // 【1-2以降】通常のドロップ演出
     else if (currentR.startsWith('1-')) {
@@ -1291,6 +1326,13 @@ useEffect(() => {
       // 次が2-1ならオーグメント選択画面を表示
       if (nextR === '2-1' && !noMoreAugments) {
         setShowAugment(true);
+      }
+
+      // 🌟 遭遇: 2-1到達時に発動する効果（エズリアル＝無料リロール等）
+      if (nextR === '2-1' && encounter && encounter.freeRerollsAt21 && !encounter21AppliedRef.current) {
+        encounter21AppliedRef.current = true;
+        addFreeRerolls(encounter.freeRerollsAt21);
+        showMsg(`🎲 ${encounter.champ}: 無料リロール +${encounter.freeRerollsAt21}！`);
       }
 
       // 🌟 全更新完了。ガードレイヤーを消去（操作解禁）
@@ -2100,7 +2142,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
 
       <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} arbiterRule={arbiterRule} />
-      {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} />}
+      {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || null} rerollBonus={encounter?.augmentRerollBonus || 0} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, color:'white', textAlign:'center', maxWidth:'90%', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>{dropMsg}</div>}
       {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
 
@@ -2187,6 +2229,36 @@ const handleAugmentPick = (aug, historyContext) => {
               </div>
             ))}
           </div>
+
+          {/* 🌟 遭遇（神とは別枠の Opening Encounter）── 神2体の下に表示 */}
+          {encounter && (
+            <div style={{ marginTop: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
+              <div style={{ fontFamily: 'Orbitron', fontSize: 10, color: encounter.color, letterSpacing: 6, marginBottom: 12 }}>ENCOUNTER</div>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 18, maxWidth: 470,
+                background: 'rgba(8,13,26,0.9)',
+                border: `2px solid ${encounter.color}55`,
+                borderRadius: 16, padding: '16px 26px',
+                boxShadow: `0 10px 24px rgba(0,0,0,0.5), 0 0 14px ${encounter.color}22`,
+                animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+              }}>
+                <div style={{
+                  width: 60, height: 60, borderRadius: '50%', flexShrink: 0, fontSize: 30,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
+                }}>{encounter.icon}</div>
+                <div style={{ textAlign: 'left', flex: 1 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 2 }}>{encounter.champ}</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 4 }}>{encounter.jaName}</div>
+                  <div style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
+                  <div style={{ fontSize: 9, color: 'var(--textdim)', marginTop: 6, display: 'flex', gap: 10, alignItems: 'center' }}>
+                    <span>出現確率 {encounter.prob}%</span>
+                    {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div style={{ marginTop: 45, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
             — CLICK ANYWHERE TO BEGIN —
