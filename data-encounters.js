@@ -73,11 +73,12 @@ const ENCOUNTERS = [
   { id:'velkoz', champ:'ヴェル=ヴェス', jaName:'複製器×2', prob:4.9,
     desc:'「小さなチャンピオン複製器」を1個獲得する。3-5で、「小型チャンピオン複製器」を獲得する。',
     icon:'🔹', color:'#a06bff',
-    effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.LESSER_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小型複製機を獲得！（3-5の分は範囲外）'); } },
+    effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.LESSER_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); } },
 
   { id:'leblanc', champ:'ルブラン', jaName:'ステージ3オーグメント', prob:3.7,
     desc:'オーグメントが3-1、3-2、3-3で出現するようになる。',
-    icon:'🃏', color:'#d16bff', displayOnly:true },
+    icon:'🃏', color:'#d16bff',
+    effect:(s,rng,h)=>{ h.setNoMoreAugments(true); h.showMsg('🃏 ルブラン: オーグメントが3-1、3-2、3-3で出現するようになる'); } },
 
   { id:'tahmkench', champ:'タムケンチ', jaName:'戦利品サブスク', prob:3.7,
     desc:'1ステージごとに、様々な戦利品の中からランダムな戦利品を獲得する。',

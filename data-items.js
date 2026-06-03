@@ -215,7 +215,8 @@ const ARTIFACTS = [
   { id: 'hatjuice', name: 'Hat Juice', jaName: '帽子ジュース', type: 'artifact', imgName: 'tft_item_artifact_cappajuice' },
   { id: 'blightingjewel', name: 'Blighting Jewel', jaName: '枯死の宝石', type: 'artifact', imgName: 'tft_item_artifact_blightingjewel' },
   { id: 'hellfirehatchet', name: 'Hellfire Hatchet', jaName: '獄炎のハチェット', type: 'artifact', imgName: 'tft_item_artifact_hellfirehatchet' },
-  { id: 'talismanofascension', name: 'Talisman of Ascension', jaName: '超越のタリスマン', type: 'artifact', imgName: 'tft_item_artifact_talismanofascension' }
+  { id: 'talismanofascension', name: 'Talisman of Ascension', jaName: '超越のタリスマン', type: 'artifact', imgName: 'tft_item_artifact_talismanofascension' },
+  { id: 'crown_of_demacia', name: 'Crown of Demacia', jaName: 'デマーシアの王冠', type: 'artifact', imgName: 'tft9_item_crownofdemacia' }
 ];
 
 /* ── レディアントアイテム ── */

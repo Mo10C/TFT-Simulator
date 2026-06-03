@@ -687,6 +687,7 @@ function App({ seed, onRestart, onNewGame }) {
   const hoverTimer = useRef(null);
   const [pendingUnits, setPendingUnits] = useState([]);
   const [introStep, setIntroStep] = useState(0);
+  const [auraTrainingUnit, setAuraTrainingUnit] = useState(null); // 🌟 オーラ育成中 専用の待機枠
 
   // 🌟 タッチドラッグ＆ピンチズーム用
   const [boardZoom, setBoardZoom] = useState(1.0);
@@ -903,25 +904,39 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
   // 🌟 今回遭遇した神（リザルト表示用。ランダムで選ばれた1体目を運命の神とする）
   const chosenGod = encounterGods[0];
 
-  // 🌟 金床売却時の処理
-  const handleSellAnvil = useCallback((anvil) => {
+  // 🌟 金床（アイテム選択）を展開する処理
+  const triggerAnvilChoice = useCallback((anvilType) => {
     let pool = [];
-    if (anvil.anvilType === 'component') {
+    let count = 4;
+    if (anvilType === 'component') {
       pool = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
-    } else if (anvil.anvilType === 'completed') {
+    } else if (anvilType === 'completed') {
       const recipes = Object.values(ITEM_RECIPES);
       pool = recipes.filter(r => !r.grantedTrait && r.id !== 'tacticians_crown').map(r => ({...r, type: 'completed'}));
-    } else if (anvil.anvilType === 'artifact') {
+    } else if (anvilType === 'artifact') {
       pool = ARTIFACTS;
-    } else if (anvil.anvilType === 'radiant') {
+    } else if (anvilType === 'god_artifact') {
+      pool = ARTIFACTS.filter(a => a.jaName.includes('の'));
+    } else if (anvilType === 'radiant') {
       pool = RADIANT_ITEMS;
+    } else if (anvilType === 'duplication') {
+      pool = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
+      count = 3;
     }
-    const shuffled = shuffleArray(pool, rngMisc).slice(0, 4);
-    setAnvilOptions({ items: shuffled, anvilType: anvil.anvilType });
+    const shuffled = shuffleArray(pool, rngMisc).slice(0, count);
+    setAnvilOptions({ items: shuffled, anvilType });
   }, [rngMisc]);
+
+  // 🌟 金床売却時の処理
+  const handleSellAnvil = useCallback((anvil) => {
+    triggerAnvilChoice(anvil.anvilType);
+  }, [triggerAnvilChoice]);
 
   const handleAnvilSelect = useCallback((item) => {
     setInventory(prev => [...prev, item]);
+    if (anvilOptions && anvilOptions.anvilType === 'duplication') {
+      addPassiveBuff({ type: 'duplication_item', itemId: item.id, roundsLeft: 2 });
+    }
     setAnvilOptions(null);
     showMsg(
       <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -929,7 +944,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
         <span>{getJaName(item.name || item.id)} を獲得しました！</span>
       </div>
     );
-  }, [showMsg]);
+  }, [showMsg, anvilOptions, addPassiveBuff]);
 
   // 🌟 キャプチャ処理
   const handleSaveImage = async () => {
@@ -1093,12 +1108,14 @@ useEffect(() => {
     addChampToBench: (cost, count, r) => addChampToBench(cost, count, r || rngMisc),
     addChampToBenchDirect,
     addAnvilToBench,
+    triggerAnvilChoice,
     addPendingUnits: (units) => setPendingUnits(prev => [...prev, ...units]),
+    addAuraTrainingUnit: setAuraTrainingUnit, // 🌟 専用枠への追加ヘルパー
     setLevel: setLevelDirect, setMaxInterest: setMaxInterestFn,
     setXpCostReduction: setXpCostReductionFn, setAugmentTierBoost: setAugmentTierBoostFn,
     setNoMoreAugments: setNoMoreAugmentsFn, setAfkRoundsLeft: setAfkRoundsLeftFn,
     addFreeRerolls,
-  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -1358,9 +1375,25 @@ useEffect(() => {
       const hasTS = passiveBuffs.some(b => b.type === 'trade_sector');
       if (hasTS) setFreeRerolls(fr => fr + 1);
 
-      const wh = passiveBuffs.find(b => b.type === 'warlords_honor');
-      if (wh && wh.stacks < 4) {
-        setPassiveBuffs(prev => prev.map(b => b.type === 'warlords_honor' ? { ...b, stacks: Math.min(4, b.stacks + 1) } : b));
+      let buffsChanged = false;
+      let dupItemsToAdd = [];
+      const nextBuffs = passiveBuffs.map(b => {
+        if (b.type === 'warlords_honor' && b.stacks < 4) {
+          buffsChanged = true;
+          return { ...b, stacks: Math.min(4, b.stacks + 1) };
+        }
+        if (b.type === 'duplication_item' && b.roundsLeft > 0) {
+          buffsChanged = true;
+          const item = ITEMS.find(i => i.id === b.itemId);
+          if (item) dupItemsToAdd.push(item);
+          return { ...b, roundsLeft: b.roundsLeft - 1 };
+        }
+        return b;
+      });
+      if (buffsChanged) setPassiveBuffs(nextBuffs);
+      if (dupItemsToAdd.length > 0) {
+        setInventory(inv => [...inv, ...dupItemsToAdd]);
+        setTimeout(() => showMsg(`👯 複製: ${getJaName(dupItemsToAdd[0].name)}を追加獲得！`), 1500);
       }
 
       // --- ゴールド収入（基礎収入 + 利子） ---
@@ -1671,9 +1704,18 @@ const handleAugmentPick = (aug, historyContext) => {
     // 2. インベントリ内の入れ替え・ドロワーからの追加
     // ==========================================
     if (targetType === 'inventory') {
-      if (dragSrc.type === 'drawer_item') {
+      if (dragSrc.type === 'drawer_item' || dragSrc.type === 'anvil_item') {
         ninv.push(dragSrc.item);
         setInventory(ninv.filter(Boolean));
+        if (dragSrc.type === 'anvil_item') {
+          setAnvilOptions(null);
+          showMsg(
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <img src={getMetaTFTItemUrl(dragSrc.item)} style={{ width:18, height:18, borderRadius:2 }} />
+              <span>{getJaName(dragSrc.item.name || dragSrc.item.id)} を獲得しました！</span>
+            </div>
+          );
+        }
         setDragSrc(null); return;
       } else if (dragSrc.type === 'inventory') {
         const srcIdx = dragSrc.idx, itemA = ninv[srcIdx], itemB = ninv[targetIdx];
@@ -1709,7 +1751,8 @@ const handleAugmentPick = (aug, historyContext) => {
         if (targetType === 'board' && !targetArr[targetIdx]) {
           const cursedCrownBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
           const crownBonus = nbrd.filter(Boolean).reduce((acc, c) => acc + (c.items ? c.items.filter(it => it.id === 'tacticians_crown').reduce((s, it) => s + (it.teamSizeBonus || 0), 0) : 0), 0);
-          const currentMaxTeamSize = level + cursedCrownBonus + crownBonus;
+          let currentMaxTeamSize = level + cursedCrownBonus + crownBonus;
+          if (passiveBuffs.some(b => b.type === 'solo_leveling')) currentMaxTeamSize = 1;
           if (nbrd.filter(Boolean).length >= currentMaxTeamSize) {
             showMsg("⚠️ 盤面が一杯です！"); setDragSrc(null); return;
           }
@@ -1757,7 +1800,13 @@ const handleAugmentPick = (aug, historyContext) => {
         }
       }
     } else {
-      if (targetType === 'anywhere') { setDragSrc(null); return; }
+      if (targetType === 'anywhere') { 
+        if (dragSrc.type === 'anvil_item') {
+          handleAnvilSelect(dragSrc.item);
+        }
+        setDragSrc(null); 
+        return; 
+      }
       const src = dragSrc.type === 'bench' ? nb : nbrd; 
       let mover = src[dragSrc.idx];
       
@@ -1768,7 +1817,8 @@ const handleAugmentPick = (aug, historyContext) => {
       if (dragSrc.type === 'bench' && targetType === 'board' && !nbrd[targetIdx]) {
         const cursedCrownBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
         const crownBonus = nbrd.filter(Boolean).reduce((acc, c) => acc + (c.items ? c.items.filter(it => it.id === 'tacticians_crown').reduce((s, it) => s + (it.teamSizeBonus || 0), 0) : 0), 0);
-        const currentMaxTeamSize = level + cursedCrownBonus + crownBonus;
+        let currentMaxTeamSize = level + cursedCrownBonus + crownBonus;
+        if (passiveBuffs.some(b => b.type === 'solo_leveling')) currentMaxTeamSize = 1;
         if (nbrd.filter(Boolean).length >= currentMaxTeamSize) {
           showMsg("⚠️ 盤面が一杯です！"); setDragSrc(null); return;
         }
@@ -2070,7 +2120,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{transform:'scale(0.8) translateX(-40px)',transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
                     <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
-                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
                 </div>
@@ -2081,6 +2131,23 @@ const handleAugmentPick = (aug, historyContext) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', width: 'fit-content' }}>
                 <div style={{ fontSize: 9, color: 'var(--textdim)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center' }}>BENCH</div>
                 <div style={{ display: 'flex', gap: 4 }}>
+                  {/* 🌟 リザルト画面：オーラ育成中 の専用待機枠 */}
+                  {auraTrainingUnit && (
+                    <div style={{
+                      width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
+                      border: `2px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+                      marginRight: 4, opacity: 0.8
+                    }}>
+                      <img src={boardIcon(auraTrainingUnit.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                        {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={auraTrainingUnit.star} /></div>
+                      <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)' }}><span style={{ fontSize:14 }}>🔒</span></div>
+                    </div>
+                  )}
+
                   {bench.map((champ, i) => (
                     <div key={i} style={{
                       width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
@@ -2548,7 +2615,7 @@ const handleAugmentPick = (aug, historyContext) => {
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             <div style={{ background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center' }}>
               <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
-              <div style={{ fontSize:14, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{level + teamSizeBonus}</div>
+              <div style={{ fontSize:14, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{passiveBuffs.some(b => b.type === 'solo_leveling') ? 1 : level + teamSizeBonus}</div>
             </div>
             {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg1)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
             {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:6, border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
@@ -2601,7 +2668,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           champ={board[idx]}
                           dropType="board"
                           dropIdx={idx}
-                          isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
+                          isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[idx]?.id === 'miipsy' || board[idx]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[idx]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[idx]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[idx]?.id === 'mordekaiser') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
                           onDragStart={() => setDragSrc({ type:'board', idx })}
                           onTouchStartDrag={(e) => startTouchDrag(e, { type:'board', idx })}
                           onDrop={hDrop('board', idx)}
@@ -2645,7 +2712,7 @@ const handleAugmentPick = (aug, historyContext) => {
               <div style={{
                 width: 50,
                 height: 50,
-                background: 'rgba(0,0,0,0.4)',
+                background: '#000',
                 border: `2px solid ${TIER_COLORS[a.tier]}`,
                 borderRadius: 8,
                 display: 'flex',
@@ -2684,6 +2751,36 @@ const handleAugmentPick = (aug, historyContext) => {
 
       {/* ベンチ */}
       <div style={{ background:'var(--bg-panel)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '8px', display:'flex', justifyContent:'center', gap:4, flexShrink:0 }}>
+        
+        {/* 🌟 メイン画面：オーラ育成中 の専用待機枠（左側） */}
+        {auraTrainingUnit && (
+          <div 
+            className="sp-bench-slot"
+            style={{ 
+              width: isLandscapeMobile ? 42 : 54, 
+              height: isLandscapeMobile ? 42 : 54, 
+              borderRadius:8, 
+              background:'var(--bg-hex)', 
+              border: `3px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
+              display:'flex', 
+              alignItems:'center', 
+              justifyContent:'center', 
+              position:'relative',
+              marginRight: 8,
+              opacity: 0.8
+            }}
+            onMouseEnter={(e) => handleMouseEnter(e, auraTrainingUnit)}
+            onMouseLeave={handleMouseLeave}
+          >
+            <img src={boardIcon(auraTrainingUnit.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+            <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
+              {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius:2, background:'black' }} />))}
+            </div>
+            <div style={{ position:'absolute', bottom:2, left:0, right:0 }}><Stars star={auraTrainingUnit.star} /></div>
+            <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)', borderRadius: 8 }}><span style={{ fontSize: 20 }}>🔒</span></div>
+          </div>
+        )}
+
         {bench.map((champ, i) => (
           <div 
             key={i}
@@ -2754,6 +2851,9 @@ const handleAugmentPick = (aug, historyContext) => {
                   <div
                     key={idx}
                     onClick={() => handleAnvilSelect(it)}
+                    draggable
+                    onDragStart={() => setDragSrc({ type: 'anvil_item', item: it })}
+                    onTouchStart={(e) => startTouchDrag(e, { type: 'anvil_item', item: it })}
                     style={{
                       flex: 1,
                       maxWidth: 140,
@@ -2784,7 +2884,7 @@ const handleAugmentPick = (aug, historyContext) => {
               {/* ヘッダー情報（レベル・XP・ゴールド・確率） */}
               <div className="sp-shop-header" style={{ height: isLandscapeMobile ? 20 : 26, display:'flex', alignItems:'center', padding:'0 15px', background:'var(--bg2)', borderBottom:'1px solid var(--border)', fontFamily:'Orbitron', position:'relative' }}>
                 <div style={{ display:'flex', alignItems:'center' }}>
-                  <div style={{ fontWeight:900, fontSize:13, color:'var(--text-main)', marginRight:10 }}>LV {level}{teamSizeBonus > 0 ? `+${teamSizeBonus}` : ''}</div>
+                  <div style={{ fontWeight:900, fontSize:13, color:'var(--text-main)', marginRight:10 }}>LV {level}{!passiveBuffs.some(b => b.type === 'solo_leveling') && teamSizeBonus > 0 ? `+${teamSizeBonus}` : ''}</div>
                   <div style={{ color:'var(--textdim)', fontSize:11, fontFamily:'Rajdhani', fontWeight:700 }}>{xp} / {XP_FOR_NEXT_LEVEL[level]||'-'}</div>
                 </div>
                 <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', alignItems:'center', justifyContent:'center', height:'100%', padding:'0 30px', color:'var(--text-main)', fontSize:15, fontWeight:900, background:'linear-gradient(90deg, transparent 0%, var(--bg2) 20%, var(--bg2) 80%, transparent 100%)' }}>

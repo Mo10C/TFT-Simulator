@@ -684,7 +684,347 @@ const AUGMENTS_DATA = {
         helpers.showMsg('🎲 ハスラー: 3Gを獲得しました！');
       }
     },
+    {
+      id: 'big_bang', name: 'ビッグバン', tier: 'gold', category: 'combat', imgName: 'meepsiehero_ii',
+      desc: 'ミィプシーを1体獲得する。最も強いミィプシーが魔力ファイターとなり、近くのマスに跳躍して広範囲にダメージを与える。',
+      icon: '💥',
+      effect: (state, rng, helpers) => {
+        const champ = CHAMPS.find(c => c.id === 'miipsy' || c.id === 'meepsie');
+        if (champ) helpers.addPendingUnits([{ ...champ, star: 1, uid: rng(), items: [] }]);
+        helpers.addPassiveBuff({ type: 'big_bang' });
+        helpers.showMsg('💥 ビッグバン: ミィプシーを獲得しました！');
+      }
+    },
+    {
+      id: 'booster_pack', name: 'ブースターパック', tier: 'gold', category: 'economy', imgName: 'boosterpack_ii',
+      desc: 'ランダムなチャンピオンを合計12ゴールド分獲得する(コスト3が1体以上確定！)。',
+      icon: '🎴',
+      effect: (state, rng, helpers) => {
+        const patterns = [
+          { w: 13.5, l: [{c:3,s:1,n:3}, {c:1,s:2,n:1}] },
+          { w: 13.5, l: [{c:1,s:1,n:2}, {c:2,s:1,n:2}, {c:3,s:1,n:2}] },
+          { w: 13.5, l: [{c:1,s:2,n:1}, {c:1,s:1,n:3}, {c:3,s:1,n:2}] },
+          { w: 13.5, l: [{c:1,s:2,n:2}, {c:3,s:1,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] },
+          { w: 16.0, l: [{c:2,s:2,n:1}, {c:3,s:1,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] }, // 8%のパターン×2を統合
+          { w: 1.5,  l: [{c:3,s:2,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] },
+          { w: 1.5,  l: [{c:1,s:1,n:3}, {c:3,s:1,n:1}, {c:4,s:1,n:1}, {c:2,s:1,n:1}] }
+        ];
+        
+        const totalW = patterns.reduce((sum, p) => sum + p.w, 0);
+        let roll = rng() * totalW;
+        let chosenPattern = patterns[patterns.length - 1].l;
+        for (const p of patterns) {
+          roll -= p.w;
+          if (roll <= 0) { chosenPattern = p.l; break; }
+        }
+
+        const unitsToAdd = [];
+        for (const group of chosenPattern) {
+          const pool = CHAMPS.filter(champ => champ.cost === group.c);
+          for (let i = 0; i < group.n; i++) {
+            const chosen = pool[Math.floor(rng() * pool.length)];
+            unitsToAdd.push({ ...chosen, star: group.s, uid: rng(), items: [] });
+          }
+        }
+        helpers.addPendingUnits(unitsToAdd);
+        helpers.showMsg('🎴 ブースターパック: 12G分のチャンピオンを獲得しました！');
+      }
+    },
+    {
+      id: 'heavy_is_the_crown', name: '王冠とは重きもの', tier: 'gold', category: 'item', imgName: 'heavyisthecrown_ii',
+      desc: '「デマーシアの王冠」を獲得する。装備者は大きなボーナスを獲得する。装備者が倒されると、そのラウンドに敗北する。',
+      icon: '👑',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({ ...ARTIFACTS.find(i => i.id === 'crown_of_demacia') });
+        helpers.showMsg('👑 王冠とは重きもの: 「デマーシアの王冠」を獲得しました！');
+      }
+    },
+    {
+      id: 'heroic_grab_bag', name: '英雄のラッキーバッグ', tier: 'gold', category: 'item', imgName: 'heroicgrabbag_ii',
+      desc: '「小型チャンピオン複製器」2個と5ゴールドを獲得する。',
+      icon: '🛍️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...CONSUMABLES.LESSER_DUPE});
+        helpers.addItem({...CONSUMABLES.LESSER_DUPE});
+        helpers.addGold(5);
+        helpers.showMsg('🛍️ 英雄のラッキーバッグ: 小型複製器2個と5Gを獲得しました！');
+      }
+    },
+    {
+      id: 'portable_forge', name: 'ポータブル フォージ', tier: 'gold', category: 'item', imgName: 'portableforge_ii',
+      desc: '4個のアーティファクトから1個を選択する。アーティファクトは独自の効果を持つ強力なアイテム。',
+      icon: '🔨',
+      effect: (state, rng, helpers) => {
+        helpers.triggerAnvilChoice('artifact');
+        helpers.showMsg('🔨 ポータブル フォージ: アーティファクトを1つ選択してください！');
+      }
+    },
+    {
+      id: 'divine_forge', name: '神の鍛冶場', tier: 'gold', category: 'item', imgName: 'divineforge_ii',
+      desc: '4個の「神のアーティファクト」から1個を選択する。',
+      icon: '✨',
+      effect: (state, rng, helpers) => {
+        helpers.triggerAnvilChoice('god_artifact');
+        helpers.showMsg('✨ 神の鍛冶場: 神のアーティファクトを1つ選択してください！');
+      }
+    },
+    {
+      id: 'duplication', name: '複製', tier: 'gold', category: 'item', imgName: 'duplication_ii',
+      desc: '3つの素材アイテムから1つを選ぶ。次の2ラウンドの間、その素材アイテムのコピーを1個獲得する。',
+      icon: '👯',
+      effect: (state, rng, helpers) => {
+        helpers.triggerAnvilChoice('duplication');
+        helpers.showMsg('👯 複製: 複製する素材アイテムを選択してください！');
+      }
+    },
+    {
+      id: 'worth_the_wait', name: '待つ価値あり', tier: 'gold', category: 'combat', imgName: 'worththewait_i',
+      desc: 'ランダムなコスト1のチャンピオンを1体獲得する。',
+      icon: '⏳',
+      effect: (state, rng, helpers) => {
+        const pool = CHAMPS.filter(c => c.cost === 1);
+        const chosenUnit = pool[Math.floor(rng() * pool.length)];
+        
+        helpers.addChampToBenchDirect({ ...chosenUnit, star: 1, uid: rng(), items: [] });
+        
+        helpers.showMsg(
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <img src={boardIcon(chosenUnit.img)} style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--blue)' }} />
+            <span>{chosenUnit.jaName} を1体獲得しました</span>
+          </div>
+        );
+      }
+    },
+    {
+      id: 'pro_assassin', name: 'プロの殺し屋', tier: 'gold', category: 'combat', imgName: 'pykehero_ii',
+      desc: 'パイクを1体獲得する。最も強いパイクが攻撃力ファイターになり、チームがキルまたはアシストを獲得するとゴールドを生成し、キル時にリセットされるスキルを獲得する。',
+      icon: '🗡️',
+      effect: (state, rng, helpers) => {
+        const champ = CHAMPS.find(c => c.id === 'pyke');
+        if (champ) helpers.addPendingUnits([{ ...champ, star: 1, uid: rng(), items: [] }]);
+        helpers.addPassiveBuff({ type: 'pro_assassin' });
+        helpers.showMsg('🗡️ プロの殺し屋: パイクを獲得しました！');
+      }
+    },
+    {
+      id: 'root_singularity', name: 'ルート・シンギュラリティ', tier: 'gold', category: 'combat', imgName: 'rootsingularity_ii',
+      desc: 'ブラックホールが敵を飲み込むと、敵が「スペースマター」に変わる。十分な量を集めると、ブラックホールがそれを戦利品に変換する！チョ＝ガスとリサンドラを1体ずつ獲得する。',
+      icon: '🌌',
+      effect: (state, rng, helpers) => {
+        const chogath = CHAMPS.find(c => c.id === 'chogath');
+        const lissandra = CHAMPS.find(c => c.id === 'lissandra');
+        const units = [];
+        if (chogath) units.push({ ...chogath, star: 1, uid: rng(), items: [] });
+        if (lissandra) units.push({ ...lissandra, star: 1, uid: rng(), items: [] });
+        helpers.addPendingUnits(units);
+        helpers.showMsg('🌌 ルート・シンギュラリティ: チョ＝ガスとリサンドラを獲得しました！');
+      }
+    },
+    {
+      id: 'single_plate', name: '一人前プレート', tier: 'gold', category: 'combat', imgName: 'singleplate_ii',
+      desc: '「ガーゴイル ストーンプレート」を1個獲得する。戦闘開始時: 「ガーゴイル ストーンプレート」を装備している味方の列に他のユニットがいない場合、最大体力が17%増加する。',
+      icon: '🍽️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['chain_cloak'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'single_plate' });
+        helpers.showMsg('🍽️ 一人前プレート: 「ガーゴイル ストーンプレート」を獲得しました！');
+      }
+    },
+    {
+      id: 'solo_leveling', name: '俺だけレベルアップ', tier: 'gold', category: 'combat', imgName: 'sololeveling_ii',
+      desc: '次の5回の対人戦で、味方チームのサイズが1になるが、ボードに配置したチャンピオンはステータスが大幅に増加する。そのチャンピオンがキルを獲得するたびに1 XPの経験値を獲得する。その後、素材アイテムを2個獲得する。',
+      icon: '🧗',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'solo_leveling' });
+        helpers.showMsg('🧗 俺だけレベルアップ: チームサイズが1になります！');
+      }
+    },
+    {
+      id: 'self_destruction', name: '自己破壊', tier: 'gold', category: 'combat', imgName: 'gragashero_ii',
+      desc: 'グラガスを1体獲得する。最も強いグラガスが魔力ファイターとなり、大爆発を巻き起こすが自身もダメージを受ける。',
+      icon: '💣',
+      effect: (state, rng, helpers) => {
+        const champ = CHAMPS.find(c => c.id === 'gragas');
+        if (champ) helpers.addPendingUnits([{ ...champ, star: 1, uid: rng(), items: [] }]);
+        helpers.addPassiveBuff({ type: 'self_destruction' });
+        helpers.showMsg('💣 自己破壊: グラガスを獲得しました！');
+      }
+    },
+    {
+      id: 'focus', name: '集中', tier: 'gold', category: 'combat', imgName: 'focus_ii',
+      desc: '「コンジット」のスキルは、スキルに応じて効果時間が25% - 50%延長される。ゾーイとモルデカイザーを1体ずつ獲得する。',
+      icon: '👁️',
+      effect: (state, rng, helpers) => {
+        const zoe = CHAMPS.find(c => c.id === 'zoe');
+        const morde = CHAMPS.find(c => c.id === 'mordekaiser');
+        const units = [];
+        if (zoe) units.push({ ...zoe, star: 1, uid: rng(), items: [] });
+        if (morde) units.push({ ...morde, star: 1, uid: rng(), items: [] });
+        helpers.addPendingUnits(units);
+        helpers.addPassiveBuff({ type: 'focus' });
+        helpers.showMsg('👁️ 集中: ゾーイとモルデカイザーを獲得しました！');
+      }
+    },
+    {
+      id: 'discharge_2', name: '放電 II', tier: 'gold', category: 'combat', imgName: 'discharge2_ii',
+      desc: '味方が4回攻撃を受けるたびに、周囲の敵に50-140(現在のステージに応じて)の魔法ダメージを与える(クールダウン1秒)。',
+      icon: '⚡',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'discharge_2' });
+        helpers.showMsg('⚡ 放電 II: 味方が攻撃を受けると魔法ダメージを放ちます！');
+      }
+    },
+  {
+      id: 'aura_training', name: 'オーラ育成中', tier: 'gold', category: 'combat', imgName: 'auratraining_ii',
+      desc: '推奨アイテムを装備した★2のコスト5チャンピオンを1体獲得する。これは、ステージ4-3までボードに配置できない。',
+      icon: '🌀',
+      effect: (state, rng, helpers) => {
+        const pool = [
+          { champId: 'vex', itemId: 'guinsoo' },
+          { champId: 'graves', itemId: 'giantslayer' },
+          { champId: 'shen', itemId: 'jeweled' },
+          { champId: 'jhin', itemId: 'deathblade' },
+          { champId: 'sona', itemId: 'bluebuff' },
+          { champId: 'bard', itemId: 'rabadon' },
+          { champId: 'fiora', itemId: 'edgeofnight' },
+          { champId: 'blitzcrank', itemId: 'jeweled' }
+        ];
+        
+        // このゲームに存在するチャンピオンのみをフィルタ（エラー回避用）
+        const validPool = pool.filter(p => CHAMPS.some(c => c.id === p.champId));
+        if (validPool.length === 0) return; 
+        
+        const selected = validPool[Math.floor(rng() * validPool.length)];
+        const champData = CHAMPS.find(c => c.id === selected.champId);
+        const itemObj = Object.values(ITEM_RECIPES).find(r => r.id === selected.itemId);
+        
+        const unitData = { 
+          ...champData, star: 2, uid: rng(), 
+          items: itemObj ? [{ ...itemObj, type: 'completed' }] : [] 
+        };
+        helpers.addAuraTrainingUnit(unitData);
+        helpers.showMsg(`🌀 オーラ育成中: ★★${champData.jaName} と推奨アイテムを獲得しました！`);
+      }
+    },
+    {
+      id: 'lategame_scaling', name: 'レイトゲーム スケーリング', tier: 'gold', category: 'combat', imgName: 'lategamescaling_ii',
+      desc: 'プレイヤーの戦闘ラウンド開始時に、2 XPの経験値を獲得する。味方のコスト5チャンピオンの体力が12%、攻撃速度が12%増加する。',
+      icon: '📈',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'lategame_scaling' });
+        helpers.showMsg('📈 レイトゲーム スケーリング: 毎ラウンドXP獲得＆5コスト強化！');
+      }
+    },
+    {
+      id: 'galactic_journey', name: '銀河を巡る旅', tier: 'gold', category: 'combat', imgName: 'galacticjourney_ii',
+      desc: '「ボイジャー」の体力が130、攻撃力が13%、魔力が13%増加する。新たな対戦相手と戦うたびに、効果が10%ずつ増加する。直近で戦っていないプレイヤーと優先的に対戦する。パイクとミィプシーを1体ずつ獲得する。',
+      icon: '🚀',
+      effect: (state, rng, helpers) => {
+        const pyke = CHAMPS.find(c => c.id === 'pyke');
+        const miipsy = CHAMPS.find(c => c.id === 'miipsy' || c.id === 'meepsie');
+        const units = [];
+        if (pyke) units.push({ ...pyke, star: 1, uid: rng(), items: [] });
+        if (miipsy) units.push({ ...miipsy, star: 1, uid: rng(), items: [] });
+        helpers.addPendingUnits(units);
+        helpers.showMsg('🚀 銀河を巡る旅: パイクとミィプシーを獲得しました！');
+      }
+    },
+    {
+      id: 'blood_offering', name: '血の供物', tier: 'gold', category: 'combat', imgName: 'bloodoffering_ii',
+      desc: '「ブラッドサースター」を1個獲得する。戦闘開始時: 「ブラッドサースター」を装備した味方の体力が20%減少するが、体力の30%にあたる耐久値を持つシールドを獲得し、攻撃力が10%増加する。',
+      icon: '🩸',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['bf_cloak'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'blood_offering' });
+        helpers.showMsg('🩸 血の供物: 「ブラッドサースター」を獲得しました！');
+      }
+    },
+    {
+      id: 'heart_of_steel', name: '鋼の心', tier: 'gold', category: 'combat', imgName: 'heartofsteel_ii',
+      desc: '「揺るがぬ心」を1個獲得する。戦闘で装備者が10秒生存するごとに、「揺るがぬ心」が最大体力を恒久的に16追加で獲得する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['chain_glove'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'heart_of_steel' });
+        helpers.showMsg('🛡️ 鋼の心: 「揺るがぬ心」を獲得しました！');
+      }
+    },
+    {
+      id: 'spun_magic', name: '紡がれし魔法', tier: 'gold', category: 'item', imgName: 'spunmagic_ii',
+      desc: 'ランダムな素材アイテムを1個獲得する。味方チームが2200マナを消費するごとに、追加の素材アイテムを獲得する。',
+      icon: '🪄',
+      effect: (state, rng, helpers) => {
+        const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
+        helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+        helpers.showMsg('🪄 紡がれし魔法: 素材アイテムを1個獲得しました！');
+      }
+    },
+    {
+      id: 'cry_all_you_want', name: '好きなだけ泣くがいい', tier: 'gold', category: 'combat', imgName: 'cryallyouwant_ii',
+      desc: '「女神の涙」を1個獲得する。味方チームが1のマナ自動回復を獲得する。戦闘開始から12秒後にこの効果は3になる。',
+      icon: '😭',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEMS.find(i=>i.id==='tear')});
+        helpers.addPassiveBuff({ type: 'cry_all_you_want' });
+        helpers.showMsg('😭 好きなだけ泣くがいい: 「女神の涙」を獲得しました！');
+      }
+    },
+    {
+      id: 'fast_double_kill', name: '高速ダブルキル', tier: 'gold', category: 'item', imgName: 'fastdoublekill_ii',
+      desc: '「グインソー レイジブレード」を1個獲得する。2人のプレイヤーが敗退すると、40ゴールドを獲得する。',
+      icon: '⚔️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['bow_rod'], type:'completed'});
+        helpers.showMsg('⚔️ 高速ダブルキル: 「グインソー レイジブレード」を獲得しました！');
+      }
+    },
+    {
+      id: 'high_voltage', name: '高電圧', tier: 'gold', category: 'combat', imgName: 'highvoltage_ii',
+      desc: '「アイオニック スパーク」を1個獲得する。「アイオニック スパーク」の半径が3マス増加し、ダメージが20%増加する。',
+      icon: '⚡',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({...ITEM_RECIPES['rod_cloak'], type:'completed'});
+        helpers.addPassiveBuff({ type: 'high_voltage' });
+        helpers.showMsg('⚡ 高電圧: 「アイオニック スパーク」を獲得しました！');
+      }
+    },
+    {
+      id: 'heat_death', name: '熱死', tier: 'gold', category: 'combat', imgName: 'heatdeath_ii',
+      desc: 'モルデカイザーを1体獲得する。最も強いモルデカイザーが魔力ファイターとなり、徐々に拡大するオーラで継続ダメージを与える。',
+      icon: '🥵',
+      effect: (state, rng, helpers) => {
+        const champ = CHAMPS.find(c => c.id === 'mordekaiser');
+        if (champ) helpers.addPendingUnits([{ ...champ, star: 1, uid: rng(), items: [] }]);
+        helpers.addPassiveBuff({ type: 'heat_death' });
+        helpers.showMsg('🥵 熱死: モルデカイザーを獲得しました！');
+      }
+    },
+    {
+      id: 'clear_mind_2', name: '明鏡止水', tier: 'gold', category: 'economy', imgName: 'clearmind2_ii',
+      desc: '対人戦ラウンド終了時、ベンチにチャンピオンがいない場合は経験値を3XP獲得する。',
+      icon: '🧘',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'clear_mind_2' });
+        helpers.showMsg('🧘 明鏡止水: ベンチを空にしてXPを獲得しましょう！');
+      }
+    },
+    {
+      id: 'timestream', name: 'タイムストリーム', tier: 'gold', category: 'combat', imgName: 'timestream_ii',
+      desc: '「タイムブレーカー」は、リロールするたび(無料のリロールも含む)に体力が7と攻撃速度が0.25%増加する。エズリアルとパンテオンを1体ずつ獲得する。',
+      icon: '⏱️',
+      effect: (state, rng, helpers) => {
+        const ezreal = CHAMPS.find(c => c.id === 'ezreal');
+        const pantheon = CHAMPS.find(c => c.id === 'pantheon');
+        const units = [];
+        if (ezreal) units.push({ ...ezreal, star: 1, uid: rng(), items: [] });
+        if (pantheon) units.push({ ...pantheon, star: 1, uid: rng(), items: [] });
+        helpers.addPendingUnits(units);
+        helpers.showMsg('⏱️ タイムストリーム: エズリアルとパンテオンを獲得しました！');
+      }
+    },
   ],
+
+  //プリズム
   prismatic: [
     {
       id: 'upward_mobility', name: '上方移動', tier: 'prismatic', category: 'economy', imgName: 'upwardmobility_iii',
@@ -886,4 +1226,3 @@ const AUGMENTS_DATA = {
     },
   ]
 };
-
