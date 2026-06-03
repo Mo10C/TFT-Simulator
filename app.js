@@ -597,11 +597,14 @@ function App({ seed, onRestart, onNewGame }) {
   }, [rngSys]);
 
   // 🌟 遭遇（Opening Encounter）の抽選 ── 神(GOD_DATA)とは別枠。専用RNGで出現確率(prob)による加重抽選。
+  // data-encounters.js が未読込でも白画面で落ちないよう防御（その場合は遭遇なしで起動）。
   const encounter = useMemo(() => {
-    const total = ENCOUNTERS.reduce((sum, e) => sum + (e.prob || 0), 0);
+    const list = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
+    if (list.length === 0) return null;
+    const total = list.reduce((sum, e) => sum + (e.prob || 0), 0);
     let r = rngEnc() * total;
-    for (const e of ENCOUNTERS) { r -= (e.prob || 0); if (r <= 0) return e; }
-    return ENCOUNTERS[ENCOUNTERS.length - 1];
+    for (const e of list) { r -= (e.prob || 0); if (r <= 0) return e; }
+    return list[list.length - 1];
   }, [rngEnc]);
   const encounterAppliedRef = useRef(false);    // 1-1→1-2 の開始効果ガード
   const encounter21AppliedRef = useRef(false);  // 2-1 到達時の効果ガード
