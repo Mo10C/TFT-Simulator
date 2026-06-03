@@ -642,6 +642,7 @@ function App({ seed, onRestart, onNewGame }) {
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
   const hoverTimer = useRef(null);
   const [pendingUnits, setPendingUnits] = useState([]);
+  const [introStep, setIntroStep] = useState(0);
 
   // 🌟 タッチドラッグ＆ピンチズーム用
   const [boardZoom, setBoardZoom] = useState(1.0);
@@ -2168,106 +2169,133 @@ const handleAugmentPick = (aug, historyContext) => {
       />
 
       {/* 🌟 1-1 神との遭遇 （二回り縮小・比率維持版） */}
-      {round === '1-1' && (
-        <div 
-          onClick={() => handleNextRound()} 
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            background: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: 'fadeIn 1s ease',
-            cursor: 'pointer',
-          }}
-        >
-          {/* タイトル */}
-          <div style={{ textAlign: 'center', marginBottom: 45, pointerEvents: 'none' }}>
-            <div style={{ fontFamily: 'Orbitron', fontSize: '12px', color: 'var(--gold2)', letterSpacing: '8px', marginBottom: 15 }}>GOD ENCOUNTER</div>
-            <h1 style={{ fontFamily: 'Noto Sans JP', fontSize: '36px', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--gold)', letterSpacing: '3px' }}>神々の世界</h1>
-            <p style={{ color: 'var(--textdim)', marginTop: 15, fontSize: '12px', letterSpacing: '1px' }}>
-              画面をクリックして運命を受け入れる
-            </p>
-          </div>
+      {round === '1-1' && (() => {
+        let encChamp = null;
+        if (encounter) {
+          encChamp = CHAMPS.find(c => c.id === encounter.id);
+          if (!encChamp) {
+            const map = { 'miipsy': 'meepsie', 'velkoz': 'belveth', 'rastt': 'rhaast' };
+            if (map[encounter.id]) encChamp = CHAMPS.find(c => c.id === map[encounter.id]);
+          }
+          if (!encChamp) {
+            encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
+          }
+        }
 
-          {/* 神のカード */}
-          <div style={{ display: 'flex', gap: 45, pointerEvents: 'none' }}>
-            {encounterGods.map((god) => (
-              <div 
-                key={god.id}
-                style={{
-                  width: 240, height: 360, // 👈 320x480 から 240x360（1:1.5の比率を維持）
-                  background: 'rgba(8,13,26,0.9)',
-                  border: `2px solid ${god.color}44`, 
-                  borderRadius: 18, 
-                  position: 'relative',
-                  overflow: 'hidden',
-                  display: 'flex', flexDirection: 'column',
-                  boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 15px ${god.color}11`,
-                  animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
-                }}
-              >
-                {/* 背景の光り */}
-                <div style={{ position: 'absolute', top: -75, left: -75, width: 225, height: 225, background: god.color, filter: 'blur(75px)', opacity: 0.15 }}></div>
-
-                {/* 神の画像 */}
-                <div style={{ width: '100%', height: '240px', position: 'relative', overflow: 'hidden', background: '#04060e' }}>
-                  <img src={god.imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  {/* 下部へのフェード */}
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,13,26,1) 0%, transparent 40%)' }}></div>
+        return (
+          <div 
+            onClick={() => {
+              if (encounter && introStep === 0) {
+                setIntroStep(1);
+              } else {
+                handleNextRound();
+              }
+            }} 
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1000,
+              background: 'rgba(15, 23, 42, 0.4)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'fadeIn 1s ease',
+              cursor: 'pointer',
+            }}
+          >
+            {introStep === 0 ? (
+              <>
+                {/* タイトル */}
+                <div style={{ textAlign: 'center', marginBottom: 45, pointerEvents: 'none' }}>
+                  <div style={{ fontFamily: 'Orbitron', fontSize: '12px', color: 'var(--gold2)', letterSpacing: '8px', marginBottom: 15 }}>GOD ENCOUNTER</div>
+                  <h1 style={{ fontFamily: 'Noto Sans JP', fontSize: '36px', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--gold)', letterSpacing: '3px' }}>神々の世界</h1>
+                  <p style={{ color: 'var(--textdim)', marginTop: 15, fontSize: '12px', letterSpacing: '1px' }}>
+                    画面をクリックして運命を受け入れる
+                  </p>
                 </div>
 
-                {/* 詳細テキスト */}
-                <div style={{ padding: '0 18px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                  <h2 style={{ fontSize: 18, color: 'white', fontWeight: 900, marginBottom: 8, fontFamily: 'Noto Sans JP', whiteSpace: 'pre-wrap' }}>{god.name}</h2>
-                  <p style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.6, opacity: 0.8, whiteSpace: 'pre-wrap' }}>{god.desc}</p>
+                {/* 神のカード */}
+                <div style={{ display: 'flex', gap: 45, pointerEvents: 'none' }}>
+                  {encounterGods.map((god) => (
+                    <div 
+                      key={god.id}
+                      style={{
+                        width: 240, height: 360,
+                        background: 'rgba(8,13,26,0.9)',
+                        border: `2px solid ${god.color}44`, 
+                        borderRadius: 18, 
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex', flexDirection: 'column',
+                        boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 15px ${god.color}11`,
+                        animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                      }}
+                    >
+                      <div style={{ position: 'absolute', top: -75, left: -75, width: 225, height: 225, background: god.color, filter: 'blur(75px)', opacity: 0.15 }}></div>
+                      <div style={{ width: '100%', height: '240px', position: 'relative', overflow: 'hidden', background: '#04060e' }}>
+                        <img src={god.imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,13,26,1) 0%, transparent 40%)' }}></div>
+                      </div>
+                      <div style={{ padding: '0 18px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: 18, color: 'white', fontWeight: 900, marginBottom: 8, fontFamily: 'Noto Sans JP', whiteSpace: 'pre-wrap' }}>{god.name}</h2>
+                        <p style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.6, opacity: 0.8, whiteSpace: 'pre-wrap' }}>{god.desc}</p>
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${god.color}, transparent)` }}></div>
+                    </div>
+                  ))}
                 </div>
-
-                {/* 縁取りの光り */}
-                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${god.color}, transparent)` }}></div>
-              </div>
-            ))}
-          </div>
-
-          {/* 🌟 遭遇（神とは別枠の Opening Encounter）── 神2体の下に表示 */}
-          {encounter && (
-            <div style={{ marginTop: 38, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-              <div style={{ fontFamily: 'Orbitron', fontSize: 10, color: encounter.color, letterSpacing: 6, marginBottom: 12 }}>ENCOUNTER</div>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 18, maxWidth: 470,
-                background: 'rgba(8,13,26,0.9)',
-                border: `2px solid ${encounter.color}55`,
-                borderRadius: 16, padding: '16px 26px',
-                boxShadow: `0 10px 24px rgba(0,0,0,0.5), 0 0 14px ${encounter.color}22`,
-                animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
-              }}>
-                <div style={{
-                  width: 60, height: 60, borderRadius: '50%', flexShrink: 0, fontSize: 30,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
-                }}>{encounter.icon}</div>
-                <div style={{ textAlign: 'left', flex: 1 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 2 }}>{encounter.champ}</div>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 4 }}>{encounter.jaName}</div>
-                  <div style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
-                  <div style={{ fontSize: 9, color: 'var(--textdim)', marginTop: 6, display: 'flex', gap: 10, alignItems: 'center' }}>
-                    <span>出現確率 {encounter.prob}%</span>
-                    {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
+                
+                <div style={{ marginTop: 45, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
+                  — CLICK TO CONTINUE —
+                </div>
+              </>
+            ) : (
+              <>
+                {/* 🌟 遭遇（神とは別枠の Opening Encounter） */}
+                {encounter && (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', animation: 'fadeIn 0.6s ease' }}>
+                    <div style={{ fontFamily: 'Orbitron', fontSize: 16, color: encounter.color, letterSpacing: 8, marginBottom: 20 }}>ENCOUNTER</div>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 24, maxWidth: 550,
+                      background: 'rgba(8,13,26,0.9)',
+                      border: `2px solid ${encounter.color}55`,
+                      borderRadius: 16, padding: '24px 32px',
+                      boxShadow: `0 15px 40px rgba(0,0,0,0.6), 0 0 20px ${encounter.color}33`,
+                      animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                    }}>
+                      <div style={{
+                        width: 80, height: 80, borderRadius: '50%', flexShrink: 0, fontSize: 40,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                        background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
+                      }}>
+                        {encChamp ? (
+                          <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <span>{encounter.icon}</span>
+                        )}
+                      </div>
+                      <div style={{ textAlign: 'left', flex: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 4 }}>{encounter.champ}</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 8 }}>{encounter.jaName}</div>
+                        <div style={{ fontSize: 14, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
+                        <div style={{ fontSize: 10, color: 'var(--textdim)', marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+                          <span>出現確率 {encounter.prob}%</span>
+                          {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                )}
+                <div style={{ marginTop: 50, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
+                  — CLICK ANYWHERE TO BEGIN —
                 </div>
-              </div>
-            </div>
-          )}
-
-          <div style={{ marginTop: 45, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
-            — CLICK ANYWHERE TO BEGIN —
+              </>
+            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
 
 
