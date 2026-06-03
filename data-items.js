@@ -218,3 +218,42 @@ const ARTIFACTS = [
   { id: 'talismanofascension', name: 'Talisman of Ascension', jaName: '超越のタリスマン', type: 'artifact', imgName: 'tft_item_artifact_talismanofascension' }
 ];
 
+/* ── レディアントアイテム ── */
+const RADIANT_ITEMS = [
+  { id: 'r_deathblade', name: 'Luminous Deathblade', jaName: 'ルミナス デスブレード', type: 'radiant', imgName: 'tft5_item_deathbladeradiant' },
+  { id: 'r_giantslayer', name: 'Demonslayer', jaName: 'デーモンスレイヤー', type: 'radiant', imgName: 'tft5_item_giantslayerradiant' },
+  { id: 'r_gunblade', name: 'Hextech Lifeblade', jaName: 'ヘクステック ライフブレード', type: 'radiant', imgName: 'tft5_item_hextechgunbladeradiant' },
+  { id: 'r_shojin', name: 'Spear of Hirana', jaName: 'ヒラナの矛', type: 'radiant', imgName: 'tft5_item_spearofshojinradiant' },
+  { id: 'r_edgeofnight', name: 'Brink of Dawn', jaName: 'ブリンク オブ ドーン', type: 'radiant', imgName: 'tft5_item_guardianangelradiant' },
+  { id: 'r_bloodthirster', name: 'Blessed Bloodthirster', jaName: '祝福のブラッドサースター', type: 'radiant', imgName: 'tft5_item_bloodthirsterradiant' },
+  { id: 'r_steraksgage', name: "Sterak's Megashield", jaName: 'ステラックのメガシールド', type: 'radiant', imgName: 'tft5_item_steraksgageradiant' },
+  { id: 'r_infinityedge', name: 'Zenith Edge', jaName: 'ゼニス エッジ', type: 'radiant', imgName: 'tft5_item_infinityedgeradiant' },
+  { id: 'r_rapidfirecannon', name: 'Crest of Cinders', jaName: 'シンダー クレスト', type: 'radiant', imgName: 'tft5_item_rapidfirecannonradiant' }, 
+  { id: 'r_guinsoo', name: "Guinsoo's Reckoning", jaName: 'グインソー レコニング', type: 'radiant', imgName: 'tft5_item_guinsoosragebladeradiant' },
+  { id: 'r_statikk', name: "Statikk's Favor", jaName: 'スタティック フェイヴァー', type: 'radiant', imgName: 'tft5_item_statikkshivradiant' },
+  { id: 'r_titans', name: "Titan's Vow", jaName: '巨人の誓い', type: 'radiant', imgName: 'tft5_item_titansresolveradiant' },
+  { id: 'r_runaan', name: "Runaan's Tempest", jaName: 'ルナーン テンペスト', type: 'radiant', imgName: 'tft5_item_runaanshurricaneradiant' },
+  { id: 'r_nashor', name: "Baron's Gift", jaName: 'バロンの贈り物', type: 'radiant', imgName: 'tft5_item_nashorstoothradiant' },
+  { id: 'r_lastwhisper', name: 'Eternal Whisper', jaName: 'エターナル ウィスパー', type: 'radiant', imgName: 'tft5_item_lastwhisperradiant' },
+  { id: 'r_rabadon', name: "Rabadon's Ascended Deathcap", jaName: 'ラバドン アセンデッド デスキャップ', type: 'radiant', imgName: 'tft5_item_rabadonsdeathcapradiant' },
+  { id: 'r_archangel', name: "Urf-Angel's Staff", jaName: 'アーフエンジェル スタッフ', type: 'radiant', imgName: 'tft5_item_archangelsstaffradiant' },
+  { id: 'r_crownguard', name: 'Royal Crownshield', jaName: 'ロイヤル クラウンシールド', type: 'radiant', imgName: 'tft5_item_crownguardradiant' },
+  { id: 'r_ionic', name: 'Covalent Spark', jaName: 'コヴァレント スパーク', type: 'radiant', imgName: 'tft5_item_ionicsparkradiant' },
+  { id: 'r_morello', name: 'More More-ellonomicon', jaName: 'モア モレロノミコン', type: 'radiant', imgName: 'tft5_item_morellonomiconradiant' },
+  { id: 'r_jeweled', name: 'Glamorous Gauntlet', jaName: 'グラマラス ガントレット', type: 'radiant', imgName: 'tft5_item_jeweledgauntletradiant' },
+  { id: 'r_bluebuff', name: 'Blue Blessing', jaName: 'ブルー ブレッシング', type: 'radiant', imgName: 'tft5_item_bluebuffradiant' },
+  { id: 'r_vow', name: "Bulwark's Oath", jaName: 'ブルワークの誓い', type: 'radiant', imgName: 'tft5_item_frozenheartradiant' },
+  { id: 'r_adaptive', name: 'Jaksho the Protean', jaName: 'ジャック=ショー', type: 'radiant', imgName: 'tft5_item_adaptivehelmradiant' },
+  { id: 'r_redemption', name: 'Absolution', jaName: 'アブソリューション', type: 'radiant', imgName: 'tft5_item_redemptionradiant' },
+  { id: 'r_hoj', name: 'Fist of Fairness', jaName: 'フィスト オブ フェアネス', type: 'radiant', imgName: 'tft5_item_unstableconcoctionradiant' },
+  { id: 'r_bramble', name: 'Rosethorn Vest', jaName: 'ローズソーン ベスト', type: 'radiant', imgName: 'tft5_item_bramblevestradiant' },
+  { id: 'r_gargoyle', name: 'Dvarapala Stoneplate', jaName: 'ドヴァーラパーラ ストーンプレート', type: 'radiant', imgName: 'tft5_item_gargoylestoneplateradiant' },
+  { id: 'r_sunfire', name: 'Sunlight Cape', jaName: 'サンライト ケープ', type: 'radiant', imgName: 'tft5_item_redbuffradiant' },
+  { id: 'r_steadfast', name: 'Legacy of the Colossus', jaName: '巨像の遺産', type: 'radiant', imgName: 'tft5_item_nightharvesterradiant' },
+  { id: 'r_dragon', name: "Dragon's Will", jaName: 'ドラゴンの意志', type: 'radiant', imgName: 'tft5_item_dragonsclawradiant' },
+  { id: 'r_evenshroud', name: 'Equinox', jaName: 'エクイノックス', type: 'radiant', imgName: 'tft5_item_spectralgauntletradiant' },
+  { id: 'r_quicksilver', name: 'Quickestsilver', jaName: 'クイッケストシルバー', type: 'radiant', imgName: 'tft5_item_quicksilverradiant' },
+  { id: 'r_warmog', name: "Warmog's Pride", jaName: 'ワーモグ プライド', type: 'radiant', imgName: 'tft5_item_warmogsarmorradiant' },
+  { id: 'r_guardbreaker', name: 'Willbreaker', jaName: 'ウィルブレイカー', type: 'radiant', imgName: 'tft5_item_powergauntletradiant' },
+  { id: 'r_thiefs', name: "Rascal's Gloves", jaName: 'ラスカル グローブ', type: 'radiant', imgName: 'tft5_item_thiefsglovesradiant' }
+];

@@ -34,13 +34,13 @@ const getMetaTFTItemUrl = (item) => {
     return `https://cdn.metatft.com/file/metatft/items/${nameInput}.png`;
   }
   
-  // アーティファクト専用
-  const artifact = ARTIFACTS.find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput);
-  if (artifact) {
-    if (artifact.imgName) {
-      return `https://cdn.metatft.com/file/metatft/items/${artifact.imgName}.png`;
+  // アーティファクトとレディアントを結合して検索
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput);
+  if (specialItem) {
+    if (specialItem.imgName) {
+      return `https://cdn.metatft.com/file/metatft/items/${specialItem.imgName}.png`;
     }
-    const formatted = artifact.name.toLowerCase().replace(/['.\s]/g, '').replace('artifact', '');
+    const formatted = specialItem.name.toLowerCase().replace(/['.\s]/g, '').replace('artifact', '');
     return `https://cdn.metatft.com/file/metatft/items/tft_item_${formatted}.png?v=1`;
   }
 
@@ -97,14 +97,16 @@ const shuffleArray = (arr, rng) => {
 
 /* ── 金床データの生成 ── */
 const createAnvil = (type) => {
-  let jaName = '金床', icon = '🛠️', color = '#94a3b8'; // default
-  if (type === 'component') { jaName = '素材の金床'; icon = '🔨'; color = '#c0c0c0'; }
-  else if (type === 'completed') { jaName = '完成品の金床'; icon = '📦'; color = '#d4af37'; }
-  else if (type === 'artifact')  { jaName = 'アーティファクト金床'; icon = '🔴'; color = '#dc3545'; }
+  let jaName = '金床', color = '#94a3b8'; // default
+  if (type === 'component') { jaName = '素材の金床'; color = '#c0c0c0'; }
+  else if (type === 'completed') { jaName = '完成品の金床'; color = '#d4af37'; }
+  else if (type === 'artifact')  { jaName = 'アーティファクト金床'; color = '#dc3545'; }
+  else if (type === 'radiant')   { jaName = 'レディアント金床'; color = '#facc15'; }
   return {
     isAnvil: true,
     anvilType: type,
-    jaName, icon, color,
+    jaName, color,
+    img: 'https://tftips.b-cdn.net/champ/ability/armorykeysupport.avif',
     cost: 0,
     star: 0,
     items: [],
@@ -160,7 +162,7 @@ const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseL
           <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
             {(champ.items || []).map((it, idx) => (
-              <img key={idx} src={getMetaTFTItemUrl(it)} style={{ width: 14, height: 14, border: `1px solid ${it?.type==='artifact' ? 'var(--red)' : 'rgba(255,255,255,0.5)'}`, borderRadius: 2, background: 'black' }} />
+              <img key={idx} src={getMetaTFTItemUrl(it)} style={{ width: 14, height: 14, border: `1px solid ${it?.type==='artifact' ? 'var(--red)' : (it?.type==='radiant' ? 'var(--gold2)' : 'rgba(255,255,255,0.5)')}`, borderRadius: 2, background: 'black' }} />
             ))}
           </div>
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 55%,rgba(0,0,0,.9))' }} />
@@ -356,9 +358,13 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
         <div className="drawer-grid">
           {ARTIFACTS.map(it => renderAssetItem(it, 'drawer_item', 'var(--red)'))}
         </div>
+        <div className="drawer-section-title">レディアント</div>
+        <div className="drawer-grid">
+          {RADIANT_ITEMS.map(it => renderAssetItem(it, 'drawer_item', 'var(--gold2)'))}
+        </div>
         <div className="drawer-section-title">金床</div>
         <div className="drawer-grid">
-          {['component', 'completed', 'artifact'].map(t => {
+          {['component', 'completed', 'artifact', 'radiant'].map(t => {
             const anvil = createAnvil(t);
             return (
               <div 
@@ -371,7 +377,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
                 onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_anvil', anvil })}
               >
                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1e293b', fontSize: 20 }}>
-                  {anvil.icon}
+                  <img src={anvil.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={anvil.jaName} />
                 </div>
               </div>
             );
@@ -907,6 +913,8 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       pool = recipes.filter(r => !r.grantedTrait && r.id !== 'tacticians_crown').map(r => ({...r, type: 'completed'}));
     } else if (anvil.anvilType === 'artifact') {
       pool = ARTIFACTS;
+    } else if (anvil.anvilType === 'radiant') {
+      pool = RADIANT_ITEMS;
     }
     const shuffled = shuffleArray(pool, rngMisc).slice(0, 4);
     setAnvilOptions({ items: shuffled, anvilType: anvil.anvilType });
@@ -2042,7 +2050,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     {inventory.length > 0 ? inventory.map((it, i) => (
                       <div key={i} style={{
                         width: 28, height: 28, background: '#1e293b', borderRadius: 4,
-                        border: `1px solid ${it?.type === 'artifact' ? 'var(--red)' : (it?.type === 'completed' ? 'var(--gold)' : 'var(--border)')}`,
+                        border: `1px solid ${it?.type === 'artifact' ? 'var(--red)' : (it?.type === 'radiant' ? 'var(--gold2)' : (it?.type === 'completed' ? 'var(--gold)' : 'var(--border)'))}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', position: 'relative', flexShrink: 0
                       }}>
                         {it?.name ? (<img src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />) : (<span style={{ fontSize: 12 }}>{it?.icon}</span>)}
@@ -2083,7 +2091,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         <React.Fragment>
                           <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':'white'}`, borderRadius: 1 }} />))}
+                            {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
                           </div>
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
                         </React.Fragment>
@@ -2559,7 +2567,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 onDragOver={e => e.preventDefault()}
                 onDrop={hDrop('inventory', i)}
                 title={it?.name ? getJaName(it.name) : ""}
-                style={{ width:36, height:36, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='completed'?'var(--gold)':'var(--border)')}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none'), position:'relative' }}>
+                style={{ width:36, height:36, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
                 {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
@@ -2709,14 +2717,14 @@ const handleAugmentPick = (aug, historyContext) => {
                 title={champ.isAnvil ? champ.jaName : undefined}
               >
                 {champ.isAnvil ? (
-                  <div style={{ width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:`2px solid ${champ.color}` }}>
-                    <span style={{ fontSize:18 }}>{champ.icon}</span>
+                  <div style={{ width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:`2px solid ${champ.color}`, overflow:'hidden' }}>
+                    <img src={champ.img} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt={champ.jaName} />
                   </div>
                 ) : (
                   <>
                     <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
                     <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
-                      {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':'white'}`, borderRadius:2, background:'black' }} />))}
+                      {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius:2, background:'black' }} />))}
                     </div>
                     <div style={{ position:'absolute', bottom:2, left:0, right:0 }}><Stars star={champ.star} /></div>
                   </>
@@ -2750,7 +2758,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       flex: 1,
                       maxWidth: 140,
                       background: 'rgba(30,45,74,0.6)',
-                      border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : 'var(--gold)'}`,
+                      border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : (it.type === 'radiant' ? 'var(--gold2)' : 'var(--gold)')}`,
                       borderRadius: 8,
                       display: 'flex',
                       flexDirection: 'column',
