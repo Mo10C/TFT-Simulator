@@ -32,8 +32,8 @@ const ENCOUNTERS = [
   { id:'poppy', champ:'ポッピー', jaName:'素材アイテムの金床', prob:7.3,
     desc:'「素材アイテムの金床」を2個所持して試合を開始する。',
     icon:'🛠️', color:'#ff9f43',
-    effect:(s,rng,h)=>{ const comps=ITEMS.filter(x=>x.type==='comp'&&x.id!=='spatula'&&x.id!=='pan');
-      for(let i=0;i<2;i++) h.addItem({...comps[Math.floor(rng()*comps.length)]}); h.showMsg('🛠️ ポッピー: 素材を2個獲得！'); } },
+    effect:(s,rng,h)=>{ 
+      h.addAnvilToBench('component', 2); h.showMsg('🛠️ ポッピー: 金床を2個獲得！'); } },
 
   { id:'twistedfate', champ:'ツイステッドフェイト', jaName:'黄金の祭典', prob:7.3,
     desc:'この試合で提示されるオーグメントがすべてゴールドティアになる。',

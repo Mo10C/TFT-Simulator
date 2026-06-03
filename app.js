@@ -95,6 +95,23 @@ const shuffleArray = (arr, rng) => {
   return res;
 };
 
+/* ── 金床データの生成 ── */
+const createAnvil = (type) => {
+  let jaName = '金床', icon = '🛠️', color = '#94a3b8'; // default
+  if (type === 'component') { jaName = '素材の金床'; icon = '🔨'; color = '#c0c0c0'; }
+  else if (type === 'completed') { jaName = '完成品の金床'; icon = '📦'; color = '#d4af37'; }
+  else if (type === 'artifact')  { jaName = 'アーティファクト金床'; icon = '🔴'; color = '#dc3545'; }
+  return {
+    isAnvil: true,
+    anvilType: type,
+    jaName, icon, color,
+    cost: 0,
+    star: 0,
+    items: [],
+    traits: [],
+    uid: Math.random()
+  };
+};
 
 
 function rollShop(level, rng){
@@ -338,6 +355,27 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
         <div className="drawer-section-title">アーティファクト</div>
         <div className="drawer-grid">
           {ARTIFACTS.map(it => renderAssetItem(it, 'drawer_item', 'var(--red)'))}
+        </div>
+        <div className="drawer-section-title">金床</div>
+        <div className="drawer-grid">
+          {['component', 'completed', 'artifact'].map(t => {
+            const anvil = createAnvil(t);
+            return (
+              <div 
+                key={`anvil_${t}`}
+                className="asset-icon-wrapper" 
+                style={{ borderColor: anvil.color }}
+                title={anvil.jaName}
+                draggable
+                onDragStart={() => setDragSrc({ type: 'drawer_anvil', anvil })}
+                onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_anvil', anvil })}
+              >
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1e293b', fontSize: 20 }}>
+                  {anvil.icon}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
       <div className={`drawer-content ${tab==='aug'?'active':''}`}>
@@ -750,6 +788,7 @@ function App({ seed, onRestart, onNewGame }) {
 
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [mfTargetUid, setMfTargetUid] = useState(null);
+  const [anvilOptions, setAnvilOptions] = useState(null);
 
   // スマホ横持ち対応：ウィンドウリサイズ時に再レンダリング
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -858,6 +897,32 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
   // 🌟 今回遭遇した神（リザルト表示用。ランダムで選ばれた1体目を運命の神とする）
   const chosenGod = encounterGods[0];
 
+  // 🌟 金床売却時の処理
+  const handleSellAnvil = useCallback((anvil) => {
+    let pool = [];
+    if (anvil.anvilType === 'component') {
+      pool = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
+    } else if (anvil.anvilType === 'completed') {
+      const recipes = Object.values(ITEM_RECIPES);
+      pool = recipes.filter(r => !r.grantedTrait && r.id !== 'tacticians_crown').map(r => ({...r, type: 'completed'}));
+    } else if (anvil.anvilType === 'artifact') {
+      pool = ARTIFACTS;
+    }
+    const shuffled = shuffleArray(pool, rngMisc).slice(0, 4);
+    setAnvilOptions({ items: shuffled, anvilType: anvil.anvilType });
+  }, [rngMisc]);
+
+  const handleAnvilSelect = useCallback((item) => {
+    setInventory(prev => [...prev, item]);
+    setAnvilOptions(null);
+    showMsg(
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <img src={getMetaTFTItemUrl(item)} style={{ width:18, height:18, borderRadius:2 }} />
+        <span>{getJaName(item.name || item.id)} を獲得しました！</span>
+      </div>
+    );
+  }, [showMsg]);
+
   // 🌟 キャプチャ処理
   const handleSaveImage = async () => {
     if (!resultRef.current) return;
@@ -944,6 +1009,18 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
     });
   }, []);
 
+  const addAnvilToBench = useCallback((type, count) => {
+    setBench(prev => {
+      const nb = [...prev];
+      for (let i = 0; i < count; i++) {
+        const slot = nb.findIndex(x => !x);
+        if (slot !== -1) nb[slot] = createAnvil(type);
+        else { showMsg("⚠️ ベンチが一杯で金床を獲得できませんでした"); break; }
+      }
+      return nb;
+    });
+  }, [showMsg]);
+
   // Appコンポーネント内のState定義のあたりに追加
 
 // 🌟 ベンチの空きを監視して、待機ユニットを自動で追加するロジック
@@ -1007,12 +1084,13 @@ useEffect(() => {
     addGold, addXp, addItem, addPassiveBuff, showMsg, getJaName,
     addChampToBench: (cost, count, r) => addChampToBench(cost, count, r || rngMisc),
     addChampToBenchDirect,
+    addAnvilToBench,
     addPendingUnits: (units) => setPendingUnits(prev => [...prev, ...units]),
     setLevel: setLevelDirect, setMaxInterest: setMaxInterestFn,
     setXpCostReduction: setXpCostReductionFn, setAugmentTierBoost: setAugmentTierBoostFn,
     setNoMoreAugments: setNoMoreAugmentsFn, setAfkRoundsLeft: setAfkRoundsLeftFn,
     addFreeRerolls,
-  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -1385,6 +1463,21 @@ const handleAugmentPick = (aug, historyContext) => {
     if (!dragSrc) return;
     let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
 
+    // ==========================================
+    // 0. ドロワーからの金床追加
+    // ==========================================
+    if (dragSrc.type === 'drawer_anvil') {
+      if (targetType === 'bench') {
+        const slot = targetIdx !== -1 && !nb[targetIdx] ? targetIdx : nb.findIndex(x => !x);
+        if (slot === -1) { showMsg("⚠️ ベンチに空きがありません"); setDragSrc(null); return; }
+        nb[slot] = { ...dragSrc.anvil, uid: rngMisc() };
+        setBench(nb);
+      } else {
+        showMsg("⚠️ 金床はベンチにのみ配置できます");
+      }
+      setDragSrc(null); return;
+    }
+
     // --- リフォージ用の抽選ロジック ---
     const getReforgeTarget = (itemToReforge) => {
       if (itemToReforge.type === 'comp') {
@@ -1428,6 +1521,9 @@ const handleAugmentPick = (aug, historyContext) => {
       const newItem = dragSrc.type === 'drawer_item' ? dragSrc.item : ninv[dragSrc.idx];
       
       if (unit && newItem) {
+        if (unit.isAnvil) {
+          showMsg("⚠️ 金床にアイテムは装備できません！"); setDragSrc(null); return;
+        }
         if (!unit.items) unit.items = [];
         if (newItem.type === 'consumable') {
           if (newItem.id === 'remover') {
@@ -1455,7 +1551,7 @@ const handleAugmentPick = (aug, historyContext) => {
             if (dragSrc.type === 'inventory') ninv.splice(dragSrc.idx, 1);
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>{unit.jaName}を複製しました！</span></div>);
             // 簡易星アップ判定
-            const counts = {}; [...nb, ...nbrd].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
+            const counts = {}; [...nb, ...nbrd].forEach(u => { if (u && !u.isAnvil) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
             for (const k in counts) {
               if (counts[k] >= 3) {
                 const [id, s] = k.split('_'); const star = parseInt(s);
@@ -1640,19 +1736,27 @@ const handleAugmentPick = (aug, historyContext) => {
       const src = dragSrc.type === 'bench' ? nb : nbrd;
       const mover = src[dragSrc.idx];
       if (mover) { 
-        setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1)))); 
-        
-        if (mover.items && mover.items.length > 0) {
-          const itemsToReturn = mover.items.filter(it => !it.isTGGenerated && !it.isPsionic);
-          ninv.push(...itemsToReturn);
+        if (mover.isAnvil) {
+          handleSellAnvil(mover);
+          src[dragSrc.idx] = null;
+        } else {
+          setGold(g => g + (mover.cost * (mover.star === 3 ? 9 : (mover.star === 2 ? 3 : 1)))); 
+          if (mover.items && mover.items.length > 0) {
+            const itemsToReturn = mover.items.filter(it => !it.isTGGenerated && !it.isPsionic);
+            ninv.push(...itemsToReturn);
+          }
+          src[dragSrc.idx] = null; 
         }
-        src[dragSrc.idx] = null; 
       }
     } else {
       if (targetType === 'anywhere') { setDragSrc(null); return; }
       const src = dragSrc.type === 'bench' ? nb : nbrd; 
       let mover = src[dragSrc.idx];
       
+      if (mover && mover.isAnvil && targetType === 'board') {
+        showMsg("⚠️ 金床は盤面に配置できません！"); setDragSrc(null); return;
+      }
+
       if (dragSrc.type === 'bench' && targetType === 'board' && !nbrd[targetIdx]) {
         const cursedCrownBonus = passiveBuffs.find(b => b.type === 'cursed_crown')?.teamSizeBonus || 0;
         const crownBonus = nbrd.filter(Boolean).reduce((acc, c) => acc + (c.items ? c.items.filter(it => it.id === 'tacticians_crown').reduce((s, it) => s + (it.teamSizeBonus || 0), 0) : 0), 0);
@@ -1683,7 +1787,7 @@ const handleAugmentPick = (aug, historyContext) => {
     // 6. 共通: 星アップ判定
     // ==========================================
     setShop(ns);
-    const counts = {}; [...nb, ...nbrd].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
+    const counts = {}; [...nb, ...nbrd].forEach(u => { if (u && !u.isAnvil) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
     for (const k in counts) {
       if (counts[k] >= 3) {
         const [id, s] = k.split('_'); const star = parseInt(s);
@@ -1809,6 +1913,29 @@ const handleAugmentPick = (aug, historyContext) => {
                     </div>
                   </div>
                 ))}
+                
+                {/* 🌟 遭遇を同列に追加 */}
+                {encounter && (
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:10,padding:'6px 12px'}}>
+                    <div style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
+                      {(() => {
+                        let encChamp = CHAMPS.find(c => c.id === encounter.id);
+                        if (!encChamp) {
+                          const map = { 'miipsy': 'meepsie', 'velkoz': 'belveth', 'rastt': 'rhaast' };
+                          if (map[encounter.id]) encChamp = CHAMPS.find(c => c.id === map[encounter.id]);
+                        }
+                        if (!encChamp) {
+                          encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
+                        }
+                        return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 16 }}>{encounter.icon}</span>;
+                      })()}
+                    </div>
+                    <div>
+                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
+                      <div style={{fontSize:11,fontWeight:900,color:encounter.color,lineHeight:1.2}}>{encounter.champ}</div>
+                    </div>
+                  </div>
+                )}
               </div>
               
               <div style={{fontFamily:'Orbitron',fontSize:11,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
@@ -2576,15 +2703,24 @@ const handleAugmentPick = (aug, historyContext) => {
                 draggable
                 onDragStart={() => setDragSrc({ type:'bench', idx:i })}
                 onTouchStart={(e) => startTouchDrag(e, { type:'bench', idx:i })}
-                onMouseEnter={(e) => handleMouseEnter(e, champ)}
-                onMouseLeave={handleMouseLeave}
+                onMouseEnter={champ.isAnvil ? undefined : (e) => handleMouseEnter(e, champ)}
+                onMouseLeave={champ.isAnvil ? undefined : handleMouseLeave}
                 style={{ width:'100%', height:'100%', cursor:'grab', position:'relative' }}
+                title={champ.isAnvil ? champ.jaName : undefined}
               >
-                <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
-                <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
-                  {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':'white'}`, borderRadius:2, background:'black' }} />))}
-                </div>
-                <div style={{ position:'absolute', bottom:2, left:0, right:0 }}><Stars star={champ.star} /></div>
+                {champ.isAnvil ? (
+                  <div style={{ width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:`2px solid ${champ.color}` }}>
+                    <span style={{ fontSize:18 }}>{champ.icon}</span>
+                  </div>
+                ) : (
+                  <>
+                    <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+                    <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
+                      {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':'white'}`, borderRadius:2, background:'black' }} />))}
+                    </div>
+                    <div style={{ position:'absolute', bottom:2, left:0, right:0 }}><Stars star={champ.star} /></div>
+                  </>
+                )}
               </div>
             )}
             {!champ && <span style={{ color:'var(--border)', fontSize:12 }}>＋</span>}
@@ -2671,7 +2807,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         let nb = [...bench], ns = [...shop];
                         nb[slot] = { ...unit, star:1, uid:rngMisc(), items:[] }; ns[i] = null;
                         setGold(g => g - unit.cost); setShop(ns);
-                        const counts = {}; [...nb, ...board].forEach(u => { if (u) { const k = `${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1; } });
+                        const counts = {}; [...nb, ...board].forEach(u => { if (u && !u.isAnvil) { const k = `${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1; } });
                         // 🌟 ショップ内 onClick 内の進化ロジック
                         for (const k in counts) {
                           if (counts[k] >= 3) {
@@ -2778,6 +2914,31 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
 
       </div>
+
+      {/* 🌟 金床ポップアップ */}
+      {anvilOptions && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease' }}>
+          <h2 style={{ color: 'white', fontSize: 24, marginBottom: 30, fontFamily: 'Noto Sans JP', fontWeight: 900 }}>アイテムを1つ選択してください</h2>
+          <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {anvilOptions.items.map((it, idx) => (
+              <div
+                key={idx}
+                onClick={() => handleAnvilSelect(it)}
+                style={{
+                  width: 140, height: 180, background: 'rgba(30,45,74,0.6)', border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : 'var(--gold)'}`,
+                  borderRadius: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                  padding: 10, textAlign: 'center', transition: 'all 0.2s', boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
+              >
+                <img src={getMetaTFTItemUrl(it)} style={{ width: 64, height: 64, borderRadius: 8, marginBottom: 15 }} />
+                <div style={{ fontSize: 13, fontWeight: 900, color: 'white', lineHeight: 1.3 }}>{getJaName(it.name || it.id)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
