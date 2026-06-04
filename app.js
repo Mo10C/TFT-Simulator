@@ -2113,9 +2113,9 @@ const handleAugmentPick = (aug, historyContext) => {
                         
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between' }}>
                           {[0, 1, 2].map(slotIdx => {
-                            const initAug = a.history?.initialChoices[slotIdx];
-                            const finalAug = a.history?.finalChoices[slotIdx];
-                            const isRerolled = a.history?.rerolledSlots[slotIdx];
+                            const initAug = a.history?.initialChoices?.[slotIdx];
+                            const finalAug = a.history?.finalChoices?.[slotIdx];
+                            const isRerolled = a.history?.rerolledSlots?.[slotIdx];
                             const isPicked = finalAug?.id === a.id;
 
                             if (!finalAug) return null;
@@ -2128,7 +2128,7 @@ const handleAugmentPick = (aug, historyContext) => {
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
                                     <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} />
                                     {/* 👇 名前を表示し、取り消し線（line-through）を引く */}
-                                    <div style={{ fontSize: 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px' }}>{initAug.name}</div>
+                                    <div style={{ fontSize: 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px' }}>{initAug?.name}</div>
                                     <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
                                   </div>
                                 )}
