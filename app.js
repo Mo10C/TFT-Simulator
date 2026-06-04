@@ -274,7 +274,7 @@ const TraitTooltip = ({ data, stargazerDesc, psionicItems, arbiterRule }) => {
   );
 };
 
-/* ── アセットドロワーコンポーネント ── */
+
 const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
   const [tab, setTab] = useState('champ');
   
@@ -337,7 +337,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
   return (
     <div className={`asset-drawer ${isOpen ? 'open' : ''}`}>
       <div className="drawer-header">
-        <h3>🎒 アセットパネル</h3>
+        <h3>🎒 チート</h3>
         <button className="close-drawer-btn" onClick={onClose}>×</button>
       </div>
       <div className="drawer-tabs">
@@ -2725,9 +2725,9 @@ const handleAugmentPick = (aug, historyContext) => {
           <button 
             onClick={() => setShowAssetDrawer(true)}
             style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
-            title="アセットパネルを開く"
+            title="チート"
           >
-            🎒 アセット
+            🎒 チート
           </button>
 
 
