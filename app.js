@@ -608,8 +608,24 @@ function Main() {
   <span style={{ fontSize: '0.7em', letterSpacing: 8 }}>1stage Simulator</span> 
 </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <button className="menu-btn" style={{ width:220, background:'var(--blue)', color:'white', borderColor:'var(--blue)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
-          <button className="menu-btn" style={{ width:220, background:'rgba(15,23,42,0.8)', color:'white', borderColor:'var(--border)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => window.open('https://app.notion.com/p/TFT-Set-17-1-StageSimulator-32828a55d99c8096819cc141beb0c5be?source=copy_link', '_blank')}>使い方</button>
+          <button 
+            className="menu-btn" 
+            style={{ width:220, background:'var(--blue)', color:'white', borderColor:'var(--blue)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)', transition:'all 0.2s ease', cursor:'pointer' }} 
+            onClick={() => startWithSeed()}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.boxShadow = '0 15px 40px rgba(26,159,255,0.6)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.5)'; }}
+          >
+            ゲームスタート
+          </button>
+          <button 
+            className="menu-btn" 
+            style={{ width:220, background:'rgba(15,23,42,0.8)', color:'white', borderColor:'var(--border)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)', transition:'all 0.2s ease', cursor:'pointer' }} 
+            onClick={() => window.open('https://app.notion.com/p/TFT-Set-17-1-StageSimulator-32828a55d99c8096819cc141beb0c5be?source=copy_link', '_blank')}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(30,45,74,0.9)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(15,23,42,0.8)'; }}
+          >
+            使い方
+          </button>
         </div>
       </div>
     );
