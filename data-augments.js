@@ -1266,7 +1266,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'lucky_gloves', name: 'ラッキーグローブ', tier: 'prismatic', category: 'item', imgName: 'luckygloves_iii',
+      id: 'lucky_gloves', name: 'ラッキーグローブ', tier: 'prismatic', category: 'item', imgName: 'lucky-gloves-iii',
       desc: '「盗賊のグローブ」が毎回、そのチャンピオンにとって理想的なアイテムを付与するようになる。「スパーリング グローブ」を2個獲得する。',
       icon: '🧤',
       effect: (state, rng, helpers) => {
@@ -1277,7 +1277,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'wise_spending', name: '賢い買い物', tier: 'prismatic', category: 'economy', imgName: 'wisespending_iii',
+      id: 'wise_spending', name: '賢い買い物', tier: 'prismatic', category: 'economy', imgName: 'wisespending3',
       desc: 'XPを購入できなくなる。ショップをリロールしてゴールドを消費するたびに、2XPを獲得する。即座に3ゴールドを獲得する。',
       icon: '🛒',
       effect: (state, rng, helpers) => {
@@ -1287,7 +1287,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'recklessspending_iii',
+      id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'goimg-long-iii',
       desc: '利子を獲得しなくなる。13ゴールドを即座に獲得する。ラウンド開始時: 4 XPの経験値を獲得する。',
       icon: '💸',
       effect: (state, rng, helpers) => {
@@ -1296,7 +1296,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'flexibility', name: '柔軟性', tier: 'prismatic', category: 'item', imgName: 'flexible_iii',
+      id: 'flexibility', name: '柔軟性', tier: 'prismatic', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/_flexible.avif?v=1',
       desc: 'ランダムな紋章アイテムを1個獲得する。毎ステージ開始時、ランダムな紋章を1個獲得する。装備した紋章1つごとに、味方チームの体力が30増加する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -1308,7 +1308,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'heart_and_soul', name: '全身全霊', tier: 'prismatic', category: 'item', imgName: 'heartandsoul_iii',
+      id: 'heart_and_soul', name: '全身全霊', tier: 'prismatic', category: 'item', imgName: 'hardcommit_iii',
       desc: 'ランダムな紋章アイテムを1個獲得する。今すぐ、および各ステージ開始時に、コストがステージ数と同じで(最大5)、その紋章の特性を持つ★1のユニットと3ゴールドを獲得する。',
       icon: '❤️',
       effect: (state, rng, helpers) => {
@@ -1353,7 +1353,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'swarm_heart', name: 'スワーム ハート', tier: 'prismatic', category: 'combat', imgName: 'swarmheart_iii',
+      id: 'swarm_heart', name: 'スワーム ハート', tier: 'prismatic', category: 'combat', imgName: 'heartoftheswarm_iii',
       desc: 'すべての★3チャンピオンがスワームリングのパワーとしてカウントされる。レベル9で、異なる★3チャンピオンを6体配置している場合、「プライモーディアン」がエイペックス・プライモーディアンを召喚する。「プライモーディアン」のチャンピオン3体と「小型チャンピオン複製器」を2個獲得する。',
       icon: '👾',
       effect: (state, rng, helpers) => {
@@ -1372,7 +1372,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'living_forge', name: '歩く鍛冶場', tier: 'prismatic', category: 'item', imgName: 'livingforge_iii',
+      id: 'living_forge', name: '歩く鍛冶場', tier: 'prismatic', category: 'item', imgName: 'living-forge-iii',
       desc: '「アーティファクトの金床」を即座に1個獲得し、その後は対人戦ラウンドを8回終えるたびに1個獲得する。',
       icon: '🔨',
       effect: (state, rng, helpers) => {
@@ -1406,7 +1406,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'forged_in_force', name: '力に鍛えられしもの', tier: 'prismatic', category: 'item', imgName: 'forgedinforce_iii',
+      id: 'forged_in_force', name: '力に鍛えられしもの', tier: 'prismatic', category: 'item', imgName: 'forgedinstrength_iii',
       desc: 'ランダムなアーティファクトを1個獲得する。体力が35を下回ると、ランダムなアーティファクトを追加で3個獲得する',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -1415,7 +1415,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'always_together', name: 'いつでも一緒', tier: 'prismatic', category: 'item', imgName: 'alwaystogether_iii',
+      id: 'always_together', name: 'いつでも一緒', tier: 'prismatic', category: 'item', imgName: 'westicktogether_iii',
       desc: 'ランダムな紋章アイテムを1個と、「完成アイテムの金床」を1個獲得する。その紋章と同じ特性を持っている味方の攻撃速度が30%増加する。',
       icon: '💞',
       effect: (state, rng, helpers) => {
@@ -1428,7 +1428,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'subscription', name: 'サブスクリプション', tier: 'prismatic', category: 'economy', imgName: 'subscription_iii',
+      id: 'subscription', name: 'サブスクリプション', tier: 'prismatic', category: 'economy', imgName: 'subscriptionservice_iii',
       desc: '現在、そして各ステージの開始時に、異なるコスト4チャンピオンが4体並ぶショップを開き、6ゴールドを獲得する',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -1447,7 +1447,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'expected_surprise', name: '想定内の意外性', tier: 'prismatic', category: 'economy', imgName: 'calculatedsurprise_iii',
+      id: 'expected_surprise', name: '想定内の意外性', tier: 'prismatic', category: 'economy', imgName: 'assicted-to-rolling-iii',
       desc: '即座に、および次の2ステージの開始時に、3個のダイスを振る。その合計に応じて様々な報酬を獲得する。',
       icon: '🎲',
       effect: (state, rng, helpers) => {
