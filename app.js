@@ -17,24 +17,6 @@ const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 const champIcon=(img)=>`https://blitz-cdn.blitz.gg/blitz/centered-tft/set17/TFT17_${img.charAt(0).toUpperCase() + img.slice(1)}.webp`;
 const boardIcon=(img)=>`https://blitz-cdn.blitz.gg/blitz/tft/champion_squares/set17/TFT17_${img.charAt(0).toUpperCase() + img.slice(1)}.webp`;
 const getTraitIconUrl = (name) => `https://cdn.metatft.com/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
-
-/* 🌟 神ポートレート用：rgpub(本来の絵) → blitz-cdn(チャンピオン四角) → CSS絵文字 の3段フォールバック。
-   Riot CMS(cmsassets.rgpub.io)はローカル(file://)やホットリンクで弾かれて黒丸になりやすいため、
-   読み込み失敗時に同じ環境で読めている blitz-cdn へ自動で切り替える。 */
-const GOD_CHAMP_IMG = { soraka:'Soraka', ahri:'Ahri', asol:'AurelionSol', yasuo:'Yasuo', varus:'Varus', evelynn:'Evelynn', thresh:'Thresh', kayle:'Kayle', ekko:'Ekko' };
-const GodImg = ({ god, style = {} }) => {
-  const [stage, setStage] = useState(0); // 0:rgpub 1:blitz 2:CSS
-  if (stage >= 2) {
-    const fbSize = typeof style.width === 'number' ? style.width * 0.5 : 40;
-    return (
-      <div style={{ ...style, display:'flex', alignItems:'center', justifyContent:'center', background:`${god.color}33` }}>
-        <span style={{ fontSize: fbSize, lineHeight: 1 }}>⚡</span>
-      </div>
-    );
-  }
-  const src = stage === 0 ? god.imgUrl : boardIcon(GOD_CHAMP_IMG[god.id] || god.id);
-  return <img src={src} style={style} onError={() => setStage(s => s + 1)} />;
-};
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
 
@@ -963,16 +945,24 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
     setAnvilOptions({ items: shuffled, anvilType });
   }, [rngMisc]);
 
-  // 🌟 POP用のタイマーを管理する箱（showMsg は依存配列で参照されるため、ここで先に宣言する）
-  const dropMsgTimer = useRef(null);
+  // 🌟 金床売却時の処理
+  const handleSellAnvil = useCallback((anvil) => {
+    triggerAnvilChoice(anvil.anvilType);
+  }, [triggerAnvilChoice]);
 
-  const showMsg = useCallback((msg, duration = 3000) => {
-    setDropMsg(msg);
-    // 🌟 前のタイマーが残っていたらキャンセルする（瞬殺されるのを防ぐ）
-    if (dropMsgTimer.current) clearTimeout(dropMsgTimer.current);
-    // 新しいタイマーをセット
-    dropMsgTimer.current = setTimeout(() => setDropMsg(null), duration);
-  }, []);
+  const handleAnvilSelect = useCallback((item) => {
+    setInventory(prev => [...prev, item]);
+    if (anvilOptions && anvilOptions.anvilType === 'duplication') {
+      addPassiveBuff({ type: 'duplication_item', itemId: item.id, roundsLeft: 2 });
+    }
+    setAnvilOptions(null);
+    showMsg(
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <img src={getMetaTFTItemUrl(item)} style={{ width:18, height:18, borderRadius:2 }} />
+        <span>{getJaName(item.name || item.id)} を獲得しました！</span>
+      </div>
+    );
+  }, [showMsg, anvilOptions, addPassiveBuff]);
 
   // 🌟 キャプチャ処理
   const handleSaveImage = async () => {
@@ -1032,6 +1022,16 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
 
   
 
+// 🌟 POP用のタイマーを管理する箱
+  const dropMsgTimer = useRef(null);
+
+  const showMsg = useCallback((msg, duration = 3000) => {
+    setDropMsg(msg);
+    // 🌟 前のタイマーが残っていたらキャンセルする（瞬殺されるのを防ぐ）
+    if (dropMsgTimer.current) clearTimeout(dropMsgTimer.current);
+    // 新しいタイマーをセット
+    dropMsgTimer.current = setTimeout(() => setDropMsg(null), duration);
+  }, []);
 
   const addXp = useCallback((amount) => {
     setXp(prevXp => {
@@ -1125,25 +1125,6 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       return nb;
     });
   }, [showMsg]);
-
-  // 🌟 金床売却・選択（依存する showMsg / addPassiveBuff より後に宣言する）
-  const handleSellAnvil = useCallback((anvil) => {
-    triggerAnvilChoice(anvil.anvilType);
-  }, [triggerAnvilChoice]);
-
-  const handleAnvilSelect = useCallback((item) => {
-    setInventory(prev => [...prev, item]);
-    if (anvilOptions && anvilOptions.anvilType === 'duplication') {
-      addPassiveBuff({ type: 'duplication_item', itemId: item.id, roundsLeft: 2 });
-    }
-    setAnvilOptions(null);
-    showMsg(
-      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-        <img src={getMetaTFTItemUrl(item)} style={{ width:18, height:18, borderRadius:2 }} />
-        <span>{getJaName(item.name || item.id)} を獲得しました！</span>
-      </div>
-    );
-  }, [showMsg, anvilOptions, addPassiveBuff]);
 
   // Appコンポーネント内のState定義のあたりに追加
 
@@ -2095,8 +2076,8 @@ const handleAugmentPick = (aug, historyContext) => {
               <div style={{display:'flex',gap:10}}>
                 {encounterGods.map((god) => (
                   <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${god.color}33`,borderRadius:10,padding:'6px 12px'}}>
-                    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-                    <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
+                    {/* 👇 crossOrigin属性を削除したため画像が表示されます */}
+                    <img src={god.imgUrl} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
@@ -2252,7 +2233,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 {/* 🌟 盤面（主役なので大きく表示） */}
                 <div style={{transform:'scale(0.8) translateX(-40px)',transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
-                    <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?30:0}}>
+                    <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
                       {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
@@ -2570,7 +2551,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     >
                       <div style={{ position: 'absolute', top: -75, left: -75, width: 225, height: 225, background: god.color, filter: 'blur(75px)', opacity: 0.15 }}></div>
                       <div style={{ width: '100%', height: '240px', position: 'relative', overflow: 'hidden', background: '#04060e' }}>
-                        <GodImg god={god} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={god.imgUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,13,26,1) 0%, transparent 40%)' }}></div>
                       </div>
                       <div style={{ padding: '0 18px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
@@ -2665,10 +2646,14 @@ const handleAugmentPick = (aug, historyContext) => {
           {/* 左の神様 (1-2以降) */}
 {round !== '1-1' && encounterGods[0] && (
   <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[0].color}33`,borderRadius:8,padding:'4px 12px'}}>
-    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック（旧via.placeholder.comは廃止済みのため置換） */}
-    <GodImg
-      god={encounterGods[0]}
-      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}}
+    {/* 🌟 修正ポイント：crossOriginを削除し、onErrorを追加 */}
+    <img 
+      src={encounterGods[0].imgUrl} 
+      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} 
+      onError={(e) => {
+        // もし読み込めなかったら、代わりの画像（あるいは透明な1px画像）を入れる
+        e.target.src = "https://via.placeholder.com/50?text=G";
+      }}
     />
     <div>
       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
@@ -2704,10 +2689,13 @@ const handleAugmentPick = (aug, historyContext) => {
       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
       <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
     </div>
-    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-    <GodImg
-      god={encounterGods[1]}
-      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}}
+    {/* 🌟 修正ポイント：crossOriginを削除し、onErrorを追加 */}
+    <img 
+      src={encounterGods[1].imgUrl} 
+      style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} 
+      onError={(e) => {
+        e.target.src = "https://via.placeholder.com/50?text=G";
+      }}
     />
   </div>
 )}
