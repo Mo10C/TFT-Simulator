@@ -1050,6 +1050,39 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
     });
   }, []);
 
+  const addChampToBoard = useCallback((cost, count, rngFn, slotIdx = 17) => {
+    const pool = CHAMPS.filter(c => c.cost === cost);
+    const chosenChamps = [];
+    for (let i = 0; i < count; i++) {
+      chosenChamps.push({ ...pool[Math.floor(rngFn() * pool.length)], star: 1, uid: rngFn(), items: [] });
+    }
+    
+    setBoard(prev => {
+      const nb = [...prev];
+      nb[slotIdx] = chosenChamps[0]; // 1体目は盤面へ
+      return nb;
+    });
+
+    if (count > 1) {
+      setBench(prev => {
+        const nb = [...prev];
+        for (let i = 1; i < count; i++) {
+          const slot = nb.findIndex(x => !x);
+          if (slot !== -1) nb[slot] = chosenChamps[i];
+        }
+        return nb;
+      });
+    }
+  }, []);
+
+  const addChampToBoardDirect = useCallback((champ, slotIdx = 17) => {
+    setBoard(prev => {
+      const nb = [...prev];
+      nb[slotIdx] = champ;
+      return nb;
+    });
+  }, []);
+
   const addAnvilToBench = useCallback((type, count) => {
     setBench(prev => {
       const nb = [...prev];
@@ -1125,6 +1158,8 @@ useEffect(() => {
     addGold, addXp, addItem, addPassiveBuff, showMsg, getJaName,
     addChampToBench: (cost, count, r) => addChampToBench(cost, count, r || rngMisc),
     addChampToBenchDirect,
+    addChampToBoard: (cost, count, r) => addChampToBoard(cost, count, r || rngMisc),
+    addChampToBoardDirect,
     addAnvilToBench,
     triggerAnvilChoice,
     addPendingUnits: (units) => setPendingUnits(prev => [...prev, ...units]),
@@ -1135,7 +1170,7 @@ useEffect(() => {
     addFreeRerolls,
     setShop,
     setIsFinished,
-  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc, setIsFinished]);
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addChampToBoard, addChampToBoardDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc, setIsFinished]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -1985,6 +2020,14 @@ const handleAugmentPick = (aug, historyContext) => {
 >
   共有URLをコピー
 </button>
+          <button 
+            className="menu-btn" 
+            onClick={handleCopyImage} 
+            disabled={isSaving}
+            style={{padding:'10px 20px', fontSize:13, background:'var(--purple)', color:'white', borderColor:'var(--purple)', opacity: isSaving ? 0.5 : 1, cursor: isSaving ? 'wait' : 'pointer'}}
+          >
+            {isSaving ? '⏳ 処理中...' : '📸 画像をコピー'}
+          </button>
         </div>
 
         {/* 🌟 キャプチャ対象エリア */}
