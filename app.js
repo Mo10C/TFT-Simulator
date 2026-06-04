@@ -461,8 +461,8 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       alignItems: 'center',
       justifyContent: 'center',
       transition: 'all 0.3s ease',
-      // 🌟 pointer-eventsは常にautoにすることで、下の盤面操作をブロック
-      pointerEvents: 'auto'
+      // 🌟 viewBoardがtrueの時はイベントを通過させて下の盤面を操作可能にする
+      pointerEvents: viewBoard ? 'none' : 'auto'
     }}>
 
       {/* 👇 盤面確認切り替えボタンを追加 */}
@@ -486,7 +486,8 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
           fontFamily: 'Noto Sans JP',
           cursor: 'pointer',
           boxShadow: '0 0 15px rgba(26,159,255,0.6)',
-          zIndex: 2001
+          zIndex: 2001,
+          pointerEvents: 'auto' // 親がnoneでもこのボタンは押せるようにする
         }}
         title={viewBoard ? "オーグメント選択に戻る" : "盤面を確認する"}
       >
@@ -1133,7 +1134,8 @@ useEffect(() => {
     setNoMoreAugments: setNoMoreAugmentsFn, setAfkRoundsLeft: setAfkRoundsLeftFn,
     addFreeRerolls,
     setShop,
-  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
+    setIsFinished,
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc, setIsFinished]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -1144,9 +1146,42 @@ useEffect(() => {
 
   const [dropPlan] = useState(() => {
     const roll = rngDrop() * 100;
-    // 10%で1個、20%で2個(10~30)、60%で3個(30~90)、10%で4個(90~100)
-    const target = roll < 10 ? 1 : roll < 30 ? 2 : roll < 90 ? 3 : 4;
-    return { targetComp: target, droppedComp: 0 };
+    let plan;
+    // BASE (95%)
+    if (roll < 33.25) plan = { comp: 3, gray: 3, blue: 0 };
+    else if (roll < 66.50) plan = { comp: 3, gray: 1, blue: 0 };
+    else if (roll < 77.90) plan = { comp: 2, gray: 1, blue: 1 };
+    else if (roll < 89.30) plan = { comp: 2, gray: 2, blue: 1 };
+    else if (roll < 95.00) plan = { comp: 1, gray: 1, blue: 2 };
+    // HIGH (5%)
+    else if (roll < 96.15) plan = { comp: 5, gray: 3, blue: 0 };
+    else if (roll < 97.30) plan = { comp: 5, gray: 1, blue: 0 };
+    else if (roll < 98.20) plan = { comp: 4, gray: 1, blue: 0 };
+    else if (roll < 99.10) plan = { comp: 3, gray: 0, blue: 2 };
+    else plan = { comp: 3, gray: 5, blue: 0 };
+
+    const allDrops = [];
+    for (let i = 0; i < plan.comp; i++) allDrops.push('comp');
+    for (let i = 0; i < plan.gray; i++) allDrops.push('GRAY');
+    for (let i = 0; i < plan.blue; i++) allDrops.push('BLUE');
+
+    // ドロップをシャッフル
+    const shuffled = shuffleArray(allDrops, rngDrop);
+    const drops = { '1-2': [], '1-3': [], '1-4': [] };
+    
+    // 各ラウンドに最低1個はドロップするように割り当て
+    if (shuffled.length > 0) drops['1-2'].push(shuffled.pop());
+    if (shuffled.length > 0) drops['1-3'].push(shuffled.pop());
+    if (shuffled.length > 0) drops['1-4'].push(shuffled.pop());
+
+    // 残りをランダムなラウンドに振り分ける
+    const rounds = ['1-2', '1-3', '1-4'];
+    while (shuffled.length > 0) {
+      const targetRound = rounds[Math.floor(rngDrop() * rounds.length)];
+      drops[targetRound].push(shuffled.pop());
+    }
+
+    return drops;
   });
 
   const executeOrbDrop = (type) => {
@@ -1222,32 +1257,16 @@ useEffect(() => {
     }
   };
 
-  const triggerDrops = (isLastRound) => {
-    // 🌟 基本のドロップ数（1〜2個）
-    let dropCount = Math.floor(rngDrop() * 2) +1;
-    const remainingForStage = dropPlan.targetComp - dropPlan.droppedComp;
-
-    // 🌟🌟🌟 新規追加：1-4の時に、まだ落とすべき素材の数が箱の数を上回っている場合、
-    // 強制的に箱の数を増やして、確実に目標数の素材を吐き出させる！
-    if (isLastRound && remainingForStage > dropCount) {
-      dropCount = remainingForStage;
-    }
+  const triggerDrops = (currentRound) => {
+    const drops = dropPlan[currentRound];
+    if (!drops || drops.length === 0) return;
 
     let newItems = [];
     let dropElements = [];
     let newlyDroppedIds = [];
 
-    for (let i = 0; i < dropCount; i++) {
-      const remainingComps = dropPlan.targetComp - dropPlan.droppedComp;
-      let isItem = false;
-      
-      if (remainingComps > 0) {
-        // 🌟 最終ラウンドで、残りの箱の数と落とすべき素材の数が一致したら強制ドロップ
-        if (isLastRound && remainingComps >= (dropCount - i)) isItem = true;
-        else if (rngDrop() < 0.4) isItem = true;
-      }
-      
-      if (isItem) {
+    drops.forEach((dropType, i) => {
+      if (dropType === 'comp') {
         const comps = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
         let availableComps = comps.filter(c => !droppedComps.includes(c.id) && !newlyDroppedIds.includes(c.id));
         
@@ -1259,7 +1278,6 @@ useEffect(() => {
         
         newItems.push(item);
         newlyDroppedIds.push(item.id);
-        dropPlan.droppedComp++; // 🌟 ここでしっかりカウントを進める
         
         dropElements.push(
           <div key={`item-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'white', fontFamily: 'Noto Sans JP', fontWeight: 900, fontSize: '20px' }}>
@@ -1268,11 +1286,10 @@ useEffect(() => {
           </div>
         );
       } else {
-        const orbType = rngDrop() < 0.3 ? 'BLUE' : 'GRAY';
-        const orbResult = executeOrbDrop(orbType);
+        const orbResult = executeOrbDrop(dropType);
         dropElements.push(<div key={`orb-${i}`}>{orbResult}</div>);
       }
-    }
+    });
 
     if (newItems.length > 0) setInventory(prev => [...prev, ...newItems]);
     
@@ -1325,15 +1342,20 @@ useEffect(() => {
 
     // 【1-1 → 1-2】運命の1体配布演出
     if (currentR === '1-1' && nextR === '1-2') {
-      const pool = CHAMPS.filter(c => c.cost === 1);
-      const chosen = pool[Math.floor(rngMisc() * pool.length)];
-      const unit = { ...chosen, star: 1, uid: rngMisc(), items: [] };
-      
-      setBoard(prev => {
-        const nb = [...prev];
-        nb[17] = unit; // 盤面中央に配置
-        return nb;
-      });
+      // 🌟 チャンピオンが配られる遭遇の場合はデフォルトの1コス配置をスキップする
+      const skipDefaultChamp = encounter && ['viktor', 'miipsy', 'lissandra', 'missfortune'].includes(encounter.id);
+
+      if (!skipDefaultChamp) {
+        const pool = CHAMPS.filter(c => c.cost === 1);
+        const chosen = pool[Math.floor(rngMisc() * pool.length)];
+        const unit = { ...chosen, star: 1, uid: rngMisc(), items: [] };
+        
+        setBoard(prev => {
+          const nb = [...prev];
+          nb[17] = unit; // 盤面中央に配置
+          return nb;
+        });
+      }
 
       // 🌟 除去装置をスタック（重ねて）追加する処理
       setInventory(prev => {
@@ -1367,7 +1389,7 @@ useEffect(() => {
     // 【1-2以降】通常のドロップ演出
     else if (currentR.startsWith('1-')) {
       // 1-2から1-3へ行く際、または1-3、1-4終了時にドロップ実行
-      triggerDrops(currentR === '1-4');
+      triggerDrops(currentR);
     }
 
     // ==========================================

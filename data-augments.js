@@ -58,6 +58,7 @@ const AUGMENTS_DATA = {
       effect: (state, rng, helpers) => {
         helpers.setAfkRoundsLeft(3);
         helpers.showMsg('💤 AFK: 次の3ラウンドはアクション不可。3ラウンド後に20G獲得！');
+        if (helpers.setIsFinished) helpers.setIsFinished(true);
       }
     },
     {
