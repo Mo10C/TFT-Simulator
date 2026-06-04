@@ -108,7 +108,18 @@ const ENCOUNTERS = [
 
   { id:'rastt', champ:'ラースト', jaName:'紋章アンサンブル', prob:3.7,
     desc:'3個のランダムな紋章アイテムを所持してスタートする。',
-    icon:'🔰', color:'#66e0a0', displayOnly:true },
+    icon:'🔰', color:'#66e0a0',
+    effect:(s,rng,h)=>{
+      const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
+      const tempEmblems = [...emblems];
+      for (let i = 0; i < 3; i++) {
+        if (tempEmblems.length === 0) break;
+        const idx = Math.floor(rng() * tempEmblems.length);
+        const emblem = tempEmblems.splice(idx, 1)[0];
+        h.addItem({ ...emblem, type: 'completed' });
+      }
+      h.showMsg('🔰 ラースト: 異なる紋章を3個獲得しました！');
+    } },
 
   { id:'ezreal', champ:'エズリアル', jaName:'開幕リロール', prob:3.7,
     desc:'2-1で、5回分の無料リロールを獲得する。',

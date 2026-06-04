@@ -686,7 +686,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'big_bang', name: 'ビッグバン', tier: 'gold', category: 'combat', imgName: 'meepsiehero_ii',
+      id: 'big_bang', name: 'ビッグバン', tier: 'gold', category: 'combat', imgName: 'meepspace9_ii',
       desc: 'ミィプシーを1体獲得する。最も強いミィプシーが魔力ファイターとなり、近くのマスに跳躍して広範囲にダメージを与える。',
       icon: '💥',
       effect: (state, rng, helpers) => {
@@ -697,7 +697,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'booster_pack', name: 'ブースターパック', tier: 'gold', category: 'economy', imgName: 'boosterpack_ii',
+      id: 'booster_pack', name: 'ブースターパック', tier: 'gold', category: 'economy', imgName: 'boosterpack1_ii',
       desc: 'ランダムなチャンピオンを合計12ゴールド分獲得する(コスト3が1体以上確定！)。',
       icon: '🎴',
       effect: (state, rng, helpers) => {
@@ -741,7 +741,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'heroic_grab_bag', name: '英雄のラッキーバッグ', tier: 'gold', category: 'item', imgName: 'heroicgrabbag_ii',
+      id: 'heroic_grab_bag', name: '英雄のラッキーバッグ', tier: 'gold', category: 'item', imgName: 'heroic-grab-bag-ii',
       desc: '「小型チャンピオン複製器」2個と5ゴールドを獲得する。',
       icon: '🛍️',
       effect: (state, rng, helpers) => {
@@ -752,7 +752,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'portable_forge', name: 'ポータブル フォージ', tier: 'gold', category: 'item', imgName: 'portableforge_ii',
+      id: 'portable_forge', name: 'ポータブル フォージ', tier: 'gold', category: 'item', imgName: 'portableforge2',
       desc: '4個のアーティファクトから1個を選択する。アーティファクトは独自の効果を持つ強力なアイテム。',
       icon: '🔨',
       effect: (state, rng, helpers) => {
@@ -761,7 +761,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'divine_forge', name: '神の鍛冶場', tier: 'gold', category: 'item', imgName: 'divineforge_ii',
+      id: 'divine_forge', name: '神の鍛冶場', tier: 'gold', category: 'item', imgName: 'job_s-done-ii',
       desc: '4個の「神のアーティファクト」から1個を選択する。',
       icon: '✨',
       effect: (state, rng, helpers) => {
@@ -770,7 +770,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'duplication', name: '複製', tier: 'gold', category: 'item', imgName: 'duplication_ii',
+      id: 'duplication', name: '複製', tier: 'gold', category: 'item', imgName: 'replication-ii',
       desc: '3つの素材アイテムから1つを選ぶ。次の2ラウンドの間、その素材アイテムのコピーを1個獲得する。',
       icon: '👯',
       effect: (state, rng, helpers) => {
@@ -779,7 +779,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'worth_the_wait', name: '待つ価値あり', tier: 'gold', category: 'combat', imgName: 'worththewait_i',
+      id: 'worth_the_wait', name: '待つ価値あり', tier: 'gold', category: 'combat', imgName: 'worththewait_ii',
       desc: 'ランダムなコスト1のチャンピオンを1体獲得する。',
       icon: '⏳',
       effect: (state, rng, helpers) => {
@@ -1287,7 +1287,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'goimg-long-iii',
+      id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'going-long-iii',
       desc: '利子を獲得しなくなる。13ゴールドを即座に獲得する。ラウンド開始時: 4 XPの経験値を獲得する。',
       icon: '💸',
       effect: (state, rng, helpers) => {
@@ -1447,7 +1447,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'expected_surprise', name: '想定内の意外性', tier: 'prismatic', category: 'economy', imgName: 'assicted-to-rolling-iii',
+      id: 'expected_surprise', name: '想定内の意外性', tier: 'prismatic', category: 'economy', imgName: 'addicted-to-rolling-iii',
       desc: '即座に、および次の2ステージの開始時に、3個のダイスを振る。その合計に応じて様々な報酬を獲得する。',
       icon: '🎲',
       effect: (state, rng, helpers) => {
