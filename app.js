@@ -14,7 +14,7 @@ const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 /* ── ヘルパー関数 ── */
 const getJaName = (name) => ITEM_JA[name] || name;
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
-const champIcon=(img)=>`https://blitz-cdn.blitz.gg/blitz/centered-tft/set17/TFT17_${img.charAt(0).toUpperCase() + img.slice(1)}.webp`;
+const champIcon=(img)=>`https://cdn.metatft.com/file/metatft/championsplashes/tft17_${img.toLowerCase()}.png`;
 const boardIcon=(img)=>`https://cdn.metatft.com/file/metatft/champions/tft17_${img.toLowerCase()}.png`;
 const getTraitIconUrl = (name) => `https://cdn.metatft.com/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
 
