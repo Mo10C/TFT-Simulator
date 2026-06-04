@@ -145,68 +145,11 @@ function rollShop(level, rng){
   });
 }
 
-/* 🌟 html2canvas は CSS の clip-path(polygon) を無視して画像を四角で描画してしまうため、
-   キャプチャ直前(onclone)に各盤面画像を「六角形に切り抜いた PNG(dataURL)」へ差し替える。
-   ライブDOMの読み込み済み画像から描画する（クローン側は未ロードのことがあるため）。 */
-const _drawCover = (ctx, img, w, h) => {
-  const iw = img.naturalWidth, ih = img.naturalHeight;
-  if (!iw || !ih) return;
-  const scale = Math.max(w / iw, h / ih);
-  const dw = iw * scale, dh = ih * scale;
-  ctx.drawImage(img, (w - dw) / 2, (h - dh) / 2, dw, dh);
-};
-const clipHexImagesForCapture = (liveRoot, clonedDoc) => {
-  if (!liveRoot || !clonedDoc) return;
-  const liveImgs = liveRoot.querySelectorAll('img.hex-img');
-  const cloneImgs = clonedDoc.querySelectorAll('img.hex-img');
-  cloneImgs.forEach((cimg, i) => {
-    const live = liveImgs[i];
-    if (!live || !live.complete || !live.naturalWidth) return;
-    try {
-      const s = 256;
-      const cv = document.createElement('canvas');
-      cv.width = s; cv.height = s;
-      const ctx = cv.getContext('2d');
-      // pointy-top hexagon（HexCell の clipPath と同じ比率）
-      ctx.beginPath();
-      ctx.moveTo(s * 0.5, 0);
-      ctx.lineTo(s, s * 0.25);
-      ctx.lineTo(s, s * 0.75);
-      ctx.lineTo(s * 0.5, s);
-      ctx.lineTo(0, s * 0.75);
-      ctx.lineTo(0, s * 0.25);
-      ctx.closePath();
-      ctx.clip();
-      _drawCover(ctx, live, s, s);
-      // 下部グラデーション(.hex-grad 相当)を焼き込む
-      const grad = ctx.createLinearGradient(0, 0, 0, s);
-      grad.addColorStop(0.55, 'rgba(0,0,0,0)');
-      grad.addColorStop(1, 'rgba(0,0,0,0.9)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, s, s);
-      cimg.src = cv.toDataURL('image/png');      // 既に六角形（四隅は透明）
-      // 別レイヤーのグラデーションは四角の暗い隅を作るので隠す
-      const wrap = cimg.closest('.hex-clip');
-      if (wrap) {
-        const g = wrap.querySelector('.hex-grad');
-        if (g) g.style.display = 'none';
-      }
-    } catch (e) {
-      // CORS汚染などで描画できない場合は元のまま（四角になるがキャプチャ自体は成功させる）
-    }
-  });
-};
-
 /* ── UIコンポーネント ── */
-/* 🌟 ★は clip-path だと html2canvas が無視して□になるため、インラインSVGの polygon で描く
-   （HexCell の六角形枠と同じSVG方式。ライブ表示は従来と同じ見た目） */
-const STAR_POLY = "5,0 6.1,3.5 9.8,3.5 6.8,5.7 7.9,9.1 5,7 2.1,9.1 3.2,5.7 0.2,3.5 3.9,3.5";
 const Stars = ({star}) => (
   <div style={{display:'flex', gap:2, justifyContent:'center', alignItems:'center'}}>
     {Array.from({length: star}).map((_, i) => (
-      <svg key={i} width="10" height="10" viewBox="0 0 10 10" style={{display:'block', filter:`drop-shadow(0 0 3px ${STAR_COLORS[star]})`}}>
-        <polygon points={STAR_POLY} fill={STAR_COLORS[star]} />
-      </svg>
+      <div key={i} style={{width:10, height:10, clipPath:'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)', background:STAR_COLORS[star], filter:`drop-shadow(0 0 3px ${STAR_COLORS[star]})`}}/>
     ))}
   </div>
 );
@@ -232,16 +175,15 @@ const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseL
           onTouchStart={onTouchStartDrag ? (e) => { if (onMouseLeave) onMouseLeave(); onTouchStartDrag(e); } : undefined}
           onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)}
           onMouseLeave={onMouseLeave}
-          className="hex-clip"
           style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}
         >
-          <img src={boardIcon(champ.img)} className="hex-img" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
+          <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 2 }}>
             {(champ.items || []).map((it, idx) => (
               <img key={idx} src={getMetaTFTItemUrl(it)} style={{ width: 14, height: 14, border: `1px solid ${it?.type==='artifact' ? 'var(--red)' : (it?.type==='radiant' ? 'var(--gold2)' : 'rgba(255,255,255,0.5)')}`, borderRadius: 2, background: 'black' }} />
             ))}
           </div>
-          <div className="hex-grad" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 55%,rgba(0,0,0,.9))' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 55%,rgba(0,0,0,.9))' }} />
           <div style={{ position: 'absolute', bottom: 6, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}><Stars star={champ.star} /></div>
         </div>
       )}
@@ -1041,8 +983,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: '#04060e', // 背景色をアプリに合わせる
         scale: 2, // 高画質化
-        useCORS: true,
-        onclone: (clonedDoc) => clipHexImagesForCapture(resultRef.current, clonedDoc)
+        useCORS: true 
       });
       const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
@@ -1065,8 +1006,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: '#04060e',
         scale: 2,
-        useCORS: true,
-        onclone: (clonedDoc) => clipHexImagesForCapture(resultRef.current, clonedDoc)
+        useCORS: true
       });
       // canvas.toBlob は非同期なので Promise でラップ
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
