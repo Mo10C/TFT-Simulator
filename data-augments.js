@@ -1445,5 +1445,38 @@ const AUGMENTS_DATA = {
         helpers.showMsg('📦 サブスクリプション: 6Gとコスト4が並ぶ特別ショップを獲得しました！');
       }
     },
+    {
+      id: 'expected_surprise', name: '想定内の意外性', tier: 'prismatic', category: 'economy', imgName: 'calculatedsurprise_iii',
+      desc: '即座に、および次の2ステージの開始時に、3個のダイスを振る。その合計に応じて様々な報酬を獲得する。',
+      icon: '🎲',
+      effect: (state, rng, helpers) => {
+        const roll = rng() * 100;
+        if (roll < 46) {
+          const pool = CHAMPS.filter(c => c.cost === 4);
+          const units = [];
+          for (let i = 0; i < 2; i++) {
+            units.push({ ...pool[Math.floor(rng() * pool.length)], star: 1, uid: rng(), items: [] });
+          }
+          helpers.addPendingUnits(units);
+          helpers.showMsg('🎲 想定内の意外性: ランダムなコスト4を2体獲得しました！');
+        } else if (roll < 82) {
+          helpers.addGold(9);
+          helpers.showMsg('🎲 想定内の意外性: 9Gを獲得しました！');
+        } else if (roll < 93) {
+          helpers.addGold(2);
+          helpers.addAnvilToBench('component', 2);
+          for(let i = 0; i < 3; i++) helpers.addItem({...CONSUMABLES.REFORGER});
+          helpers.showMsg('🎲 想定内の意外性: 2G、素材の金床2個、再合成装置3個を獲得しました！');
+        } else if (roll < 97) {
+          helpers.addGold(2);
+          helpers.addAnvilToBench('artifact', 1);
+          helpers.showMsg('🎲 想定内の意外性: 2Gとアーティファクトの金床を獲得しました！');
+        } else {
+          helpers.addGold(3);
+          helpers.addItem({...ITEM_RECIPES['spatula_spatula'], type: 'completed'});
+          helpers.showMsg('🎲 想定内の意外性: 3Gとタクティシャンの王冠を獲得しました！');
+        }
+      }
+    },
   ]
 };

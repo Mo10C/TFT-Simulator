@@ -607,9 +607,9 @@ function Main() {
   TFT SET 17<br />
   <span style={{ fontSize: '0.7em', letterSpacing: 8 }}>1stage Simulator</span> 
 </div>
-        <button className="menu-btn" style={{ width:220, boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
-        <div style={{ display:'flex', gap:5, background:'rgba(0,0,0,0.5)', padding:'10px', borderRadius:'12px', backdropFilter:'blur(6px)' }}>
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <button className="menu-btn" style={{ width:220, background:'var(--blue)', color:'white', borderColor:'var(--blue)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => startWithSeed()}>ゲームスタート</button>
+          <button className="menu-btn" style={{ width:220, background:'rgba(15,23,42,0.8)', color:'white', borderColor:'var(--border)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)' }} onClick={() => window.open('https://app.notion.com/p/TFT-Set-17-1-StageSimulator-32828a55d99c8096819cc141beb0c5be?source=copy_link', '_blank')}>使い方</button>
         </div>
       </div>
     );
