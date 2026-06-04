@@ -32,7 +32,7 @@ const GodImg = ({ god, style = {} }) => {
       </div>
     );
   }
-  const src = stage === 0 ? god.imgUrl : boardIcon(GOD_CHAMP_IMG[god.id] || god.id);
+  const src = stage === 0 ? `https://tftips.b-cdn.net/god-icon/${god.id.toLowerCase()}.avif` : boardIcon(GOD_CHAMP_IMG[god.id] || god.id);
   return <img src={src} style={style} onError={() => setStage(s => s + 1)} />;
 };
 const getMetaTFTItemUrl = (item) => {
