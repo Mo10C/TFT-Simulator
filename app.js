@@ -14,9 +14,9 @@ const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 /* ── ヘルパー関数 ── */
 const getJaName = (name) => ITEM_JA[name] || name;
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
-const champIcon=(img)=>`https://cdn.metatft.com/file/metatft/championsplashes/tft17_${img.toLowerCase()}.png`;
-const boardIcon=(img)=>`https://cdn.metatft.com/file/metatft/champions/tft17_${img.toLowerCase()}.png`;
-const getTraitIconUrl = (name) => `https://cdn.metatft.com/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
+const champIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=256,format=webp/file/metatft/championsplashes/tft17_${img.toLowerCase()}.png`;
+const boardIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=96,format=webp/file/metatft/champions/tft17_${img.toLowerCase()}.png`;
+const getTraitIconUrl = (name) => `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
 
 /* 🌟 神ポートレート用：rgpub(本来の絵) → blitz-cdn(チャンピオン四角) → CSS絵文字 の3段フォールバック。
    Riot CMS(cmsassets.rgpub.io)はローカル(file://)やホットリンクで弾かれて黒丸になりやすいため、
@@ -40,7 +40,7 @@ const getMetaTFTItemUrl = (item) => {
 
   // 引数がオブジェクトで imgName がある場合は、直接URLを生成して返す
   if (typeof item === 'object' && item.imgName) {
-    return `https://cdn.metatft.com/file/metatft/items/${item.imgName}.png`;
+    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
   }
 
   const nameInput = typeof item === 'string' ? item : item.name;
@@ -49,35 +49,35 @@ const getMetaTFTItemUrl = (item) => {
 
   // 1. サイオニック専用（ファイル名そのものが入っている場合）
   if (nameInput.startsWith('tft17_item_psyops_')) {
-    return `https://cdn.metatft.com/file/metatft/items/${nameInput}.png`;
+    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${nameInput}.png`;
   }
   
   // アーティファクトとレディアントを結合して検索
   const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput);
   if (specialItem) {
     if (specialItem.imgName) {
-      return `https://cdn.metatft.com/file/metatft/items/${specialItem.imgName}.png`;
+      return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${specialItem.imgName}.png`;
     }
     const formatted = specialItem.name.toLowerCase().replace(/['.\s]/g, '').replace('artifact', '');
-    return `https://cdn.metatft.com/file/metatft/items/tft_item_${formatted}.png?v=1`;
+    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
   }
 
   // 1.5 紋章専用のURLフォーマット
   if (nameInput.includes('Emblem')) {
     const traitName = nameInput.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return `https://cdn.metatft.com/file/metatft/items/tft17_item_${traitName}emblemitem.png`;
+    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft17_item_${traitName}emblemitem.png`;
   }
 
   // 2. 特殊消費アイテム
-  if (nameInput === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_iii.png";
-  if (nameInput === 'Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_neekoshelp.png";
-  if (nameInput === 'Reforger') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemreroller.png";
-  if (nameInput === 'itemremover') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_itemremover.png";
+  if (nameInput === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_championduplicator_iii.png";
+  if (nameInput === 'Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_neekoshelp.png";
+  if (nameInput === 'Reforger') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemreroller.png";
+  if (nameInput === 'itemremover') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemremover.png";
 
   // 3. 通常の完成アイテム・素材（名前を整形してURL化）
   // 既に日本語になっている場合でも、整形ロジックを通すとURLが壊れることがあるため注意
   const formatted = nameInput.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
-  return `https://cdn.metatft.com/file/metatft/items/tft_item_${formatted}.png?v=1`;
+  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
 };
 
 const getAugmentIconUrl = (aug) => {
@@ -87,7 +87,7 @@ const getAugmentIconUrl = (aug) => {
     return aug.imgName;
   }
   // MetaTFTのパスに合わせる（全て.png形式）
-  return `https://cdn.metatft.com/file/metatft/augments/${aug.imgName}.png`;
+  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/augments/${aug.imgName}.png`;
 };
 
 
