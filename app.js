@@ -198,10 +198,15 @@ const clipHexImagesForCapture = (liveRoot, clonedDoc) => {
 };
 
 /* ── UIコンポーネント ── */
+/* 🌟 ★は clip-path だと html2canvas が無視して□になるため、インラインSVGの polygon で描く
+   （HexCell の六角形枠と同じSVG方式。ライブ表示は従来と同じ見た目） */
+const STAR_POLY = "5,0 6.1,3.5 9.8,3.5 6.8,5.7 7.9,9.1 5,7 2.1,9.1 3.2,5.7 0.2,3.5 3.9,3.5";
 const Stars = ({star}) => (
   <div style={{display:'flex', gap:2, justifyContent:'center', alignItems:'center'}}>
     {Array.from({length: star}).map((_, i) => (
-      <div key={i} style={{width:10, height:10, clipPath:'polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%)', background:STAR_COLORS[star], filter:`drop-shadow(0 0 3px ${STAR_COLORS[star]})`}}/>
+      <svg key={i} width="10" height="10" viewBox="0 0 10 10" style={{display:'block', filter:`drop-shadow(0 0 3px ${STAR_COLORS[star]})`}}>
+        <polygon points={STAR_POLY} fill={STAR_COLORS[star]} />
+      </svg>
     ))}
   </div>
 );
