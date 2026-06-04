@@ -1022,6 +1022,36 @@ const AUGMENTS_DATA = {
         helpers.showMsg('⏱️ タイムストリーム: エズリアルとパンテオンを獲得しました！');
       }
     },
+    {
+      id: 'treasure_hunt', name: '宝探し', tier: 'gold', category: 'economy', imgName: 'treasurehunt_ii',
+      desc: '現時点からステージ6まで、ステージごとにロックされた宝箱を1個獲得する。ショップのリロールで16ゴールドを使用すると、宝箱を1個開封できる。これらの宝箱は開封するまで消えずに残る。',
+      icon: '🧰',
+      effect: (state, rng, helpers) => {
+        helpers.addPassiveBuff({ type: 'treasure_hunt' });
+        helpers.showMsg('🧰 宝探し: ステージごとにロックされた宝箱を獲得します！');
+      }
+    },
+    {
+      id: 'reach_for_the_stars', name: '星を目指して', tier: 'gold', category: 'combat', imgName: 'jaxhero_ii',
+      desc: 'ジャックスを1体獲得する。最も強いジャックスが魔力ファイターになり、通常攻撃で追加魔法ダメージを与え、スキル発動時に攻撃速度が増加するスタックを獲得する。',
+      icon: '✨',
+      effect: (state, rng, helpers) => {
+        const champ = CHAMPS.find(c => c.id === 'jax');
+        if (champ) helpers.addPendingUnits([{ ...champ, star: 1, uid: rng(), items: [] }]);
+        helpers.addPassiveBuff({ type: 'reach_for_the_stars' });
+        helpers.showMsg('✨ 星を目指して: ジャックスを獲得しました！');
+      }
+    },
+    {
+      id: 'money_hungry', name: '金に飢えし者', tier: 'gold', category: 'economy', imgName: 'moneyhungry_ii',
+      desc: '即座に7ゴールドを獲得し、その後は各ステージの開始時に7ゴールドを獲得する。ゴールドを拾うとタクティシャンが大きくなる。',
+      icon: '🤑',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(7);
+        helpers.addPassiveBuff({ type: 'money_hungry' });
+        helpers.showMsg('🤑 金に飢えし者: 7Gを獲得しました！');
+      }
+    },
   ],
 
   //プリズム
@@ -1222,6 +1252,197 @@ const AUGMENTS_DATA = {
       effect: (state, rng, helpers) => {
         const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
+      }
+    },
+    {
+      id: 'pandoras_items3', name: 'パンドラのアイテム III', tier: 'prismatic', category: 'item', imgName: 'pandora3',
+      desc: 'ラウンド開始時: ベンチのアイテムがランダムに変更される。ランダムなレディアントアイテムを1個獲得する。',
+      icon: '📦',
+      effect: (state, rng, helpers) => {
+        const radiantPool = RADIANT_ITEMS;
+        helpers.addItem({ ...radiantPool[Math.floor(rng() * radiantPool.length)] });
+        helpers.addPassiveBuff({ type: 'pandoras_items_3' });
+      }
+    },
+    {
+      id: 'lucky_gloves', name: 'ラッキーグローブ', tier: 'prismatic', category: 'item', imgName: 'luckygloves_iii',
+      desc: '「盗賊のグローブ」が毎回、そのチャンピオンにとって理想的なアイテムを付与するようになる。「スパーリング グローブ」を2個獲得する。',
+      icon: '🧤',
+      effect: (state, rng, helpers) => {
+        const glove = ITEMS.find(i => i.id === 'glove');
+        if (glove) { helpers.addItem({ ...glove }); helpers.addItem({ ...glove }); }
+        helpers.addPassiveBuff({ type: 'lucky_gloves' });
+        helpers.showMsg('🧤 ラッキーグローブ: スパーリンググローブを2個獲得しました！');
+      }
+    },
+    {
+      id: 'wise_spending', name: '賢い買い物', tier: 'prismatic', category: 'economy', imgName: 'wisespending_iii',
+      desc: 'XPを購入できなくなる。ショップをリロールしてゴールドを消費するたびに、2XPを獲得する。即座に3ゴールドを獲得する。',
+      icon: '🛒',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(3);
+        helpers.addPassiveBuff({ type: 'wise_spending' });
+        helpers.showMsg('🛒 賢い買い物: 3Gを獲得！リロールでXPを獲得できるようになります。');
+      }
+    },
+    {
+      id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'recklessspending_iii',
+      desc: '利子を獲得しなくなる。13ゴールドを即座に獲得する。ラウンド開始時: 4 XPの経験値を獲得する。',
+      icon: '💸',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(13);
+        helpers.showMsg('💸 思惑買い: 13Gを獲得しました！');
+      }
+    },
+    {
+      id: 'flexibility', name: '柔軟性', tier: 'prismatic', category: 'item', imgName: 'flexible_iii',
+      desc: 'ランダムな紋章アイテムを1個獲得する。毎ステージ開始時、ランダムな紋章を1個獲得する。装備した紋章1つごとに、味方チームの体力が30増加する。',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const randomEmblem = { ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' };
+        helpers.addItem(randomEmblem);
+        helpers.showMsg('🛡️ 柔軟性: ランダムな紋章を1個獲得しました！');
+      }
+    },
+    {
+      id: 'heart_and_soul', name: '全身全霊', tier: 'prismatic', category: 'item', imgName: 'heartandsoul_iii',
+      desc: 'ランダムな紋章アイテムを1個獲得する。今すぐ、および各ステージ開始時に、コストがステージ数と同じで(最大5)、その紋章の特性を持つ★1のユニットと3ゴールドを獲得する。',
+      icon: '❤️',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(3);
+        
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        
+        // 指定された紋章とチャンピオンのペア
+        const pairs = [
+          { trait: 'Vanguard', champIds: ['mordekaiser'] },
+          { trait: 'Psionic', champIds: ['gragas', 'pyke'] },
+          { trait: 'Sniper', champIds: ['gnar'] },
+          { trait: 'Space Groove', champIds: ['gwen'] },
+          { trait: 'Dark Star', champIds: ['mordekaiser'] },
+          { trait: 'Bastion', champIds: ['jax'] },
+          { trait: 'Meeple', champIds: ['gnar', 'meepsie'] },
+          { trait: 'Shepherd', champIds: ['miipsy', 'meepsie'] }, // 導き手
+          { trait: 'Marauder', champIds: ['akali', 'belveth'] } // 略奪者
+        ];
+
+        // データ内に存在するペアだけをフィルタリング
+        const validPairs = pairs.filter(p => {
+          const hasEmblem = emblems.some(e => e.grantedTrait === p.trait);
+          const hasChamp = p.champIds.some(cid => CHAMPS.some(c => c.id === cid));
+          return hasEmblem && hasChamp;
+        });
+
+        // 抽選と獲得
+        const chosenPair = validPairs.length > 0 ? validPairs[Math.floor(rng() * validPairs.length)] : { trait: emblems[Math.floor(rng() * emblems.length)].grantedTrait, champIds: [] };
+        const chosenEmblem = { ...emblems.find(e => e.grantedTrait === chosenPair.trait), type: 'completed' };
+        const validChamps = chosenPair.champIds.map(cid => CHAMPS.find(c => c.id === cid)).filter(Boolean);
+        
+        helpers.addItem(chosenEmblem);
+        if (validChamps.length > 0) {
+          const chosenChamp = validChamps[Math.floor(rng() * validChamps.length)];
+          helpers.addPendingUnits([{ ...chosenChamp, star: 1, uid: rng(), items: [] }]);
+          helpers.showMsg(`❤️ 全身全霊: 3G、${helpers.getJaName(chosenEmblem.name)}、${chosenChamp.jaName}を獲得しました！`);
+        } else {
+          helpers.showMsg(`❤️ 全身全霊: 3Gと${helpers.getJaName(chosenEmblem.name)}を獲得しました！`);
+        }
+      }
+    },
+    {
+      id: 'swarm_heart', name: 'スワーム ハート', tier: 'prismatic', category: 'combat', imgName: 'swarmheart_iii',
+      desc: 'すべての★3チャンピオンがスワームリングのパワーとしてカウントされる。レベル9で、異なる★3チャンピオンを6体配置している場合、「プライモーディアン」がエイペックス・プライモーディアンを召喚する。「プライモーディアン」のチャンピオン3体と「小型チャンピオン複製器」を2個獲得する。',
+      icon: '👾',
+      effect: (state, rng, helpers) => {
+        const pool = CHAMPS.filter(c => c.traits.includes('Primordian'));
+        const units = [];
+        if (pool.length > 0) {
+          for (let i = 0; i < 3; i++) {
+            const chosen = pool[Math.floor(rng() * pool.length)];
+            units.push({ ...chosen, star: 1, uid: rng(), items: [] });
+          }
+        }
+        helpers.addPendingUnits(units);
+        helpers.addItem({...CONSUMABLES.LESSER_DUPE});
+        helpers.addItem({...CONSUMABLES.LESSER_DUPE});
+        helpers.showMsg('👾 スワーム ハート: プライモーディアン3体と小型複製器2個を獲得しました！');
+      }
+    },
+    {
+      id: 'living_forge', name: '歩く鍛冶場', tier: 'prismatic', category: 'item', imgName: 'livingforge_iii',
+      desc: '「アーティファクトの金床」を即座に1個獲得し、その後は対人戦ラウンドを8回終えるたびに1個獲得する。',
+      icon: '🔨',
+      effect: (state, rng, helpers) => {
+        helpers.addAnvilToBench('artifact', 1);
+        helpers.showMsg('🔨 歩く鍛冶場: アーティファクトの金床を獲得しました！');
+      }
+    },
+    {
+      id: 'shimmerscale_essence', name: 'シマースケールのエッセンス', tier: 'prismatic', category: 'item', imgName: 'shimmerscaleessence_iii',
+      desc: '「モーグル メイル」を1個獲得する。6ラウンド後に、「ギャンブラーの剣」を1個獲得する。',
+      icon: '🪙',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({ ...ARTIFACTS.find(i => i.id === 'mogulsmail') });
+        helpers.showMsg('🪙 シマースケールのエッセンス: 「モーグル メイル」を獲得しました！');
+      }
+    },
+    {
+      id: 'golden_gamble', name: '黄金の博打', tier: 'prismatic', category: 'item', imgName: 'goldengamble_iii',
+      desc: '1ゴールドを獲得してコインを投げる。表が出た場合、「レディアント 幸運のアイテムチェスト」を1個獲得する。裏が出た場合、「完成アイテムの金床」を2個獲得する。',
+      icon: '🪙',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(1);
+        const isHeads = rng() < 0.5;
+        if (isHeads) {
+          helpers.addAnvilToBench('radiant', 1);
+          helpers.showMsg('🪙 黄金の博打: 表！1Gとレディアント金床を獲得しました！');
+        } else {
+          helpers.addAnvilToBench('completed', 2);
+          helpers.showMsg('🪙 黄金の博打: 裏！1Gと完成品の金床を2個獲得しました！');
+        }
+      }
+    },
+    {
+      id: 'forged_in_force', name: '力に鍛えられしもの', tier: 'prismatic', category: 'item', imgName: 'forgedinforce_iii',
+      desc: 'ランダムなアーティファクトを1個獲得する。体力が35を下回ると、ランダムなアーティファクトを追加で3個獲得する',
+      icon: '🛡️',
+      effect: (state, rng, helpers) => {
+        helpers.addItem({ ...ARTIFACTS[Math.floor(rng() * ARTIFACTS.length)] });
+        helpers.showMsg('🛡️ 力に鍛えられしもの: ランダムなアーティファクトを獲得しました！');
+      }
+    },
+    {
+      id: 'always_together', name: 'いつでも一緒', tier: 'prismatic', category: 'item', imgName: 'alwaystogether_iii',
+      desc: 'ランダムな紋章アイテムを1個と、「完成アイテムの金床」を1個獲得する。その紋章と同じ特性を持っている味方の攻撃速度が30%増加する。',
+      icon: '💞',
+      effect: (state, rng, helpers) => {
+        const recipes = Object.values(ITEM_RECIPES);
+        const emblems = recipes.filter(r => r.grantedTrait);
+        const randomEmblem = { ...emblems[Math.floor(rng() * emblems.length)], type: 'completed' };
+        helpers.addItem(randomEmblem);
+        helpers.addAnvilToBench('completed', 1);
+        helpers.showMsg(`💞 いつでも一緒: ${helpers.getJaName(randomEmblem.name)}と完成品の金床を獲得しました！`);
+      }
+    },
+    {
+      id: 'subscription', name: 'サブスクリプション', tier: 'prismatic', category: 'economy', imgName: 'subscription_iii',
+      desc: '現在、そして各ステージの開始時に、異なるコスト4チャンピオンが4体並ぶショップを開き、6ゴールドを獲得する',
+      icon: '📦',
+      effect: (state, rng, helpers) => {
+        helpers.addGold(6);
+        const pool = CHAMPS.filter(c => c.cost === 4);
+        const tempPool = [...pool];
+        const newShop = [];
+        for (let i = 0; i < 4; i++) {
+          if (tempPool.length === 0) break;
+          const idx = Math.floor(rng() * tempPool.length);
+          newShop.push({ ...tempPool.splice(idx, 1)[0], star: 1, uid: rng() });
+        }
+        newShop.push(null); // ショップは通常5枠なので、最後を空(null)にする
+        if (helpers.setShop) helpers.setShop(newShop);
+        helpers.showMsg('📦 サブスクリプション: 6Gとコスト4が並ぶ特別ショップを獲得しました！');
       }
     },
   ]

@@ -919,6 +919,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       pool = ARTIFACTS.filter(a => a.jaName.includes('の'));
     } else if (anvilType === 'radiant') {
       pool = RADIANT_ITEMS;
+      count = pool.length;
     } else if (anvilType === 'duplication') {
       pool = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
       count = 3;
@@ -1115,6 +1116,7 @@ useEffect(() => {
     setXpCostReduction: setXpCostReductionFn, setAugmentTierBoost: setAugmentTierBoostFn,
     setNoMoreAugments: setNoMoreAugmentsFn, setAfkRoundsLeft: setAfkRoundsLeftFn,
     addFreeRerolls,
+    setShop,
   }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc]);
 
   useEffect(() => {
@@ -2120,7 +2122,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{transform:'scale(0.8) translateX(-40px)',transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
                     <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
-                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
                 </div>
@@ -2668,7 +2670,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           champ={board[idx]}
                           dropType="board"
                           dropIdx={idx}
-                          isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[idx]?.id === 'miipsy' || board[idx]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[idx]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[idx]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[idx]?.id === 'mordekaiser') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
+                          isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[idx]?.id === 'miipsy' || board[idx]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[idx]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[idx]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[idx]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[idx]?.id === 'jax') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
                           onDragStart={() => setDragSrc({ type:'board', idx })}
                           onTouchStartDrag={(e) => startTouchDrag(e, { type:'board', idx })}
                           onDrop={hDrop('board', idx)}
@@ -2843,10 +2845,10 @@ const handleAugmentPick = (aug, historyContext) => {
           {anvilOptions ? (
             /* 🌟 金床のアイテム選択UI（ショップエリアを置き換え） */
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '8px 10px', background: 'rgba(15,23,42,0.95)' }}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 8, fontFamily: 'Noto Sans JP' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--gold)', textAlign: 'center', marginBottom: 8, fontFamily: 'Noto Sans JP', flexShrink: 0 }}>
                 アイテムを1つ選択してください
               </div>
-              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flex: 1, paddingBottom: 4 }}>
+              <div style={{ display: 'flex', gap: anvilOptions.items.length > 5 ? 8 : 12, justifyContent: 'center', alignItems: 'stretch', flex: 1, paddingBottom: 4, flexWrap: 'wrap', overflowY: 'auto', alignContent: 'flex-start' }}>
                 {anvilOptions.items.map((it, idx) => (
                   <div
                     key={idx}
@@ -2855,7 +2857,9 @@ const handleAugmentPick = (aug, historyContext) => {
                     onDragStart={() => setDragSrc({ type: 'anvil_item', item: it })}
                     onTouchStart={(e) => startTouchDrag(e, { type: 'anvil_item', item: it })}
                     style={{
-                      flex: 1,
+                      flex: anvilOptions.items.length > 5 ? '0 0 auto' : 1,
+                      width: anvilOptions.items.length > 5 ? 64 : 'auto',
+                      minHeight: anvilOptions.items.length > 5 ? 74 : 'auto',
                       maxWidth: 140,
                       background: 'rgba(30,45,74,0.6)',
                       border: `2px solid ${it.type === 'artifact' ? 'var(--red)' : (it.type === 'radiant' ? 'var(--gold2)' : 'var(--gold)')}`,
@@ -2873,8 +2877,8 @@ const handleAugmentPick = (aug, historyContext) => {
                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }}
                     onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
                   >
-                    <img src={getMetaTFTItemUrl(it)} style={{ width: 44, height: 44, borderRadius: 6, marginBottom: 4 }} />
-                    <div style={{ fontSize: 11, fontWeight: 900, color: 'white', lineHeight: 1.1, wordBreak: 'keep-all' }}>{getJaName(it.name || it.id)}</div>
+                    <img src={getMetaTFTItemUrl(it)} style={{ width: anvilOptions.items.length > 5 ? 32 : 44, height: anvilOptions.items.length > 5 ? 32 : 44, borderRadius: 6, marginBottom: 4 }} />
+                    <div style={{ fontSize: anvilOptions.items.length > 5 ? 9 : 11, fontWeight: 900, color: 'white', lineHeight: 1.1, wordBreak: 'keep-all' }}>{getJaName(it.name || it.id)}</div>
                   </div>
                 ))}
               </div>
@@ -2904,7 +2908,9 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{ display:'flex', flexDirection:'column', gap:6, width:130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
+                    disabled={passiveBuffs.some(b => b.type === 'wise_spending')}
                     onClick={() => {
+                      if (passiveBuffs.some(b => b.type === 'wise_spending')) return;
                       const cost = xpCost;
                       if (gold >= cost) {
                         setGold(g => g - cost);
@@ -2913,7 +2919,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         setLevel(nl); setXp(nx);
                       }
                     }}
-                    style={{ height:38, background:'var(--blue)', border:'1px solid var(--blue)', borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
+                    style={{ height:38, background:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(30,45,74,.4)' : 'var(--blue)', border:`1px solid ${passiveBuffs.some(b => b.type === 'wise_spending') ? 'var(--border)' : 'var(--blue)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:passiveBuffs.some(b => b.type === 'wise_spending') ? 'not-allowed' : 'pointer', color:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(255,255,255,0.3)' : 'var(--text-inv)' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
                       <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>XP購入</span>
                       <span style={{ fontSize:11, color:'white', fontFamily:'Orbitron' }}>💰 {xpCost}</span>
@@ -2927,6 +2933,10 @@ const handleAugmentPick = (aug, historyContext) => {
                       if (gold >= 2) {
                         setGold(g => g - 2); setShop(rollShop(level, rngShop));
                         if (passiveBuffs.some(b => b.type === 'prism_ticket') && rngShop() < 0.5) setFreeRerolls(fr => fr + 1);
+                        if (passiveBuffs.some(b => b.type === 'wise_spending')) {
+                          const { level: nl, xp: nx } = applyXp(2, level, xp);
+                          setLevel(nl); setXp(nx);
+                        }
                       }
                     }}
                     style={{ height:38, background:'var(--gold)', border:`1px solid ${freeRerolls>0?'var(--teal)':'var(--gold)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
