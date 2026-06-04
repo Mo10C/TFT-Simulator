@@ -988,6 +988,37 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
     setIsSaving(false);
   };
 
+  // 🌟 キャプチャした結果をクリップボードへコピー
+  const handleCopyImage = async () => {
+    if (!resultRef.current) return;
+    setIsSaving(true);
+    try {
+      const canvas = await html2canvas(resultRef.current, {
+        backgroundColor: '#04060e',
+        scale: 2,
+        useCORS: true
+      });
+      // canvas.toBlob は非同期なので Promise でラップ
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      if (blob && navigator.clipboard && window.ClipboardItem) {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        showMsg('📋 画像をクリップボードにコピーしました！');
+      } else {
+        // クリップボード画像コピー非対応の環境では保存にフォールバック
+        const image = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `TFT_Set17_Result_${seed}.png`;
+        link.click();
+        showMsg('お使いの環境はコピー非対応のため画像を保存しました');
+      }
+    } catch (err) {
+      console.error(err);
+      showMsg('画像のコピーに失敗しました');
+    }
+    setIsSaving(false);
+  };
+
 
   
 
