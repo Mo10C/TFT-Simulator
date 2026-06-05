@@ -546,7 +546,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
     const imgUrl = isChamp ? boardIcon(item.img) : getAugmentIconUrl(item);
     const title = isChamp ? item.jaName : item.name;
     const borderColor = isChamp ? COST_COLORS[item.cost] : TIER_COLORS[item.tier];
-    const size = isSmall ? 26 : 38;
+    const size = isSmall ? 18 : 26; // 🌟 38px -> 26pxに、縮小時は 26px -> 18pxに
     
     return (
       <div
@@ -588,10 +588,10 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px', overflowY: 'auto' }}>
         {['S', 'A', 'B', 'C', 'D'].map(tierKey => {
           const itemsInTier = tiers[tab][tierKey];
-          const isSmall = itemsInTier.length > 14; // アイコンが15個以上（3段以上）になったら縮小する
+          const isSmall = itemsInTier.length > 18; // 🌟 アイコンが小さくなったため、縮小の閾値を変更
           return (
-            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
-              <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 36 }}>
+              <div style={{ width: 30, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
               <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{itemsInTier.map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item, isSmall) : null; })}</div>
             </div>
           );
@@ -908,6 +908,7 @@ function App({ seed, onRestart, onNewGame }) {
   const [pendingUnits, setPendingUnits] = useState([]);
   const [introStep, setIntroStep] = useState(0);
   const [auraTrainingUnit, setAuraTrainingUnit] = useState(null); // 🌟 オーラ育成中 専用の待機枠
+  const [phase, setPhase] = useState('main'); // 🌟 追加: 'main' | 'drop'
 
   // 🌟 タッチドラッグ＆ピンチズーム用
   const [boardZoom, setBoardZoom] = useState(1.0);
@@ -1590,11 +1591,9 @@ useEffect(() => {
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const handleNextRound = (forcedRound) => {
-    // 🌟 遷移中（3秒の間）は、クリックを完全に無視する
     if (isTransitioning) return;
 
     const currentR = forcedRound || round;
-    // 終了判定
     if (currentR === '2-1') {
       setIsFinished(true);
       return;
@@ -1603,16 +1602,9 @@ useEffect(() => {
     const schedule = ['1-1', '1-2', '1-3', '1-4', '2-1'];
     const nextR = schedule[schedule.indexOf(currentR) + 1];
 
-    // 🌟 遷移開始：ガードレイヤーを起動（操作不能にする）
     setIsTransitioning(true);
 
-    // ==========================================
-    // 1. 即座に実行する演出（POP表示と盤面変更）
-    // ==========================================
-
-    // 【1-1 → 1-2】運命の1体配布演出
-    if (currentR === '1-1' && nextR === '1-2') {
-      // 🌟 チャンピオンが配られる遭遇の場合はデフォルトの1コス配置をスキップする
+    if (currentR === '1-1') {
       const skipDefaultChamp = encounter && ['viktor', 'miipsy', 'lissandra', 'missfortune'].includes(encounter.id);
 
       if (!skipDefaultChamp) {
@@ -1655,122 +1647,116 @@ useEffect(() => {
         }
       }
 
-    } 
-    // 【1-2以降】通常のドロップ演出
-    else if (currentR.startsWith('1-')) {
-      // 1-2から1-3へ行く際、または1-3、1-4終了時にドロップ実行
-      triggerDrops(currentR);
+      setTimeout(() => {
+        setRound(nextR);
+        setPhase('main');
+        processRoundStart(nextR, currentR);
+        setIsTransitioning(false);
+      }, 800);
+      return;
     }
 
-    // ==========================================
-    // 2. 3秒待ってから実行するロジック（数値更新）
-    // ==========================================
+    if (phase === 'main') {
+      triggerDrops(currentR);
+      setTimeout(() => {
+        setPhase('drop');
+        setIsTransitioning(false);
+      }, 800);
+    } else if (phase === 'drop') {
+      setTimeout(() => {
+        setRound(nextR);
+        setPhase('main');
+        processRoundStart(nextR, currentR);
+        setIsTransitioning(false);
+      }, 800);
+    }
+  };
 
-    setTimeout(() => {
-      // --- ステージ更新 ---
-      setRound(nextR);
+  const processRoundStart = (nextR, currentR) => {
+    if (afkRoundsLeft > 0) {
+      const newLeft = afkRoundsLeft - 1;
+      setAfkRoundsLeft(newLeft);
+      if (newLeft === 0) {
+        setGold(g => g + 20);
+        setDropMsg('💤 AFK解除！20G獲得！');
+        setTimeout(() => setDropMsg(null), 2500);
+      }
+    }
 
-      // --- AFK処理 ---
-      if (afkRoundsLeft > 0) {
-        const newLeft = afkRoundsLeft - 1;
-        setAfkRoundsLeft(newLeft);
-        if (newLeft === 0) {
-          setGold(g => g + 20);
-          setDropMsg('💤 AFK解除！20G獲得！');
+    const hasTS = passiveBuffs.some(b => b.type === 'trade_sector');
+    if (hasTS) setFreeRerolls(fr => fr + 1);
+
+    let buffsChanged = false;
+    let dupItemsToAdd = [];
+    const nextBuffs = passiveBuffs.map(b => {
+      if (b.type === 'warlords_honor' && b.stacks < 4) {
+        buffsChanged = true;
+        return { ...b, stacks: Math.min(4, b.stacks + 1) };
+      }
+      if (b.type === 'duplication_item' && b.roundsLeft > 0) {
+        buffsChanged = true;
+        const item = ITEMS.find(i => i.id === b.itemId);
+        if (item) dupItemsToAdd.push(item);
+        return { ...b, roundsLeft: b.roundsLeft - 1 };
+      }
+      return b;
+    });
+    if (buffsChanged) setPassiveBuffs(nextBuffs);
+    if (dupItemsToAdd.length > 0) {
+      setInventory(inv => [...inv, ...dupItemsToAdd]);
+      setTimeout(() => showMsg(`👯 複製: ${getJaName(dupItemsToAdd[0].name)}を追加獲得！`), 1500);
+    }
+
+    setGold(g => {
+      if (nextR === '1-2') return g + 0; 
+      if (nextR === '1-3') return g + 2;
+      const interest = Math.min(maxInterest, Math.floor(g / 10));
+      const baseIncome = {  '1-4': 2, '2-1': 3 }[nextR] || 5;
+      const hasSA = passiveBuffs.some(b => b.type === 'savings_account');
+      const extraG = (hasSA && interest >= 5) ? 30 : 0;
+      return g + baseIncome + interest + extraG;
+    });
+
+    const xpGain = (currentR === '1-1') ? 0 : 2;
+    const { level: newLevel, xp: newXp } = applyXp(xpGain, level, xp);
+    
+    if (newLevel > level) {
+      const hasBD = passiveBuffs.some(b => b.type === 'birthday_gift');
+      if (hasBD) {
+        const cost = Math.min(5, Math.max(1, newLevel - 4));
+        const pool = CHAMPS.filter(c => c.cost === cost);
+        if (pool.length) {
+          const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
+          addChampToBenchDirect(champ);
+          setGold(g => g + 1);
+          setDropMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
           setTimeout(() => setDropMsg(null), 2500);
         }
       }
-
-      // --- パッシブバフ（Trade Sector / Warlord's Honor） ---
-      const hasTS = passiveBuffs.some(b => b.type === 'trade_sector');
-      if (hasTS) setFreeRerolls(fr => fr + 1);
-
-      let buffsChanged = false;
-      let dupItemsToAdd = [];
-      const nextBuffs = passiveBuffs.map(b => {
-        if (b.type === 'warlords_honor' && b.stacks < 4) {
-          buffsChanged = true;
-          return { ...b, stacks: Math.min(4, b.stacks + 1) };
-        }
-        if (b.type === 'duplication_item' && b.roundsLeft > 0) {
-          buffsChanged = true;
-          const item = ITEMS.find(i => i.id === b.itemId);
-          if (item) dupItemsToAdd.push(item);
-          return { ...b, roundsLeft: b.roundsLeft - 1 };
-        }
-        return b;
-      });
-      if (buffsChanged) setPassiveBuffs(nextBuffs);
-      if (dupItemsToAdd.length > 0) {
-        setInventory(inv => [...inv, ...dupItemsToAdd]);
-        setTimeout(() => showMsg(`👯 複製: ${getJaName(dupItemsToAdd[0].name)}を追加獲得！`), 1500);
-      }
-
-      // --- ゴールド収入（基礎収入 + 利子） ---
-      // 
-      setGold(g => {
-        // 🌟 既存のゴールド(g)を無視せず、しっかり足し算するように修正！
-        if (nextR === '1-2') return g + 0; 
-        if (nextR === '1-3') return g + 2;
-
-        const interest = Math.min(maxInterest, Math.floor(g / 10));
-        const baseIncome = {  '1-4': 2, '2-1': 3 }[nextR] || 5;
-        const hasSA = passiveBuffs.some(b => b.type === 'savings_account');
-        const extraG = (hasSA && interest >= 5) ? 30 : 0;
-        return g + baseIncome + interest + extraG;
-      });
-
-      // --- XP処理とレベルアップ ---
-      // 1-1終了時のみXP 0、それ以外はXP 2を獲得
-      const xpGain = (currentR === '1-1') ? 0 : 2;
-      const { level: newLevel, xp: newXp } = applyXp(xpGain, level, xp);
+      const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
+      if (hasUM) setFreeRerolls(fr => fr + 2);
       
-      // レベルアップに伴うバフ処理（Birthday Gift / Upward Mobility / Epoch）
-      if (newLevel > level) {
-        const hasBD = passiveBuffs.some(b => b.type === 'birthday_gift');
-        if (hasBD) {
-          const cost = Math.min(5, Math.max(1, newLevel - 4));
-          const pool = CHAMPS.filter(c => c.cost === cost);
-          if (pool.length) {
-            const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
-            addChampToBenchDirect(champ);
-            setGold(g => g + 1);
-            setDropMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
-            setTimeout(() => setDropMsg(null), 2500);
-          }
-        }
-        const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
-        if (hasUM) setFreeRerolls(fr => fr + 2);
-        
-        const hasEp = passiveBuffs.some(b => b.type === 'epoch');
-        if (hasEp) {
-          const r = applyXp(4, newLevel, newXp);
-          setLevel(r.level);
-          setXp(r.xp);
-          // Epochの場合は早期リターンせず解禁処理へ
-        }
+      const hasEp = passiveBuffs.some(b => b.type === 'epoch');
+      if (hasEp) {
+        const r = applyXp(4, newLevel, newXp);
+        setLevel(r.level);
+        setXp(r.xp);
       }
+    }
 
-      // 最終的なレベルとショップの更新（Epochでレベルが上がった場合も反映）
-      setLevel(newLevel); 
-      setXp(newXp);
-      setShop(rollShop(newLevel, rngShop));
+    setLevel(newLevel); 
+    setXp(newXp);
+    setShop(rollShop(newLevel, rngShop));
 
-      // 次が2-1ならオーグメント選択画面を表示
-      if (nextR === '2-1' && !noMoreAugments) {
-        setShowAugment(true);
-      }
+    if (nextR === '2-1' && !noMoreAugments) {
+      setShowAugment(true);
+    }
 
-      // 🌟 遭遇: 2-1到達時に発動する効果（エズリアル＝無料リロール等）
-      if (nextR === '2-1' && encounter && encounter.freeRerollsAt21 && !encounter21AppliedRef.current) {
-        encounter21AppliedRef.current = true;
-        addFreeRerolls(encounter.freeRerollsAt21);
-        showMsg(`🎲 ${encounter.champ}: 無料リロール +${encounter.freeRerollsAt21}！`);
-      }
-
-      // 🌟 全更新完了。ガードレイヤーを消去（操作解禁）
-      setIsTransitioning(false);
-    }, 800); // 3秒待機
+    if (nextR === '2-1' && encounter && encounter.freeRerollsAt21 && !encounter21AppliedRef.current) {
+      encounter21AppliedRef.current = true;
+      addFreeRerolls(encounter.freeRerollsAt21);
+      showMsg(`🎲 ${encounter.champ}: 無料リロール +${encounter.freeRerollsAt21}！`);
+    }
   };
 
 const handleAugmentPick = (aug, historyContext) => {
@@ -3369,7 +3355,7 @@ const handleAugmentPick = (aug, historyContext) => {
             onClick={() => handleNextRound()} 
             style={{ 
               width: '100%', height: isLandscapeMobile ? 52 : 70,
-              background: round === '2-1' ? 'var(--red)' : 'var(--blue)', 
+              background: round === '2-1' ? 'var(--red)' : (phase === 'main' && round !== '1-1' ? '#ff9f43' : 'var(--blue)'), 
               border: '1px solid white', borderRadius: 8, 
               fontFamily: 'Orbitron', fontSize: isLandscapeMobile ? '14px' : '18px', color: 'white', 
               cursor: 'pointer', fontWeight: 900,
@@ -3381,9 +3367,9 @@ const handleAugmentPick = (aug, historyContext) => {
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
             <span style={{ fontSize: '11px', opacity: 0.8, marginBottom: '2px', fontFamily: 'Noto Sans JP' }}>
-              {round === '2-1' ? '最終結果へ' : '次のラウンド'}
+              {round === '2-1' ? '最終結果へ' : (phase === 'main' && round !== '1-1' ? 'フェーズ移行' : '次のラウンド')}
             </span>
-            <span>{round === '2-1' ? 'FINISH' : 'NEXT ➔'}</span>
+            <span>{round === '2-1' ? 'FINISH' : (phase === 'main' && round !== '1-1' ? '素材ドロップへ' : 'NEXT ➔')}</span>
           </button>
         </div>
 
