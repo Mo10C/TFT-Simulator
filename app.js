@@ -442,10 +442,17 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
       const params = new URLSearchParams(window.location.search);
       const encoded = params.get('tierlist');
       if (encoded) {
-        return JSON.parse(decodeURIComponent(atob(encoded)));
+        const parsed = JSON.parse(decodeURIComponent(atob(encoded)));
+        localStorage.setItem('tft_set17_tierlist', JSON.stringify(parsed));
+        return parsed;
+      }
+      
+      const saved = localStorage.getItem('tft_set17_tierlist');
+      if (saved) {
+        return JSON.parse(saved);
       }
     } catch(e) {
-      console.error('Failed to parse tierlist from URL', e);
+      console.error('Failed to parse tierlist', e);
     }
     return {
       champ: { S: [], A: [], B: [], C: [], D: [] },
@@ -454,7 +461,13 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
       aug_prismatic: { S: [], A: [], B: [], C: [], D: [] }
     };
   });
+
+  useEffect(() => {
+    localStorage.setItem('tft_set17_tierlist', JSON.stringify(tiers));
+  }, [tiers]);
   const [importCode, setImportCode] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
+  const copyTimerRef = useRef(null);
   
   const [dragItem, setDragItem] = useState(null);
   const touchGhostRef = useRef(null);
@@ -566,6 +579,10 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
       const encoded = btoa(encodeURIComponent(JSON.stringify(tiers)));
       
       navigator.clipboard.writeText(encoded).then(() => {
+        setIsCopied(true);
+        if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+        copyTimerRef.current = setTimeout(() => setIsCopied(false), 3000);
+
         if (showMsg) {
           showMsg(
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
@@ -663,9 +680,9 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
             <h3 style={{ margin: 0 }}>📊 ティアリスト</h3>
             <button 
               onClick={handleCopyCode}
-              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 10, color: 'white', fontWeight: 900, cursor: 'pointer' }}
+              style={{ background: 'var(--blue)', border: '1px solid var(--blue)', borderRadius: 6, padding: '4px 10px', fontSize: 10, color: 'white', fontWeight: 900, cursor: 'pointer' }}
             >
-              📋 コードをコピー
+              {isCopied ? '📋 コピー完了' : '📋 コードをコピー'}
             </button>
           </div>
           <button className="close-drawer-btn" onClick={onClose} style={{ position: 'relative', right: 0, top: 0 }}>×</button>
