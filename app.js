@@ -2973,34 +2973,39 @@ const handleAugmentPick = (aug, historyContext) => {
 
         {/* 🌟 中央：遭遇 ＋ ステージ番号 ＋ 神様1 ＋ 神様2 */}
         <div style={{ 
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          gap: 20
+          whiteSpace: 'nowrap'
         }}>
           
           {/* 左側: 遭遇 (1-2以降) */}
-          {round !== '1-1' && encounter && (
-            <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:8,padding:'4px 12px'}}>
-              <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
-                {(() => {
-                  let encChamp = CHAMPS.find(c => c.id === encounter.id);
-                  if (!encChamp) {
-                    const map = { 'miipsy': 'meepsie', 'velkoz': 'belveth', 'rastt': 'rhaast' };
-                    if (map[encounter.id]) encChamp = CHAMPS.find(c => c.id === map[encounter.id]);
-                  }
-                  if (!encChamp) {
-                    encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
-                  }
-                  return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
-                })()}
+          <div style={{ width: 260, display: 'flex', justifyContent: 'flex-end', paddingRight: 20 }}>
+            {round !== '1-1' && encounter && (
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:8,padding:'4px 12px'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
+                  {(() => {
+                    let encChamp = CHAMPS.find(c => c.id === encounter.id);
+                    if (!encChamp) {
+                      const map = { 'miipsy': 'meepsie', 'velkoz': 'belveth', 'rastt': 'rhaast' };
+                      if (map[encounter.id]) encChamp = CHAMPS.find(c => c.id === map[encounter.id]);
+                    }
+                    if (!encChamp) {
+                      encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
+                    }
+                    return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
+                  })()}
+                </div>
+                <div>
+                  <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
+                  <div style={{fontSize:10,fontWeight:900,color:encounter.color,lineHeight:1.1}}>{encounter.champ}</div>
+                </div>
               </div>
-              <div>
-                <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
-                <div style={{fontSize:10,fontWeight:900,color:encounter.color,lineHeight:1.1}}>{encounter.champ}</div>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* ステージ番号 */}
           <div style={{ 
@@ -3012,7 +3017,9 @@ const handleAugmentPick = (aug, historyContext) => {
             textShadow: '0 0 15px rgba(26,159,255,0.5)',
             display: 'flex',
             alignItems: 'center',
-            gap: 15
+            justifyContent: 'center',
+            gap: 15,
+            flexShrink: 0
           }}>
             {round}
             {afkRoundsLeft > 0 && (
@@ -3023,28 +3030,30 @@ const handleAugmentPick = (aug, historyContext) => {
           </div>
 
           {/* 右側: 神1 & 神2 (1-2以降) */}
-          {round !== '1-1' && (
-            <div style={{ display: 'flex', gap: 10 }}>
-              {encounterGods[0] && (
-                <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[0].color}33`,borderRadius:8,padding:'4px 12px'}}>
-                  <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} />
-                  <div>
-                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                    <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
+          <div style={{ width: 260, display: 'flex', justifyContent: 'flex-start', paddingLeft: 20, gap: 10 }}>
+            {round !== '1-1' && (
+              <>
+                {encounterGods[0] && (
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[0].color}33`,borderRadius:8,padding:'4px 12px'}}>
+                    <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} />
+                    <div>
+                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-              {encounterGods[1] && (
-                <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[1].color}33`,borderRadius:8,padding:'4px 12px'}}>
-                  <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} />
-                  <div>
-                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                    <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
+                )}
+                {encounterGods[1] && (
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[1].color}33`,borderRadius:8,padding:'4px 12px'}}>
+                    <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} />
+                    <div>
+                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </>
+            )}
+          </div>
 
         </div>
 
