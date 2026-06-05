@@ -569,7 +569,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       borderColor = TIER_COLORS[item.tier] || 'var(--border)';
     }
 
-    const size = isSmall ? 26 : 38; // 🌟 サイズを元の大きさに戻す
+    const size = isAug ? 48 : (isSmall ? 26 : 38); // 🌟 オーグメントは一番最初のサイズ(48px)に固定
     
     return (
       <div
@@ -580,7 +580,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
         title={title}
         style={{
           width: size, height: size,
-          borderRadius: 4,
+          borderRadius: isAug ? 6 : 4,
           border: `2px solid ${borderColor}`,
           background: '#000',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -608,7 +608,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
           <div key={t.id} style={{ display: 'flex', alignItems: 'center', background: activeTabId === t.id ? t.color : 'rgba(255,255,255,0.1)', borderRadius: 8, flexShrink: 0 }}>
             <button 
               onClick={() => setActiveTabId(t.id)}
-              style={{ background: 'transparent', border: 'none', color: 'white', textShadow: '0 0 4px black', padding: '8px 12px', fontWeight: 900, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+              style={{ background: 'transparent', border: 'none', color: 'white', textShadow: '0 0 4px black', padding: '6px 10px', fontWeight: 900, cursor: 'pointer', fontSize: 11, whiteSpace: 'nowrap' }}
             >
               {t.name}
             </button>
