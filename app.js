@@ -428,48 +428,38 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
 
 /* ── ティアリスト作成ドロワー ── */
 const TierListDrawer = ({ isOpen, onClose }) => {
-  const [tabs, setTabs] = useState([
-    { id: 'champ', name: 'チャンピオン', type: 'champ' },
-    { id: 'aug', name: 'オーグメント', type: 'aug' }
-  ]);
+  const tabs = useMemo(() => [
+    { id: 'champ', name: 'チャンピオン', type: 'champ', color: 'var(--blue)' },
+    { id: 'aug_silver', name: '銀オーグ', type: 'aug_silver', color: 'var(--silver)' },
+    { id: 'aug_gold', name: '金オーグ', type: 'aug_gold', color: 'var(--gold2)' },
+    { id: 'aug_prismatic', name: '虹オーグ', type: 'aug_prismatic', color: 'var(--prismatic)' }
+  ], []);
+  
   const [activeTabId, setActiveTabId] = useState('champ');
   
   const [tiers, setTiers] = useState({
     champ: { S: [], A: [], B: [], C: [], D: [] },
-    aug: { S: [], A: [], B: [], C: [], D: [] }
+    aug_silver: { S: [], A: [], B: [], C: [], D: [] },
+    aug_gold: { S: [], A: [], B: [], C: [], D: [] },
+    aug_prismatic: { S: [], A: [], B: [], C: [], D: [] }
   });
   
   const [dragItem, setDragItem] = useState(null);
   const touchGhostRef = useRef(null);
 
-  const allAugments = useMemo(() => [
-    ...AUGMENTS_DATA.silver, ...AUGMENTS_DATA.gold, ...AUGMENTS_DATA.prismatic
-  ], []);
-
-  const allEquips = useMemo(() => [
-    ...ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan'),
-    ...Object.values(ITEM_RECIPES).map(it => ({...it, type: 'completed'})),
-    ...ARTIFACTS,
-    ...RADIANT_ITEMS,
-    ...Object.values(CONSUMABLES)
-  ], []);
-
   const activeTabDef = tabs.find(t => t.id === activeTabId) || tabs[0];
   let allItems = CHAMPS;
-  if (activeTabDef.type === 'aug') allItems = allAugments;
-  if (activeTabDef.type === 'item') allItems = allEquips;
+  if (activeTabDef.type === 'aug_silver') allItems = AUGMENTS_DATA.silver;
+  if (activeTabDef.type === 'aug_gold') allItems = AUGMENTS_DATA.gold;
+  if (activeTabDef.type === 'aug_prismatic') allItems = AUGMENTS_DATA.prismatic;
 
   const placedIds = Object.values(tiers[activeTabId] || { S: [], A: [], B: [], C: [], D: [] }).flat();
   
   const poolItems = allItems.filter(item => !placedIds.includes(item.id));
   if (activeTabDef.type === 'champ') {
     poolItems.sort((a, b) => a.cost - b.cost || a.jaName.localeCompare(b.jaName));
-  } else if (activeTabDef.type === 'aug') {
-    const tierOrder = { silver: 1, gold: 2, prismatic: 3 };
-    poolItems.sort((a, b) => (tierOrder[a.tier] || 0) - (tierOrder[b.tier] || 0) || a.name.localeCompare(b.name));
-  } else if (activeTabDef.type === 'item') {
-    const typeOrder = { comp: 1, consumable: 2, completed: 3, artifact: 4, radiant: 5 };
-    poolItems.sort((a, b) => (typeOrder[a.type] || 0) - (typeOrder[b.type] || 0) || getJaName(a.name || a.id).localeCompare(getJaName(b.name || b.id)));
+  } else {
+    poolItems.sort((a, b) => a.name.localeCompare(b.name));
   }
 
   const handleDrop = useCallback((targetTier, itemId, currentTab) => {
@@ -489,31 +479,6 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       return newTiers;
     });
   }, []);
-
-  const handleAddTab = () => {
-    const name = prompt("新しいタブの名前を入力してください\n例: アイテム, 構成A など");
-    if (!name) return;
-    
-    const typeInput = prompt("対象とするアイテムの種類を番号で入力してください\n1: チャンピオン\n2: オーグメント\n3: アイテム", "1");
-    let type = 'champ';
-    if (typeInput === '2') type = 'aug';
-    if (typeInput === '3') type = 'item';
-
-    const newId = 'tab_' + Date.now();
-    setTabs(prev => [...prev, { id: newId, name, type }]);
-    setTiers(prev => ({
-      ...prev,
-      [newId]: { S: [], A: [], B: [], C: [], D: [] }
-    }));
-    setActiveTabId(newId);
-  };
-
-  const handleDeleteTab = (id) => {
-    if (window.confirm('このタブを削除しますか？')) {
-      setTabs(prev => prev.filter(t => t.id !== id));
-      if (activeTabId === id) setActiveTabId('champ');
-    }
-  };
 
   const onDragStart = (e, id) => {
     e.dataTransfer.setData('text/plain', id);
@@ -588,8 +553,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
 
   const renderItem = (item, isSmall = false) => {
     const isChamp = activeTabDef.type === 'champ';
-    const isAug = activeTabDef.type === 'aug';
-    const isEquip = activeTabDef.type === 'item';
+    const isAug = activeTabDef.type.startsWith('aug');
 
     let imgUrl = "";
     let title = "";
@@ -603,13 +567,9 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       imgUrl = getAugmentIconUrl(item);
       title = item.name;
       borderColor = TIER_COLORS[item.tier] || 'var(--border)';
-    } else if (isEquip) {
-      imgUrl = getMetaTFTItemUrl(item);
-      title = getJaName(item.name || item.id);
-      borderColor = item.type === 'artifact' ? 'var(--red)' : (item.type === 'radiant' ? 'var(--gold2)' : (item.type === 'completed' ? 'var(--gold)' : 'var(--border)'));
     }
 
-    const size = isSmall ? 18 : 26; // 🌟 38px -> 26pxに、縮小時は 26px -> 18pxに
+    const size = isSmall ? 26 : 38; // 🌟 サイズを元の大きさに戻す
     
     return (
       <div
@@ -631,7 +591,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
           touchAction: 'none'
         }}
       >
-        <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: (isChamp || isEquip) ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
+        <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
       </div>
     );
   };
@@ -645,28 +605,24 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       
       <div className="drawer-tabs" style={{ display: 'flex', overflowX: 'auto', gap: 6, padding: '0 10px 10px', scrollbarWidth: 'none' }}>
         {tabs.map(t => (
-          <div key={t.id} style={{ display: 'flex', alignItems: 'center', background: activeTabId === t.id ? (t.type === 'aug' ? 'var(--gold)' : (t.type === 'item' ? 'var(--teal)' : 'var(--blue)')) : 'rgba(255,255,255,0.1)', borderRadius: 8, flexShrink: 0 }}>
+          <div key={t.id} style={{ display: 'flex', alignItems: 'center', background: activeTabId === t.id ? t.color : 'rgba(255,255,255,0.1)', borderRadius: 8, flexShrink: 0 }}>
             <button 
               onClick={() => setActiveTabId(t.id)}
-              style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontWeight: 900, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+              style={{ background: 'transparent', border: 'none', color: 'white', textShadow: '0 0 4px black', padding: '8px 12px', fontWeight: 900, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
             >
               {t.name}
             </button>
-            {t.id !== 'champ' && t.id !== 'aug' && (
-              <button onClick={() => handleDeleteTab(t.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', padding: '0 8px 0 0', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
-            )}
           </div>
         ))}
-        <button onClick={handleAddTab} style={{ background: 'rgba(255,255,255,0.05)', border: '1px dashed var(--border)', color: 'white', borderRadius: 8, padding: '0 15px', cursor: 'pointer', fontWeight: 900, flexShrink: 0, fontSize: 13, height: 33 }}>＋ 追加</button>
       </div>
 
       <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 10px 10px', overflowY: 'auto' }}>
         {['S', 'A', 'B', 'C', 'D'].map(tierKey => {
           const itemsInTier = (tiers[activeTabId] || { S: [], A: [], B: [], C: [], D: [] })[tierKey] || [];
-          const isSmall = itemsInTier.length > 18; // 🌟 アイコンが小さくなったため、縮小の閾値を変更
+          const isSmall = itemsInTier.length > 14; // 🌟 元の閾値に戻す
           return (
-            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 36 }}>
-              <div style={{ width: 30, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
+              <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
               <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{itemsInTier.map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item, isSmall) : null; })}</div>
             </div>
           );
