@@ -74,6 +74,7 @@ const getMetaTFTItemUrl = (item) => {
   }
 
   // 2. 特殊消費アイテム
+  if (nameInput === 'Tiny Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_i.png";
   if (nameInput === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_championduplicator_iii.png";
   if (nameInput === 'Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_neekoshelp.png";
   if (nameInput === 'Reforger') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemreroller.png";
@@ -1722,7 +1723,8 @@ const handleAugmentPick = (aug, historyContext) => {
             ninv.push(...newItems); unit.items = []; 
             if (dragSrc.type === 'inventory') ninv.splice(dragSrc.idx, 1);
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成して取り外しました</span></div>);
-          } else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe') {
+          } else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe' || newItem.id === 'tiny_dupe') {
+            if (newItem.id === 'tiny_dupe' && unit.cost > 1) { showMsg("⚠️ 1コストのみ使用可"); setDragSrc(null); return; }
             if (newItem.id === 'lesser_dupe' && unit.cost > 3) { showMsg("⚠️ 1〜3コストのみ使用可"); setDragSrc(null); return; }
             const emptySlot = nb.findIndex(x => !x);
             if (emptySlot === -1) { showMsg("⚠️ ベンチに空きがありません"); setDragSrc(null); return; }

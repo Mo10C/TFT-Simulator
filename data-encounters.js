@@ -90,7 +90,7 @@ const ENCOUNTERS = [
   { id:'velkoz', champ:'ヴェル=ヴェス', jaName:'複製器×2', prob:4.9,
     desc:'「小さなチャンピオン複製器」を1個獲得する。3-5で、「小型チャンピオン複製器」を獲得する。',
     icon:'🔹', color:'#a06bff',
-    effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.LESSER_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); } },
+    effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.TINY_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); } },
 
   { id:'leblanc', champ:'ルブラン', jaName:'ステージ3オーグメント', prob:3.7,
     desc:'オーグメントが3-1、3-2、3-3で出現するようになる。',
