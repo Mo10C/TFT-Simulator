@@ -541,11 +541,12 @@ const TierListDrawer = ({ isOpen, onClose }) => {
 
   const TIER_COLORS_BG = { S: '#ff7f7f', A: '#ffb37f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff' };
 
-  const renderItem = (item) => {
+  const renderItem = (item, isSmall = false) => {
     const isChamp = tab === 'champ';
     const imgUrl = isChamp ? boardIcon(item.img) : getAugmentIconUrl(item);
     const title = isChamp ? item.jaName : item.name;
     const borderColor = isChamp ? COST_COLORS[item.cost] : TIER_COLORS[item.tier];
+    const size = isSmall ? 26 : 38;
     
     return (
       <div
@@ -555,7 +556,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
         onTouchStart={(e) => onTouchStart(e, item.id)}
         title={title}
         style={{
-          width: 38, height: 38,
+          width: size, height: size,
           borderRadius: 4,
           border: `2px solid ${borderColor}`,
           background: '#000',
@@ -567,7 +568,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
           touchAction: 'none'
         }}
       >
-        <img src={imgUrl} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
+        <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
       </div>
     );
   };
@@ -585,14 +586,18 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       </div>
 
       <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px', overflowY: 'auto' }}>
-        {['S', 'A', 'B', 'C', 'D'].map(tierKey => (
-          <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'rgba(0,0,0,0.5)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
-            <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
-            <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{tiers[tab][tierKey].map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item) : null; })}</div>
-          </div>
-        ))}
-        <div data-tier="pool" onDragOver={onDragOver} onDrop={(e) => onDrop(e, 'pool')} style={{ marginTop: 5, flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: 8, border: '2px dashed var(--border)', display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start', minHeight: 120, overflowY: 'auto' }}>
-          {poolItems.length === 0 ? <div style={{ width: '100%', textAlign: 'center', color: 'var(--textdim)', alignSelf: 'center', fontWeight: 700, fontSize: 12 }}>全て配置済み</div> : poolItems.map(item => renderItem(item))}
+        {['S', 'A', 'B', 'C', 'D'].map(tierKey => {
+          const itemsInTier = tiers[tab][tierKey];
+          const isSmall = itemsInTier.length > 14; // アイコンが15個以上（3段以上）になったら縮小する
+          return (
+            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
+              <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+              <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{itemsInTier.map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item, isSmall) : null; })}</div>
+            </div>
+          );
+        })}
+        <div data-tier="pool" onDragOver={onDragOver} onDrop={(e) => onDrop(e, 'pool')} style={{ marginTop: 5, flex: 1, background: 'var(--bg-hex)', borderRadius: 6, padding: 8, border: '2px dashed var(--border)', display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start', minHeight: 120, overflowY: 'auto' }}>
+          {poolItems.length === 0 ? <div style={{ width: '100%', textAlign: 'center', color: 'var(--textdim)', alignSelf: 'center', fontWeight: 700, fontSize: 12 }}>全て配置済み</div> : poolItems.map(item => renderItem(item, true))}
         </div>
       </div>
     </div>
