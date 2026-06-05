@@ -19,9 +19,9 @@ const ITEM_JA = {
   'redbuff': 'サンファイアケープ', 'nightharvester': '揺るがぬ心', "Dragon's Claw": 'ドラゴン クロウ',
   'spectralgauntlet': 'イーブンシュラウド', 'Quicksilver': 'クイックシルバー', "Warmog's Armor": 'ワーモグ アーマー',
   'powergauntlet': 'ストライカー フレイル', "Thief's Gloves": '盗賊のグローブ',
+  'Tiny Champion Duplicator': '小さなチャンピオン複製機',
   'Lesser Champion Duplicator': '小型チャンピオン複製機',
   'Champion Duplicator': 'チャンピオン複製機',
-  'Tiny Champion Duplicator': '小さなチャンピオン複製機',
   'Reforger': '再合成装置',
   'Magnetic Remover': '磁力式除去装置',
   'Spatula': '黄金のへら',
@@ -171,11 +171,12 @@ const ITEM_RECIPES = {
 
 /* ── 消費アイテム ── */
 const CONSUMABLES = {
+  TINY_DUPE: { id: 'tiny_dupe', name: 'Tiny Champion Duplicator', icon: '🔹', type:'consumable', imgId: 905 },
   LESSER_DUPE: { id: 'lesser_dupe', name: 'Lesser Champion Duplicator', icon: '🔹', type:'consumable', imgId: 901 },
   CHAMP_DUPE: { id: 'champ_dupe', name: 'Champion Duplicator', icon: '🔸', type:'consumable', imgId: 902 },
   REFORGER: { id: 'reforger', name: 'Reforger', icon: '🔨', type:'consumable', imgId: 903 },
-  REMOVER: { id: 'remover', name: 'itemremover', icon: '🧲', type:'consumable', imgId: 904 },
-  TINY_DUPE: { id: 'tiny_dupe', name: 'Tiny Champion Duplicator', icon: '🔹', type:'consumable', imgId: 905 }
+  REMOVER: { id: 'remover', name: 'itemremover', icon: '🧲', type:'consumable', imgId: 904 }
+
 };
 
 /* ── アーティファクト ── */

@@ -426,6 +426,177 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
   );
 };
 
+/* ── ティアリスト作成モーダル ── */
+const TierListModal = ({ isOpen, onClose }) => {
+  const [tab, setTab] = useState('champ');
+  const [tiers, setTiers] = useState({
+    champ: { S: [], A: [], B: [], C: [], D: [] },
+    aug: { S: [], A: [], B: [], C: [], D: [] }
+  });
+  
+  const [dragItem, setDragItem] = useState(null);
+  const touchGhostRef = useRef(null);
+
+  const allAugments = useMemo(() => [
+    ...AUGMENTS_DATA.silver, ...AUGMENTS_DATA.gold, ...AUGMENTS_DATA.prismatic
+  ], []);
+
+  const allItems = tab === 'champ' ? CHAMPS : allAugments;
+  const placedIds = Object.values(tiers[tab]).flat();
+  
+  const poolItems = allItems.filter(item => !placedIds.includes(item.id));
+  if (tab === 'champ') {
+    poolItems.sort((a, b) => a.cost - b.cost || a.jaName.localeCompare(b.jaName));
+  } else {
+    const tierOrder = { silver: 1, gold: 2, prismatic: 3 };
+    poolItems.sort((a, b) => (tierOrder[a.tier] || 0) - (tierOrder[b.tier] || 0) || a.name.localeCompare(b.name));
+  }
+
+  const handleDrop = useCallback((targetTier, itemId, currentTab) => {
+    setTiers(prev => {
+      const newTiers = { ...prev };
+      const currentTabTiers = { ...newTiers[currentTab] };
+      
+      Object.keys(currentTabTiers).forEach(key => {
+        currentTabTiers[key] = currentTabTiers[key].filter(id => id !== itemId);
+      });
+      
+      if (targetTier !== 'pool') {
+        currentTabTiers[targetTier].push(itemId);
+      }
+      
+      newTiers[currentTab] = currentTabTiers;
+      return newTiers;
+    });
+  }, []);
+
+  const onDragStart = (e, id) => {
+    e.dataTransfer.setData('text/plain', id);
+    setDragItem(id);
+  };
+  const onDragOver = e => e.preventDefault();
+  const onDrop = (e, targetTier) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain');
+    if (id) handleDrop(targetTier, id, tab);
+    setDragItem(null);
+  };
+
+  const onTouchStart = (e, id) => {
+    const touch = e.touches[0];
+    const el = e.currentTarget;
+    const rect = el.getBoundingClientRect();
+    
+    const ghost = el.cloneNode(true);
+    ghost.style.cssText = `
+      position:fixed; pointer-events:none; z-index:100000;
+      width:${rect.width}px; height:${rect.height}px;
+      left:${touch.clientX - rect.width/2}px; top:${touch.clientY - rect.height/2}px;
+      opacity:0.8; transform:scale(1.1); margin:0;
+    `;
+    document.body.appendChild(ghost);
+    touchGhostRef.current = { id, el: ghost, width: rect.width, height: rect.height };
+    setDragItem(id);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleTouchMove = (e) => {
+      if (!touchGhostRef.current) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const { el, width, height } = touchGhostRef.current;
+      el.style.left = `${touch.clientX - width/2}px`;
+      el.style.top = `${touch.clientY - height/2}px`;
+    };
+    const handleTouchEnd = (e) => {
+      if (!touchGhostRef.current) return;
+      const touch = e.changedTouches[0];
+      const { id, el } = touchGhostRef.current;
+      el.remove();
+      touchGhostRef.current = null;
+      setDragItem(null);
+      
+      const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+      const dropZone = targetEl?.closest('[data-tier]');
+      if (dropZone) {
+        const tier = dropZone.getAttribute('data-tier');
+        handleDrop(tier, id, tab);
+      }
+    };
+    
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleTouchEnd);
+    document.addEventListener('touchcancel', handleTouchEnd);
+    return () => {
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+      document.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [isOpen, tab, handleDrop]);
+
+  if (!isOpen) return null;
+
+  const TIER_COLORS_BG = { S: '#ff7f7f', A: '#ffb37f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff' };
+
+  const renderItem = (item) => {
+    const isChamp = tab === 'champ';
+    const imgUrl = isChamp ? boardIcon(item.img) : getAugmentIconUrl(item);
+    const title = isChamp ? item.jaName : item.name;
+    const borderColor = isChamp ? COST_COLORS[item.cost] : TIER_COLORS[item.tier];
+    
+    return (
+      <div
+        key={item.id}
+        draggable
+        onDragStart={(e) => onDragStart(e, item.id)}
+        onTouchStart={(e) => onTouchStart(e, item.id)}
+        title={title}
+        style={{
+          width: 48, height: 48,
+          borderRadius: 6,
+          border: `2px solid ${borderColor}`,
+          background: '#000',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'grab',
+          opacity: dragItem === item.id ? 0.5 : 1,
+          overflow: 'hidden',
+          flexShrink: 0,
+          touchAction: 'none'
+        }}
+      >
+        <img src={imgUrl} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column', padding: 20, overflow: 'hidden', animation: 'fadeIn 0.2s' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, flexShrink: 0 }}>
+        <h2 style={{ color: 'white', margin: 0, fontFamily: 'Noto Sans JP', fontWeight: 900 }}>📊 ティアリスト</h2>
+        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer', lineHeight: 1 }}>×</button>
+      </div>
+      
+      <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexShrink: 0 }}>
+        <button onClick={() => setTab('champ')} style={{ flex: 1, padding: '12px 10px', background: tab === 'champ' ? 'var(--blue)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}>チャンピオン</button>
+        <button onClick={() => setTab('aug')} style={{ flex: 1, padding: '12px 10px', background: tab === 'aug' ? 'var(--gold)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}>オーグメント</button>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
+        {['S', 'A', 'B', 'C', 'D'].map(tierKey => (
+          <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'rgba(0,0,0,0.5)', borderRadius: 8, overflow: 'hidden', minHeight: 70 }}>
+            <div style={{ width: 70, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+            <div style={{ flex: 1, padding: 8, display: 'flex', flexWrap: 'wrap', gap: 6, alignContent: 'flex-start' }}>{tiers[tab][tierKey].map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item) : null; })}</div>
+          </div>
+        ))}
+        <div data-tier="pool" onDragOver={onDragOver} onDrop={(e) => onDrop(e, 'pool')} style={{ marginTop: 20, flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, border: '2px dashed var(--border)', display: 'flex', flexWrap: 'wrap', gap: 6, alignContent: 'flex-start', minHeight: 150, overflowY: 'auto' }}>
+          {poolItems.length === 0 ? <div style={{ width: '100%', textAlign: 'center', color: 'var(--textdim)', alignSelf: 'center', fontWeight: 700 }}>全て配置済み</div> : poolItems.map(item => renderItem(item))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
 const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0 }) => {
   const maxRerolls = 1 + (rerollBonus || 0); // 各枠のリロール可能回数（タロンで+1）
@@ -725,6 +896,7 @@ function App({ seed, onRestart, onNewGame }) {
   const [afkRoundsLeft, setAfkRoundsLeft] = useState(0);
   const [droppedComps, setDroppedComps] = useState([]);
   const [showAssetDrawer, setShowAssetDrawer] = useState(false);
+  const [showTierList, setShowTierList] = useState(false);
   const hoverTimer = useRef(null);
   const [pendingUnits, setPendingUnits] = useState([]);
   const [introStep, setIntroStep] = useState(0);
@@ -2506,6 +2678,11 @@ const handleAugmentPick = (aug, historyContext) => {
         setDragSrc={setDragSrc}
         startTouchDrag={startTouchDrag}
       />
+      
+      <TierListModal 
+        isOpen={showTierList} 
+        onClose={() => setShowTierList(false)} 
+      />
 
       {/* 🌟 1-1 神との遭遇 （二回り縮小・比率維持版） */}
       {round === '1-1' && (() => {
@@ -2725,6 +2902,14 @@ const handleAugmentPick = (aug, historyContext) => {
               🎲 ×{freeRerolls}
             </div>
           )}
+
+          <button 
+            onClick={() => setShowTierList(true)}
+            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
+            title="ティアリスト"
+          >
+            📊 ティアリスト
+          </button>
 
           <button 
             onClick={() => setShowAssetDrawer(true)}
