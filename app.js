@@ -426,8 +426,8 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
   );
 };
 
-/* ── ティアリスト作成モーダル ── */
-const TierListModal = ({ isOpen, onClose }) => {
+/* ── ティアリスト作成ドロワー ── */
+const TierListDrawer = ({ isOpen, onClose }) => {
   const [tab, setTab] = useState('champ');
   const [tiers, setTiers] = useState({
     champ: { S: [], A: [], B: [], C: [], D: [] },
@@ -501,6 +501,7 @@ const TierListModal = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (!isOpen) return;
+    /** @param {TouchEvent} e */
     const handleTouchMove = (e) => {
       if (!touchGhostRef.current) return;
       e.preventDefault();
@@ -509,6 +510,7 @@ const TierListModal = ({ isOpen, onClose }) => {
       el.style.left = `${touch.clientX - width/2}px`;
       el.style.top = `${touch.clientY - height/2}px`;
     };
+    /** @param {TouchEvent} e */
     const handleTouchEnd = (e) => {
       if (!touchGhostRef.current) return;
       const touch = e.changedTouches[0];
@@ -521,7 +523,9 @@ const TierListModal = ({ isOpen, onClose }) => {
       const dropZone = targetEl?.closest('[data-tier]');
       if (dropZone) {
         const tier = dropZone.getAttribute('data-tier');
-        handleDrop(tier, id, tab);
+        if (tier) {
+          handleDrop(tier, id, tab);
+        }
       }
     };
     
@@ -534,8 +538,6 @@ const TierListModal = ({ isOpen, onClose }) => {
       document.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [isOpen, tab, handleDrop]);
-
-  if (!isOpen) return null;
 
   const TIER_COLORS_BG = { S: '#ff7f7f', A: '#ffb37f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff' };
 
@@ -553,8 +555,8 @@ const TierListModal = ({ isOpen, onClose }) => {
         onTouchStart={(e) => onTouchStart(e, item.id)}
         title={title}
         style={{
-          width: 48, height: 48,
-          borderRadius: 6,
+          width: 38, height: 38,
+          borderRadius: 4,
           border: `2px solid ${borderColor}`,
           background: '#000',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -571,26 +573,26 @@ const TierListModal = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(15,23,42,0.95)', display: 'flex', flexDirection: 'column', padding: 20, overflow: 'hidden', animation: 'fadeIn 0.2s' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, flexShrink: 0 }}>
-        <h2 style={{ color: 'white', margin: 0, fontFamily: 'Noto Sans JP', fontWeight: 900 }}>📊 ティアリスト</h2>
-        <button onClick={onClose} style={{ background: 'transparent', border: 'none', color: 'white', fontSize: 32, cursor: 'pointer', lineHeight: 1 }}>×</button>
+    <div className={`asset-drawer ${isOpen ? 'open' : ''}`} style={{ zIndex: 10000 }}>
+      <div className="drawer-header">
+        <h3>📊 ティアリスト</h3>
+        <button className="close-drawer-btn" onClick={onClose}>×</button>
       </div>
       
-      <div style={{ display: 'flex', gap: 10, marginBottom: 15, flexShrink: 0 }}>
-        <button onClick={() => setTab('champ')} style={{ flex: 1, padding: '12px 10px', background: tab === 'champ' ? 'var(--blue)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}>チャンピオン</button>
-        <button onClick={() => setTab('aug')} style={{ flex: 1, padding: '12px 10px', background: tab === 'aug' ? 'var(--gold)' : 'rgba(255,255,255,0.1)', color: 'white', border: 'none', borderRadius: 8, fontWeight: 900, cursor: 'pointer', fontSize: 16 }}>オーグメント</button>
+      <div className="drawer-tabs">
+        <button className={`drawer-tab ${tab === 'champ' ? 'active' : ''}`} onClick={() => setTab('champ')}>チャンピオン</button>
+        <button className={`drawer-tab ${tab === 'aug' ? 'active' : ''}`} onClick={() => setTab('aug')}>オーグメント</button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
+      <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px', overflowY: 'auto' }}>
         {['S', 'A', 'B', 'C', 'D'].map(tierKey => (
-          <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'rgba(0,0,0,0.5)', borderRadius: 8, overflow: 'hidden', minHeight: 70 }}>
-            <div style={{ width: 70, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
-            <div style={{ flex: 1, padding: 8, display: 'flex', flexWrap: 'wrap', gap: 6, alignContent: 'flex-start' }}>{tiers[tab][tierKey].map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item) : null; })}</div>
+          <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'rgba(0,0,0,0.5)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
+            <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+            <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{tiers[tab][tierKey].map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item) : null; })}</div>
           </div>
         ))}
-        <div data-tier="pool" onDragOver={onDragOver} onDrop={(e) => onDrop(e, 'pool')} style={{ marginTop: 20, flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, border: '2px dashed var(--border)', display: 'flex', flexWrap: 'wrap', gap: 6, alignContent: 'flex-start', minHeight: 150, overflowY: 'auto' }}>
-          {poolItems.length === 0 ? <div style={{ width: '100%', textAlign: 'center', color: 'var(--textdim)', alignSelf: 'center', fontWeight: 700 }}>全て配置済み</div> : poolItems.map(item => renderItem(item))}
+        <div data-tier="pool" onDragOver={onDragOver} onDrop={(e) => onDrop(e, 'pool')} style={{ marginTop: 5, flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: 8, border: '2px dashed var(--border)', display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start', minHeight: 120, overflowY: 'auto' }}>
+          {poolItems.length === 0 ? <div style={{ width: '100%', textAlign: 'center', color: 'var(--textdim)', alignSelf: 'center', fontWeight: 700, fontSize: 12 }}>全て配置済み</div> : poolItems.map(item => renderItem(item))}
         </div>
       </div>
     </div>
@@ -2679,7 +2681,7 @@ const handleAugmentPick = (aug, historyContext) => {
         startTouchDrag={startTouchDrag}
       />
       
-      <TierListModal 
+      <TierListDrawer 
         isOpen={showTierList} 
         onClose={() => setShowTierList(false)} 
       />
