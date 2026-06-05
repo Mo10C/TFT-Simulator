@@ -427,7 +427,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
 };
 
 /* ── ティアリスト作成ドロワー ── */
-const TierListDrawer = ({ isOpen, onClose }) => {
+const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
   const tabs = useMemo(() => [
     { id: 'champ', name: 'チャンピオン', type: 'champ', color: 'var(--blue)' },
     { id: 'aug_silver', name: '銀オーグ', type: 'aug_silver', color: 'var(--silver)' },
@@ -437,12 +437,24 @@ const TierListDrawer = ({ isOpen, onClose }) => {
   
   const [activeTabId, setActiveTabId] = useState('champ');
   
-  const [tiers, setTiers] = useState({
-    champ: { S: [], A: [], B: [], C: [], D: [] },
-    aug_silver: { S: [], A: [], B: [], C: [], D: [] },
-    aug_gold: { S: [], A: [], B: [], C: [], D: [] },
-    aug_prismatic: { S: [], A: [], B: [], C: [], D: [] }
+  const [tiers, setTiers] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const encoded = params.get('tierlist');
+      if (encoded) {
+        return JSON.parse(decodeURIComponent(atob(encoded)));
+      }
+    } catch(e) {
+      console.error('Failed to parse tierlist from URL', e);
+    }
+    return {
+      champ: { S: [], A: [], B: [], C: [], D: [] },
+      aug_silver: { S: [], A: [], B: [], C: [], D: [] },
+      aug_gold: { S: [], A: [], B: [], C: [], D: [] },
+      aug_prismatic: { S: [], A: [], B: [], C: [], D: [] }
+    };
   });
+  const [importCode, setImportCode] = useState("");
   
   const [dragItem, setDragItem] = useState(null);
   const touchGhostRef = useRef(null);
@@ -549,6 +561,53 @@ const TierListDrawer = ({ isOpen, onClose }) => {
     };
   }, [isOpen, activeTabId, handleDrop]);
 
+  const handleCopyCode = () => {
+    try {
+      const encoded = btoa(encodeURIComponent(JSON.stringify(tiers)));
+      
+      navigator.clipboard.writeText(encoded).then(() => {
+        if (showMsg) {
+          showMsg(
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+              <span style={{ fontSize: '18px' }}>📋</span>
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontWeight: 900, color: 'white' }}>共有コードをコピーしました！</div>
+                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.7)' }}>入力ボックスに貼り付けて読み込めます</div>
+              </div>
+            </div>
+          );
+        }
+      });
+    } catch (e) {
+      if (showMsg) showMsg("⚠️ コピーに失敗しました");
+    }
+  };
+
+  const handleImport = () => {
+    if (!importCode.trim()) return;
+    try {
+      let codeToParse = importCode.trim();
+      // URLごと貼り付けられた場合はパラメータから抽出する
+      if (codeToParse.startsWith('http')) {
+        const url = new URL(codeToParse);
+        codeToParse = url.searchParams.get('tierlist') || codeToParse;
+      }
+      
+      const parsed = JSON.parse(decodeURIComponent(atob(codeToParse)));
+      const newTiers = {
+        champ: parsed.champ || { S: [], A: [], B: [], C: [], D: [] },
+        aug_silver: parsed.aug_silver || { S: [], A: [], B: [], C: [], D: [] },
+        aug_gold: parsed.aug_gold || { S: [], A: [], B: [], C: [], D: [] },
+        aug_prismatic: parsed.aug_prismatic || { S: [], A: [], B: [], C: [], D: [] }
+      };
+      setTiers(newTiers);
+      if (showMsg) showMsg("✅ ティアリストを読み込みました！");
+      setImportCode("");
+    } catch (e) {
+      if (showMsg) showMsg("⚠️ 無効な共有コードです");
+    }
+  };
+
   const TIER_COLORS_BG = { S: '#ff7f7f', A: '#ffb37f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff' };
 
   const renderItem = (item, isSmall = false) => {
@@ -582,7 +641,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
           width: size, height: size,
           borderRadius: isAug ? 6 : 4,
           border: `2px solid ${borderColor}`,
-          background: '#000',
+          background: isAug ? '#1e293b' : '#000', // 🌟 オーグメントはチートと同じ背景色に
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           cursor: 'grab',
           opacity: dragItem === item.id ? 0.5 : 1,
@@ -598,9 +657,35 @@ const TierListDrawer = ({ isOpen, onClose }) => {
 
   return (
     <div className={`asset-drawer ${isOpen ? 'open' : ''}`} style={{ zIndex: 10000 }}>
-      <div className="drawer-header">
-        <h3>📊 ティアリスト</h3>
-        <button className="close-drawer-btn" onClick={onClose}>×</button>
+      <div className="drawer-header" style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'stretch' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h3 style={{ margin: 0 }}>📊 ティアリスト</h3>
+            <button 
+              onClick={handleCopyCode}
+              style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', fontSize: 10, color: 'white', fontWeight: 900, cursor: 'pointer' }}
+            >
+              📋 コードをコピー
+            </button>
+          </div>
+          <button className="close-drawer-btn" onClick={onClose} style={{ position: 'relative', right: 0, top: 0 }}>×</button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: 6, paddingRight: 10 }}>
+          <input 
+            type="text" 
+            placeholder="共有コードを貼り付け..." 
+            value={importCode}
+            onChange={e => setImportCode(e.target.value)}
+            style={{ flex: 1, background: 'rgba(0,0,0,0.5)', border: '1px solid var(--border)', borderRadius: 4, color: 'white', padding: '6px 10px', fontSize: 11, outline: 'none' }}
+          />
+          <button 
+            onClick={handleImport}
+            style={{ background: 'var(--blue)', border: 'none', borderRadius: 4, padding: '0 12px', fontSize: 11, color: 'white', fontWeight: 900, cursor: 'pointer', flexShrink: 0 }}
+          >
+            読み込む
+          </button>
+        </div>
       </div>
       
       <div className="drawer-tabs" style={{ display: 'flex', overflowX: 'auto', gap: 6, padding: '0 10px 10px', scrollbarWidth: 'none' }}>
