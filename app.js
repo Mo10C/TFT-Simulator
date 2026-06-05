@@ -428,7 +428,12 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
 
 /* ── ティアリスト作成ドロワー ── */
 const TierListDrawer = ({ isOpen, onClose }) => {
-  const [tab, setTab] = useState('champ');
+  const [tabs, setTabs] = useState([
+    { id: 'champ', name: 'チャンピオン', type: 'champ' },
+    { id: 'aug', name: 'オーグメント', type: 'aug' }
+  ]);
+  const [activeTabId, setActiveTabId] = useState('champ');
+  
   const [tiers, setTiers] = useState({
     champ: { S: [], A: [], B: [], C: [], D: [] },
     aug: { S: [], A: [], B: [], C: [], D: [] }
@@ -441,21 +446,36 @@ const TierListDrawer = ({ isOpen, onClose }) => {
     ...AUGMENTS_DATA.silver, ...AUGMENTS_DATA.gold, ...AUGMENTS_DATA.prismatic
   ], []);
 
-  const allItems = tab === 'champ' ? CHAMPS : allAugments;
-  const placedIds = Object.values(tiers[tab]).flat();
+  const allEquips = useMemo(() => [
+    ...ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan'),
+    ...Object.values(ITEM_RECIPES).map(it => ({...it, type: 'completed'})),
+    ...ARTIFACTS,
+    ...RADIANT_ITEMS,
+    ...Object.values(CONSUMABLES)
+  ], []);
+
+  const activeTabDef = tabs.find(t => t.id === activeTabId) || tabs[0];
+  let allItems = CHAMPS;
+  if (activeTabDef.type === 'aug') allItems = allAugments;
+  if (activeTabDef.type === 'item') allItems = allEquips;
+
+  const placedIds = Object.values(tiers[activeTabId] || { S: [], A: [], B: [], C: [], D: [] }).flat();
   
   const poolItems = allItems.filter(item => !placedIds.includes(item.id));
-  if (tab === 'champ') {
+  if (activeTabDef.type === 'champ') {
     poolItems.sort((a, b) => a.cost - b.cost || a.jaName.localeCompare(b.jaName));
-  } else {
+  } else if (activeTabDef.type === 'aug') {
     const tierOrder = { silver: 1, gold: 2, prismatic: 3 };
     poolItems.sort((a, b) => (tierOrder[a.tier] || 0) - (tierOrder[b.tier] || 0) || a.name.localeCompare(b.name));
+  } else if (activeTabDef.type === 'item') {
+    const typeOrder = { comp: 1, consumable: 2, completed: 3, artifact: 4, radiant: 5 };
+    poolItems.sort((a, b) => (typeOrder[a.type] || 0) - (typeOrder[b.type] || 0) || getJaName(a.name || a.id).localeCompare(getJaName(b.name || b.id)));
   }
 
   const handleDrop = useCallback((targetTier, itemId, currentTab) => {
     setTiers(prev => {
       const newTiers = { ...prev };
-      const currentTabTiers = { ...newTiers[currentTab] };
+      const currentTabTiers = { ...(newTiers[currentTab] || { S: [], A: [], B: [], C: [], D: [] }) };
       
       Object.keys(currentTabTiers).forEach(key => {
         currentTabTiers[key] = currentTabTiers[key].filter(id => id !== itemId);
@@ -470,6 +490,31 @@ const TierListDrawer = ({ isOpen, onClose }) => {
     });
   }, []);
 
+  const handleAddTab = () => {
+    const name = prompt("新しいタブの名前を入力してください\n例: アイテム, 構成A など");
+    if (!name) return;
+    
+    const typeInput = prompt("対象とするアイテムの種類を番号で入力してください\n1: チャンピオン\n2: オーグメント\n3: アイテム", "1");
+    let type = 'champ';
+    if (typeInput === '2') type = 'aug';
+    if (typeInput === '3') type = 'item';
+
+    const newId = 'tab_' + Date.now();
+    setTabs(prev => [...prev, { id: newId, name, type }]);
+    setTiers(prev => ({
+      ...prev,
+      [newId]: { S: [], A: [], B: [], C: [], D: [] }
+    }));
+    setActiveTabId(newId);
+  };
+
+  const handleDeleteTab = (id) => {
+    if (window.confirm('このタブを削除しますか？')) {
+      setTabs(prev => prev.filter(t => t.id !== id));
+      if (activeTabId === id) setActiveTabId('champ');
+    }
+  };
+
   const onDragStart = (e, id) => {
     e.dataTransfer.setData('text/plain', id);
     setDragItem(id);
@@ -478,7 +523,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
   const onDrop = (e, targetTier) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain');
-    if (id) handleDrop(targetTier, id, tab);
+    if (id) handleDrop(targetTier, id, activeTabId);
     setDragItem(null);
   };
 
@@ -524,7 +569,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       if (dropZone) {
         const tier = dropZone.getAttribute('data-tier');
         if (tier) {
-          handleDrop(tier, id, tab);
+          handleDrop(tier, id, activeTabId);
         }
       }
     };
@@ -537,15 +582,33 @@ const TierListDrawer = ({ isOpen, onClose }) => {
       document.removeEventListener('touchend', handleTouchEnd);
       document.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [isOpen, tab, handleDrop]);
+  }, [isOpen, activeTabId, handleDrop]);
 
   const TIER_COLORS_BG = { S: '#ff7f7f', A: '#ffb37f', B: '#ffff7f', C: '#7fff7f', D: '#7fbfff' };
 
   const renderItem = (item, isSmall = false) => {
-    const isChamp = tab === 'champ';
-    const imgUrl = isChamp ? boardIcon(item.img) : getAugmentIconUrl(item);
-    const title = isChamp ? item.jaName : item.name;
-    const borderColor = isChamp ? COST_COLORS[item.cost] : TIER_COLORS[item.tier];
+    const isChamp = activeTabDef.type === 'champ';
+    const isAug = activeTabDef.type === 'aug';
+    const isEquip = activeTabDef.type === 'item';
+
+    let imgUrl = "";
+    let title = "";
+    let borderColor = "var(--border)";
+
+    if (isChamp) {
+      imgUrl = boardIcon(item.img);
+      title = item.jaName;
+      borderColor = COST_COLORS[item.cost] || 'var(--border)';
+    } else if (isAug) {
+      imgUrl = getAugmentIconUrl(item);
+      title = item.name;
+      borderColor = TIER_COLORS[item.tier] || 'var(--border)';
+    } else if (isEquip) {
+      imgUrl = getMetaTFTItemUrl(item);
+      title = getJaName(item.name || item.id);
+      borderColor = item.type === 'artifact' ? 'var(--red)' : (item.type === 'radiant' ? 'var(--gold2)' : (item.type === 'completed' ? 'var(--gold)' : 'var(--border)'));
+    }
+
     const size = isSmall ? 18 : 26; // 🌟 38px -> 26pxに、縮小時は 26px -> 18pxに
     
     return (
@@ -568,7 +631,7 @@ const TierListDrawer = ({ isOpen, onClose }) => {
           touchAction: 'none'
         }}
       >
-        <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
+        <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: (isChamp || isEquip) ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
       </div>
     );
   };
@@ -580,14 +643,26 @@ const TierListDrawer = ({ isOpen, onClose }) => {
         <button className="close-drawer-btn" onClick={onClose}>×</button>
       </div>
       
-      <div className="drawer-tabs">
-        <button className={`drawer-tab ${tab === 'champ' ? 'active' : ''}`} onClick={() => setTab('champ')}>チャンピオン</button>
-        <button className={`drawer-tab ${tab === 'aug' ? 'active' : ''}`} onClick={() => setTab('aug')}>オーグメント</button>
+      <div className="drawer-tabs" style={{ display: 'flex', overflowX: 'auto', gap: 6, padding: '0 10px 10px', scrollbarWidth: 'none' }}>
+        {tabs.map(t => (
+          <div key={t.id} style={{ display: 'flex', alignItems: 'center', background: activeTabId === t.id ? (t.type === 'aug' ? 'var(--gold)' : (t.type === 'item' ? 'var(--teal)' : 'var(--blue)')) : 'rgba(255,255,255,0.1)', borderRadius: 8, flexShrink: 0 }}>
+            <button 
+              onClick={() => setActiveTabId(t.id)}
+              style={{ background: 'transparent', border: 'none', color: 'white', padding: '8px 12px', fontWeight: 900, cursor: 'pointer', fontSize: 13, whiteSpace: 'nowrap' }}
+            >
+              {t.name}
+            </button>
+            {t.id !== 'champ' && t.id !== 'aug' && (
+              <button onClick={() => handleDeleteTab(t.id)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', padding: '0 8px 0 0', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+            )}
+          </div>
+        ))}
+        <button onClick={handleAddTab} style={{ background: 'rgba(255,255,255,0.05)', border: '1px dashed var(--border)', color: 'white', borderRadius: 8, padding: '0 15px', cursor: 'pointer', fontWeight: 900, flexShrink: 0, fontSize: 13, height: 33 }}>＋ 追加</button>
       </div>
 
-      <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '10px', overflowY: 'auto' }}>
+      <div className="drawer-content active" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '0 10px 10px', overflowY: 'auto' }}>
         {['S', 'A', 'B', 'C', 'D'].map(tierKey => {
-          const itemsInTier = tiers[tab][tierKey];
+          const itemsInTier = (tiers[activeTabId] || { S: [], A: [], B: [], C: [], D: [] })[tierKey] || [];
           const isSmall = itemsInTier.length > 18; // 🌟 アイコンが小さくなったため、縮小の閾値を変更
           return (
             <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 36 }}>
