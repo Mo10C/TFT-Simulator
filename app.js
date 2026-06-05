@@ -1688,11 +1688,21 @@ useEffect(() => {
     }
 
     if (phase === 'main') {
-      triggerDrops(currentR);
-      setTimeout(() => {
-        setPhase('drop');
-        setIsTransitioning(false);
-      }, 800);
+      if (currentR === '1-2') {
+        triggerDrops(currentR);
+        setTimeout(() => {
+          setRound(nextR);
+          setPhase('main');
+          processRoundStart(nextR, currentR);
+          setIsTransitioning(false);
+        }, 800);
+      } else {
+        triggerDrops(currentR);
+        setTimeout(() => {
+          setPhase('drop');
+          setIsTransitioning(false);
+        }, 800);
+      }
     } else if (phase === 'drop') {
       setTimeout(() => {
         setRound(nextR);
@@ -3386,7 +3396,7 @@ const handleAugmentPick = (aug, historyContext) => {
             onClick={() => handleNextRound()} 
             style={{ 
               width: '100%', height: isLandscapeMobile ? 52 : 70,
-              background: round === '2-1' ? 'var(--red)' : (phase === 'main' && round !== '1-1' ? '#ff9f43' : 'var(--blue)'), 
+              background: round === '2-1' ? 'var(--red)' : (phase === 'main' && round !== '1-1' && round !== '1-2' ? '#ff9f43' : 'var(--blue)'), 
               border: '1px solid white', borderRadius: 8, 
               fontFamily: 'Orbitron', fontSize: isLandscapeMobile ? '14px' : '18px', color: 'white', 
               cursor: 'pointer', fontWeight: 900,
@@ -3398,9 +3408,9 @@ const handleAugmentPick = (aug, historyContext) => {
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
           >
             <span style={{ fontSize: '11px', opacity: 0.8, marginBottom: '2px', fontFamily: 'Noto Sans JP' }}>
-              {round === '2-1' ? '最終結果へ' : (phase === 'main' && round !== '1-1' ? 'フェーズ移行' : '次のラウンド')}
+              {round === '2-1' ? '最終結果へ' : (phase === 'main' && round !== '1-1' && round !== '1-2' ? 'フェーズ移行' : '次のラウンド')}
             </span>
-            <span>{round === '2-1' ? 'FINISH' : (phase === 'main' && round !== '1-1' ? '素材ドロップへ' : 'NEXT ➔')}</span>
+            <span>{round === '2-1' ? 'FINISH' : (phase === 'main' && round !== '1-1' && round !== '1-2' ? '素材ドロップへ' : 'NEXT ➔')}</span>
           </button>
         </div>
 
