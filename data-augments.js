@@ -210,15 +210,6 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'fire_sale', name: 'ファイアセール', tier: 'silver', category: 'economy', imgName: 'firesale_i',
-      desc: '毎ラウンド、ショップからランダムなコスト3以下のチャンピオンを1体盗む。1ゴールドを獲得する。',
-      icon: '🔥',
-      effect: (state, rng, helpers) => {
-        helpers.addGold(1);
-        helpers.showMsg('🔥 ファイアセール: 1Gを獲得しました！');
-      }
-    },
-    {
       id: 'ordinary_days', name: '普通の日々', tier: 'silver', category: 'economy', imgName: 'slice_of_life_i',
       desc: 'ステージごとに2回、ランダムなチャンピオンを1体獲得する。そのコストはステージごとに増加する。この効果はコスト5のチャンピオンを1体入手すると終了する。',
       icon: '📆',
@@ -797,7 +788,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'pro_assassin', name: 'プロの殺し屋', tier: 'gold', category: 'combat', imgName: 'pykehero_ii',
+      id: 'pro_assassin', name: 'プロの殺し屋', tier: 'gold', category: 'combat', imgName: 'contractkiller_ii',
       desc: 'パイクを1体獲得する。最も強いパイクが攻撃力ファイターになり、チームがキルまたはアシストを獲得するとゴールドを生成し、キル時にリセットされるスキルを獲得する。',
       icon: '🗡️',
       effect: (state, rng, helpers) => {
@@ -808,7 +799,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'root_singularity', name: 'ルート・シンギュラリティ', tier: 'gold', category: 'combat', imgName: 'rootsingularity_ii',
+      id: 'root_singularity', name: 'ルート・シンギュラリティ', tier: 'gold', category: 'combat', imgName: 'whitehole_ii',
       desc: 'ブラックホールが敵を飲み込むと、敵が「スペースマター」に変わる。十分な量を集めると、ブラックホールがそれを戦利品に変換する！チョ＝ガスとリサンドラを1体ずつ獲得する。',
       icon: '🌌',
       effect: (state, rng, helpers) => {
@@ -822,7 +813,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'single_plate', name: '一人前プレート', tier: 'gold', category: 'combat', imgName: 'singleplate_ii',
+      id: 'single_plate', name: '一人前プレート', tier: 'gold', category: 'combat', imgName: 'soloplate_ii',
       desc: '「ガーゴイル ストーンプレート」を1個獲得する。戦闘開始時: 「ガーゴイル ストーンプレート」を装備している味方の列に他のユニットがいない場合、最大体力が17%増加する。',
       icon: '🍽️',
       effect: (state, rng, helpers) => {
@@ -841,7 +832,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'self_destruction', name: '自己破壊', tier: 'gold', category: 'combat', imgName: 'gragashero_ii',
+      id: 'self_destruction', name: '自己破壊', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/17_gragascarry.avif?v=1',
       desc: 'グラガスを1体獲得する。最も強いグラガスが魔力ファイターとなり、大爆発を巻き起こすが自身もダメージを受ける。',
       icon: '💣',
       effect: (state, rng, helpers) => {
@@ -852,7 +843,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'focus', name: '集中', tier: 'gold', category: 'combat', imgName: 'focus_ii',
+      id: 'focus', name: '集中', tier: 'gold', category: 'combat', imgName: 'concentration_ii',
       desc: '「コンジット」のスキルは、スキルに応じて効果時間が25% - 50%延長される。ゾーイとモルデカイザーを1体ずつ獲得する。',
       icon: '👁️',
       effect: (state, rng, helpers) => {
@@ -867,7 +858,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'discharge_2', name: '放電 II', tier: 'gold', category: 'combat', imgName: 'discharge2_ii',
+      id: 'discharge_2', name: '放電 II', tier: 'gold', category: 'combat', imgName: 'electrocharge-ii',
       desc: '味方が4回攻撃を受けるたびに、周囲の敵に50-140(現在のステージに応じて)の魔法ダメージを与える(クールダウン1秒)。',
       icon: '⚡',
       effect: (state, rng, helpers) => {
@@ -876,7 +867,7 @@ const AUGMENTS_DATA = {
       }
     },
   {
-      id: 'aura_training', name: 'オーラ育成中', tier: 'gold', category: 'combat', imgName: 'auratraining_ii',
+      id: 'aura_training', name: 'オーラ育成中', tier: 'gold', category: 'combat', imgName: 'aurafarming_ii',
       desc: '推奨アイテムを装備した★2のコスト5チャンピオンを1体獲得する。これは、ステージ4-3までボードに配置できない。',
       icon: '🌀',
       effect: (state, rng, helpers) => {
@@ -917,7 +908,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'galactic_journey', name: '銀河を巡る旅', tier: 'gold', category: 'combat', imgName: 'galacticjourney_ii',
+      id: 'galactic_journey', name: '銀河を巡る旅', tier: 'gold', category: 'combat', imgName: 'tourofthegalaxy_ii',
       desc: '「ボイジャー」の体力が130、攻撃力が13%、魔力が13%増加する。新たな対戦相手と戦うたびに、効果が10%ずつ増加する。直近で戦っていないプレイヤーと優先的に対戦する。パイクとミィプシーを1体ずつ獲得する。',
       icon: '🚀',
       effect: (state, rng, helpers) => {
@@ -931,7 +922,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'blood_offering', name: '血の供物', tier: 'gold', category: 'combat', imgName: 'bloodoffering_ii',
+      id: 'blood_offering', name: '血の供物', tier: 'gold', category: 'combat', imgName: 'trailofblood_ii',
       desc: '「ブラッドサースター」を1個獲得する。戦闘開始時: 「ブラッドサースター」を装備した味方の体力が20%減少するが、体力の30%にあたる耐久値を持つシールドを獲得し、攻撃力が10%増加する。',
       icon: '🩸',
       effect: (state, rng, helpers) => {
@@ -941,7 +932,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'heart_of_steel', name: '鋼の心', tier: 'gold', category: 'combat', imgName: 'heartofsteel_ii',
+      id: 'heart_of_steel', name: '鋼の心', tier: 'gold', category: 'combat', imgName: 'healthygains_ii',
       desc: '「揺るがぬ心」を1個獲得する。戦闘で装備者が10秒生存するごとに、「揺るがぬ心」が最大体力を恒久的に16追加で獲得する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -951,7 +942,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'spun_magic', name: '紡がれし魔法', tier: 'gold', category: 'item', imgName: 'spunmagic_ii',
+      id: 'spun_magic', name: '紡がれし魔法', tier: 'gold', category: 'item', imgName: 'wovenmagic_iii',
       desc: 'ランダムな素材アイテムを1個獲得する。味方チームが2200マナを消費するごとに、追加の素材アイテムを獲得する。',
       icon: '🪄',
       effect: (state, rng, helpers) => {
@@ -961,7 +952,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'cry_all_you_want', name: '好きなだけ泣くがいい', tier: 'gold', category: 'combat', imgName: 'cryallyouwant_ii',
+      id: 'cry_all_you_want', name: '好きなだけ泣くがいい', tier: 'gold', category: 'combat', imgName: 'crymeariver_ii',
       desc: '「女神の涙」を1個獲得する。味方チームが1のマナ自動回復を獲得する。戦闘開始から12秒後にこの効果は3になる。',
       icon: '😭',
       effect: (state, rng, helpers) => {
@@ -971,7 +962,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'fast_double_kill', name: '高速ダブルキル', tier: 'gold', category: 'item', imgName: 'fastdoublekill_ii',
+      id: 'fast_double_kill', name: '高速ダブルキル', tier: 'gold', category: 'item', imgName: 'speedydoublekill_ii',
       desc: '「グインソー レイジブレード」を1個獲得する。2人のプレイヤーが敗退すると、40ゴールドを獲得する。',
       icon: '⚔️',
       effect: (state, rng, helpers) => {
@@ -990,7 +981,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'heat_death', name: '熱死', tier: 'gold', category: 'combat', imgName: 'heatdeath_ii',
+      id: 'heat_death', name: '熱死', tier: 'gold', category: 'combat', imgName: 'starconqueror_ii',
       desc: 'モルデカイザーを1体獲得する。最も強いモルデカイザーが魔力ファイターとなり、徐々に拡大するオーラで継続ダメージを与える。',
       icon: '🥵',
       effect: (state, rng, helpers) => {
@@ -1001,7 +992,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'clear_mind_2', name: '明鏡止水', tier: 'gold', category: 'economy', imgName: 'clearmind2_ii',
+      id: 'clear_mind_2', name: '明鏡止水', tier: 'gold', category: 'economy', imgName: 'clearmind2',
       desc: '対人戦ラウンド終了時、ベンチにチャンピオンがいない場合は経験値を3XP獲得する。',
       icon: '🧘',
       effect: (state, rng, helpers) => {
@@ -1033,7 +1024,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'reach_for_the_stars', name: '星を目指して', tier: 'gold', category: 'combat', imgName: 'jaxhero_ii',
+      id: 'reach_for_the_stars', name: '星を目指して', tier: 'gold', category: 'combat', imgName: 'reachforthestars_ii',
       desc: 'ジャックスを1体獲得する。最も強いジャックスが魔力ファイターになり、通常攻撃で追加魔法ダメージを与え、スキル発動時に攻撃速度が増加するスタックを獲得する。',
       icon: '✨',
       effect: (state, rng, helpers) => {
@@ -1044,7 +1035,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'money_hungry', name: '金に飢えし者', tier: 'gold', category: 'economy', imgName: 'moneyhungry_ii',
+      id: 'money_hungry', name: '金に飢えし者', tier: 'gold', category: 'economy', imgName: 'moneyhungry1_ii',
       desc: '即座に7ゴールドを獲得し、その後は各ステージの開始時に7ゴールドを獲得する。ゴールドを拾うとタクティシャンが大きくなる。',
       icon: '🤑',
       effect: (state, rng, helpers) => {
