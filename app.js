@@ -12,7 +12,12 @@ const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
 /* ── ヘルパー関数 ── */
-const getJaName = (name) => ITEM_JA[name] || name;
+const getJaName = (name) => {
+  if (!name) return "";
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name);
+  if (specialItem && specialItem.jaName) return specialItem.jaName;
+  return ITEM_JA[name] || name;
+};
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 const champIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=256,format=webp/file/metatft/championsplashes/tft17_${img.toLowerCase()}.png`;
 const boardIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=96,format=webp/file/metatft/champions/tft17_${img.toLowerCase()}.png`;
@@ -1630,6 +1635,15 @@ const handleAugmentPick = (aug, historyContext) => {
     let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
 
     // ==========================================
+    // 0. 金床アイテムの選択（どこにドロップしてもインベントリに追加）
+    // ==========================================
+    if (dragSrc.type === 'anvil_item') {
+      handleAnvilSelect(dragSrc.item);
+      setDragSrc(null);
+      return;
+    }
+
+    // ==========================================
     // 0. ドロワーからの金床追加
     // ==========================================
     if (dragSrc.type === 'drawer_anvil') {
@@ -1829,18 +1843,9 @@ const handleAugmentPick = (aug, historyContext) => {
     // 2. インベントリ内の入れ替え・ドロワーからの追加
     // ==========================================
     if (targetType === 'inventory') {
-      if (dragSrc.type === 'drawer_item' || dragSrc.type === 'anvil_item') {
+      if (dragSrc.type === 'drawer_item') {
         ninv.push(dragSrc.item);
         setInventory(ninv.filter(Boolean));
-        if (dragSrc.type === 'anvil_item') {
-          setAnvilOptions(null);
-          showMsg(
-            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <img src={getMetaTFTItemUrl(dragSrc.item)} style={{ width:18, height:18, borderRadius:2 }} />
-              <span>{getJaName(dragSrc.item.name || dragSrc.item.id)} を獲得しました！</span>
-            </div>
-          );
-        }
         setDragSrc(null); return;
       } else if (dragSrc.type === 'inventory') {
         const srcIdx = dragSrc.idx, itemA = ninv[srcIdx], itemB = ninv[targetIdx];
@@ -1926,9 +1931,6 @@ const handleAugmentPick = (aug, historyContext) => {
       }
     } else {
       if (targetType === 'anywhere') { 
-        if (dragSrc.type === 'anvil_item') {
-          handleAnvilSelect(dragSrc.item);
-        }
         setDragSrc(null); 
         return; 
       }
