@@ -1490,6 +1490,92 @@ useEffect(() => {
   }
 }, [bench, pendingUnits, showMsg]);
 
+  // 🌟 星アップ（合成）の自動チェック
+  useEffect(() => {
+    if (phase === 'drop') return; // ドロップフェーズ中は合成しない
+
+    let nb = [...bench];
+    let nbrd = [...board];
+    let evolved = false;
+    let newToast = null;
+    let overflowItems = [];
+
+    let checkAgain = true;
+    while (checkAgain) {
+      checkAgain = false;
+      const counts = {};
+      [...nb, ...nbrd].forEach(u => {
+        if (u && !u.isAnvil) {
+          const k = `${u.id}_${u.star || 1}`;
+          counts[k] = (counts[k] || 0) + 1;
+        }
+      });
+
+      for (const k in counts) {
+        if (counts[k] >= 3) {
+          const [id, s] = k.split('_');
+          const star = parseInt(s);
+          if (star < 3) {
+            let toRem = 3;
+            let collected = [];
+            let targetBoardIdx = -1;
+
+            // 1. ボード上の同名・同星ユニットを消去＆アイテム回収
+            for (let j = 0; j < nbrd.length && toRem > 0; j++) {
+              if (nbrd[j] && nbrd[j].id === id && nbrd[j].star === star) {
+                if (targetBoardIdx === -1) targetBoardIdx = j; // 最初に見つけたボードの位置を記憶
+                if (nbrd[j].items) collected.push(...nbrd[j].items);
+                nbrd[j] = null;
+                toRem--;
+              }
+            }
+            // 2. ベンチからの消去＆アイテム回収
+            for (let j = 0; j < nb.length && toRem > 0; j++) {
+              if (nb[j] && nb[j].id === id && nb[j].star === star) {
+                if (nb[j].items) collected.push(...nb[j].items);
+                nb[j] = null;
+                toRem--;
+              }
+            }
+
+            // 3. 進化ユニット作成
+            const up = { ...CHAMPS.find(c => c.id === id), star: star + 1, uid: rngMisc(), items: collected.slice(0, 3) };
+            if (collected.length > 3) {
+              overflowItems.push(...collected.slice(3));
+            }
+
+            // 4. 配置
+            if (targetBoardIdx !== -1) {
+              nbrd[targetBoardIdx] = up;
+            } else {
+              const slot = nb.findIndex(x => !x);
+              if (slot !== -1) {
+                nb[slot] = up;
+              } else {
+                nb[0] = up; // 万が一のためのフォールバック
+              }
+            }
+            
+            newToast = up;
+            evolved = true;
+            checkAgain = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (evolved) {
+      setBench(nb);
+      setBoard(nbrd);
+      if (overflowItems.length > 0) {
+        setInventory(prev => [...prev, ...overflowItems]);
+        showMsg("⚠️ 溢れたアイテムを回収しました");
+      }
+      if (newToast) setMergeToast(newToast);
+    }
+  }, [phase, bench, board, rngMisc, showMsg]);
+
   // 🌟 レベルアップ時に発動するオーグメントを管理する（関数定義より後ろに移動）
   const prevLevelRef = useRef(level);
   useEffect(() => {
@@ -1941,6 +2027,21 @@ const handleAugmentPick = (aug, historyContext) => {
     e.stopPropagation(); // 🌟 重複判定を防ぐためのストッパー
 
     if (!dragSrc) return;
+
+    // 🌟 素材ドロップフェーズ中の盤面への配置・移動制限
+    if (phase === 'drop' && targetType === 'board') {
+      if (dragSrc.type === 'bench' || dragSrc.type === 'drawer_champ' || dragSrc.type === 'board') {
+        showMsg("⚠️ 素材ドロップフェーズ中は盤面への配置・移動はできません");
+        setDragSrc(null);
+        return;
+      }
+    }
+    if (phase === 'drop' && dragSrc.type === 'board' && targetType !== 'board') {
+      showMsg("⚠️ 素材ドロップフェーズ中は盤面からの移動はできません");
+      setDragSrc(null);
+      return;
+    }
+
     let nb = [...bench], nbrd = [...board], ns = [...shop], ninv = [...inventory];
 
     // ==========================================
@@ -2279,24 +2380,9 @@ const handleAugmentPick = (aug, historyContext) => {
     }
 
     // ==========================================
-    // 6. 共通: 星アップ判定
+    // 6. 共通: 配置・インベントリ・ショップの更新
     // ==========================================
     setShop(ns);
-    const counts = {}; [...nb, ...nbrd].forEach(u => { if (u && !u.isAnvil) { const k = `${u.id}_${u.star||1}`; counts[k] = (counts[k]||0)+1; } });
-    for (const k in counts) {
-      if (counts[k] >= 3) {
-        const [id, s] = k.split('_'); const star = parseInt(s);
-        if (star < 3) {
-          let toRem = 3; let collected = [];
-          for (let i = 0; i < nb.length && toRem > 0; i++) if (nb[i] && nb[i].id === id && nb[i].star === star) { if (nb[i].items) collected.push(...nb[i].items); nb[i] = null; toRem--; }
-          for (let i = 0; i < nbrd.length && toRem > 0; i++) if (nbrd[i] && nbrd[i].id === id && nbrd[i].star === star) { if (nbrd[i].items) collected.push(...nbrd[i].items); nbrd[i] = null; toRem--; }
-          const up = { ...CHAMPS.find(c => c.id === id), star: star+1, uid:rngMisc(), items: collected.slice(0, 3) };
-          if (collected.length > 3) { ninv.push(...collected.slice(3)); showMsg("⚠️ 溢れたアイテムを回収しました"); }
-          const slot = nb.findIndex(x => !x); if (slot !== -1) nb[slot] = up;
-          setMergeToast(up); break;
-        }
-      }
-    }
     setBench(nb); setBoard(nbrd); setInventory(ninv.filter(Boolean)); setDragSrc(null);
   };
 
@@ -3358,6 +3444,47 @@ const handleAugmentPick = (aug, historyContext) => {
                 ))}
               </div>
             </div>
+          ) : showMfPopup ? (
+            /* 🌟 ミス・フォーチュンの武装モード選択UI（ショップエリアを置き換え） */
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '8px 10px', background: 'rgba(15,23,42,0.95)' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--red)', textAlign: 'center', marginBottom: 8, fontFamily: 'Noto Sans JP', flexShrink: 0 }}>
+                ミス・フォーチュン：武装モードを選択
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flex: 1, paddingBottom: 4 }}>
+                {['Channeler', 'Challenger', 'Replicator'].map(mode => (
+                  <div 
+                    key={mode}
+                    onClick={() => {
+                      const updateUnit = u => (u && u.uid === mfTargetUid) ? { ...u, selectedMode: mode } : u;
+                      setBoard(prev => prev.map(updateUnit));
+                      setBench(prev => prev.map(updateUnit));
+                      setShowMfPopup(false);
+                      setMfTargetUid(null);
+                      showMsg(
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontSize:18 }}>🔫</span>
+                          <span>武装を【{TRAIT_JA[mode]}】に設定しました！</span>
+                        </div>
+                      );
+                    }}
+                    style={{ 
+                      flex: 1,
+                      maxWidth: 140,
+                      background: 'rgba(30,45,74,0.6)', 
+                      border: '2px solid var(--red)', borderRadius: 8, 
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
+                      cursor: 'pointer', padding: '4px', textAlign: 'center', color: 'white', 
+                      transition: 'all 0.2s', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' 
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }} 
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
+                  >
+                    <img src={getTraitIconUrl(mode)} style={{ width: 44, height: 44, marginBottom: 4, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' }} onError={e => e.target.style.display='none'} />
+                    <div style={{ fontWeight: 900, fontSize: '11px', fontFamily: 'Noto Sans JP', lineHeight: 1.1 }}>{TRAIT_JA[mode]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : round !== '1-1' && round !== '1-2' && !showAugment ? (
             <React.Fragment>
               {/* ヘッダー情報（レベル・XP・ゴールド・確率） */}
@@ -3436,48 +3563,6 @@ const handleAugmentPick = (aug, historyContext) => {
                         let nb = [...bench], ns = [...shop];
                         nb[slot] = { ...unit, star:1, uid:rngMisc(), items:[] }; ns[i] = null;
                         setGold(g => g - unit.cost); setShop(ns);
-                        const counts = {}; [...nb, ...board].forEach(u => { if (u && !u.isAnvil) { const k = `${u.id}_${u.star||1}`; counts[k]=(counts[k]||0)+1; } });
-                        // 🌟 ショップ内 onClick 内の進化ロジック
-                        for (const k in counts) {
-                          if (counts[k] >= 3) {
-                            const [id, s] = k.split('_');
-                            const star = parseInt(s);
-                            
-                            if (star < 3) {
-                              let toRem = 3;
-                              let collected = [];
-                              let targetBoardIdx = -1; // 進化後の配置先（ボード）
-                              // 1. まずボード上の同名・同星ユニットを消去＆アイテム回収
-                              for (let j = 0; j < board.length && toRem > 0; j++) {
-                                if (board[j] && board[j].id === id && board[j].star === star) {
-                                  if (targetBoardIdx === -1) targetBoardIdx = j; // 最初に見つけたボードの位置を記憶
-                                  if (board[j].items) collected.push(...board[j].items);
-                                  board[j] = null;
-                                  toRem--;
-                                }
-                              }
-                              // 2. 残りの必要数をベンチから消去＆アイテム回収
-                              for (let j = 0; j < nb.length && toRem > 0; j++) {
-                                if (nb[j] && nb[j].id === id && nb[j].star === star) {
-                                  if (nb[j].items) collected.push(...nb[j].items);
-                                  nb[j] = null;
-                                  toRem--;
-                                }
-                              }
-                              // 3. 進化したユニットを作成（アイテムは3つまで）
-                              const up = { ...CHAMPS.find(c => c.id === id), star: star + 1, uid: rngMisc(), items: collected.slice(0, 3) };
-                              // 4. 配置：ボードの位置が記憶されていればボードへ、そうでなければベンチへ
-                              if (targetBoardIdx !== -1) {
-                                board[targetBoardIdx] = up;
-                              } else {
-                                const slot = nb.findIndex(x => !x);
-                                if (slot !== -1) nb[slot] = up;
-                              }
-                              setMergeToast(up);
-                              break;
-                            }
-                          }
-                        }
                         setBench(nb);
                       }}
                       style={{ height:'100%', aspectRatio:'400/237', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>

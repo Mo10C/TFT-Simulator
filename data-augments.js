@@ -582,6 +582,7 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'no_scouting_no_pivoting' });
       }
     },
+    /*
     {
       id: 'two_for_one', name: 'お得な2', tier: 'gold', category: 'economy', imgName: 'twomuchvalue_ii',
       desc: '前回の対人戦でボード上に配置していた種類の異なるコスト2のチャンピオン2体ごとに、1回のリロールを獲得する。コスト2のチャンピオンを1体獲得する。',
@@ -594,6 +595,7 @@ const AUGMENTS_DATA = {
         helpers.addPendingUnits([{ ...chosen, star: 1, uid: rng(), items: [] }]);
       }
     },
+    */
     {
       id: 'advance_payment', name: '前借り', tier: 'gold', category: 'economy', imgName: 'advancedloan_ii',
       desc: '20ゴールドを獲得する。次のオーグメントのティアが1つ低くなる。',
