@@ -2493,7 +2493,7 @@ const handleAugmentPick = (aug, historyContext) => {
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16, flexWrap:'wrap', gap:10}}>
             <div>
               <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET 17 — 1 STAGE RESULT</div>
-              <div style={{fontFamily:'Orbitron',fontSize:28,fontWeight:900,color:'var(--text-main)'}}>結果</div>
+
             </div>
             
             <div style={{display:'flex',alignItems:'center',gap:16}}>
