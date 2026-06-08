@@ -2833,50 +2833,6 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
       )}
 
-      {/* 🌟 銃装機神（ミス・フォーチュン）のモード選択POPアップ */}
-      {showMfPopup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
-          <h2 style={{ color: 'var(--red)', fontSize: 28, marginBottom: 40, fontFamily: 'Noto Sans JP', fontWeight: 900, textShadow: '0 0 20px var(--red)' }}>
-            ミス・フォーチュン：武装モードを選択
-          </h2>
-          <div style={{ display: 'flex', gap: 30 }}>
-            {['Channeler', 'Challenger', 'Replicator'].map(mode => (
-              <div 
-                key={mode}
-                onClick={() => {
-                  const updateUnit = u => (u && u.uid === mfTargetUid) ? { ...u, selectedMode: mode } : u;
-                  setBoard(prev => prev.map(updateUnit));
-                  setBench(prev => prev.map(updateUnit));
-                  setShowMfPopup(false);
-                  setMfTargetUid(null);
-                  showMsg(
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <span style={{ fontSize:18 }}>🔫</span>
-                      <span>武装を【{TRAIT_JA[mode]}】に設定しました！</span>
-                    </div>
-                  );
-                }}
-                style={{ 
-                  width: 220, height: 160, background: 'rgba(15,23,42,0.6)', 
-                  border: '2px solid var(--red)', borderRadius: 12, 
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', 
-                  cursor: 'pointer', padding: '20px', textAlign: 'center', color: 'white', 
-                  transition: 'all 0.2s', boxShadow: '0 0 15px rgba(255,68,85,0.2)' 
-                }}
-                onMouseEnter={e => { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-5px)'; }} 
-                onMouseLeave={e => { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; }}
-              >
-                <img src={getTraitIconUrl(mode)} style={{ width: 50, height: 50, marginBottom: 15, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' }} onError={e => e.target.style.display='none'} />
-                <div style={{ fontWeight: 900, fontSize: '18px', fontFamily: 'Noto Sans JP' }}>{TRAIT_JA[mode]}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-
-
-
 
       <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} arbiterRule={arbiterRule} />
       {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || null} rerollBonus={encounter?.augmentRerollBonus || 0} />}
