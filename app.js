@@ -2440,10 +2440,10 @@ const handleAugmentPick = (aug, historyContext) => {
 
   if (isFinished) {
     return (
-      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
+      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'row',alignItems:'center',justifyContent:'center',gap:30,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
         
         {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
-        <div style={{display:'flex',gap:12,marginBottom:5}}>
+        <div style={{display:'flex', flexDirection:'column', gap:12}}>
           <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13, background:'var(--blue)', color:'white', borderColor:'var(--blue)'}}>同じシードで再挑戦</button>
           <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13, background:'var(--teal)', color:'white', borderColor:'var(--teal)'}}>新しいゲーム</button>
 <button 
@@ -2544,7 +2544,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 {encounterGods.map((god) => (
                   <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:`${god.color}33`,border:`3px solid ${god.color}`,borderRadius:10,padding:'6px 12px'}}>
                     {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-                    <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
+                    <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: 'white'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
@@ -3139,7 +3139,7 @@ const handleAugmentPick = (aug, historyContext) => {
               <>
                 {encounterGods[0] && (
                   <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[0].color}33`,border:`3px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} />
+                    <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
@@ -3148,7 +3148,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 )}
                 {encounterGods[1] && (
                   <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[1].color}33`,border:`3px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} />
+                    <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
