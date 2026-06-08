@@ -2492,7 +2492,7 @@ const handleAugmentPick = (aug, historyContext) => {
               {/* 🌟 2. 遭遇した2体の神を並べて表示（画像ブロック解除済み） */}
               <div style={{display:'flex',gap:10}}>
                 {encounterGods.map((god) => (
-                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${god.color}33`,borderRadius:10,padding:'6px 12px'}}>
+                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${god.color}`,borderRadius:10,padding:'6px 12px'}}>
                     {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
                     <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
@@ -2505,7 +2505,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 
                 {/* 🌟 遭遇を同列に追加 */}
                 {encounter && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:10,padding:'6px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounter.color}`,borderRadius:10,padding:'6px 12px'}}>
                     <div style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
                       {(() => {
                         let encChamp = CHAMPS.find(c => c.id === encounter.id);
@@ -3031,7 +3031,7 @@ const handleAugmentPick = (aug, historyContext) => {
             
             {/* 星の観測者 */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #c46bff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '2px solid #c46bff', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
             >
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
@@ -3045,7 +3045,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* サイオニック */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #4caf5033', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '2px solid #4caf50', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
             >
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
@@ -3062,7 +3062,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:8,padding:'4px 12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounter.color}`,borderRadius:8,padding:'4px 12px'}}>
                 <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
                   {(() => {
                     let encChamp = CHAMPS.find(c => c.id === encounter.id);
@@ -3111,7 +3111,7 @@ const handleAugmentPick = (aug, historyContext) => {
             {round !== '1-1' && (
               <>
                 {encounterGods[0] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[0].color}33`,borderRadius:8,padding:'4px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
                     <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
@@ -3120,7 +3120,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 )}
                 {encounterGods[1] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounterGods[1].color}33`,borderRadius:8,padding:'4px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
                     <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
