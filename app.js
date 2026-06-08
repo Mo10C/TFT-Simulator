@@ -3052,9 +3052,31 @@ const handleAugmentPick = (aug, historyContext) => {
         position: 'relative'
       }}>
         
-        {/* 左側：シード値（元に戻しました） */}
-        <div style={{ position: 'absolute', left: 20, fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
-          SEED: {seed}
+        {/* 左側：シード値と今回の変動要素 */}
+        <div style={{ position: 'absolute', left: 20, display: 'flex', alignItems: 'center', gap: 15 }}>
+          <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
+            SEED: {seed}
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, zIndex: 60 }}>
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 4, cursor: 'help', border: '1px solid rgba(255,255,255,0.1)' }}
+              title={`【星の観測者】\n${currentStargazerDesc}`}
+            >
+              <img src={getTraitIconUrl('Stargazer')} style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+            </div>
+
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 4, cursor: 'help', border: '1px solid rgba(255,255,255,0.1)' }}
+              title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
+            >
+              <img src={getTraitIconUrl('Psionic')} style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ display: 'flex', gap: 2 }}>
+                <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 18, height: 18, borderRadius: 2 }} />
+                <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 18, height: 18, borderRadius: 2 }} />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* 🌟 中央：遭遇 ＋ ステージ番号 ＋ 神様1 ＋ 神様2 */}
