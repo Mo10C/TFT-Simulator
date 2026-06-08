@@ -3060,20 +3060,31 @@ const handleAugmentPick = (aug, historyContext) => {
 
           <div style={{ display: 'flex', gap: 8, zIndex: 60 }}>
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 4, cursor: 'help', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #c46bff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
             >
-              <img src={getTraitIconUrl('Stargazer')} style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#c46bff22', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Stargazer')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              </div>
+              <div>
+                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
+              </div>
             </div>
 
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.05)', padding: '4px 8px', borderRadius: 4, cursor: 'help', border: '1px solid rgba(255,255,255,0.1)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #3399ff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
             >
-              <img src={getTraitIconUrl('Psionic')} style={{ width: 18, height: 18, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
-              <div style={{ display: 'flex', gap: 2 }}>
-                <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 18, height: 18, borderRadius: 2 }} />
-                <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 18, height: 18, borderRadius: 2 }} />
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #3399ff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#3399ff22', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Psionic')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              </div>
+              <div>
+                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
+                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                </div>
               </div>
             </div>
           </div>
