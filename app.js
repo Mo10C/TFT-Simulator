@@ -3013,37 +3013,6 @@ const handleAugmentPick = (aug, historyContext) => {
           <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
             SEED: {seed}
           </div>
-
-          <div style={{ display: 'flex', gap: 8, zIndex: 60 }}>
-            <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #c46bff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
-              title={`【星の観測者】\n${currentStargazerDesc}`}
-            >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#c46bff22', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Stargazer')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
-              </div>
-              <div>
-                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
-              </div>
-            </div>
-
-            <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #3399ff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
-              title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
-            >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #3399ff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#3399ff22', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Psionic')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
-              </div>
-              <div>
-                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
-                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* 🌟 中央：遭遇 ＋ ステージ番号 ＋ 神様1 ＋ 神様2 */}
@@ -3057,8 +3026,41 @@ const handleAugmentPick = (aug, historyContext) => {
           whiteSpace: 'nowrap'
         }}>
           
-          {/* 左側: 遭遇 (1-2以降) */}
-          <div style={{ width: 260, display: 'flex', justifyContent: 'flex-end', paddingRight: 20 }}>
+          {/* 左側: 星の観測者 ＋ サイオニック ＋ 遭遇 */}
+          <div style={{ width: 420, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: 20, gap: 8 }}>
+            
+            {/* 星の観測者 */}
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #c46bff33', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              title={`【星の観測者】\n${currentStargazerDesc}`}
+            >
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Stargazer')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              </div>
+              <div>
+                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
+              </div>
+            </div>
+
+            {/* サイオニック */}
+            <div 
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '1px solid #4caf5033', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
+            >
+              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Psionic')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              </div>
+              <div>
+                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
+                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                </div>
+              </div>
+            </div>
+
+            {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
               <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`1px solid ${encounter.color}33`,borderRadius:8,padding:'4px 12px'}}>
                 <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
@@ -3105,7 +3107,7 @@ const handleAugmentPick = (aug, historyContext) => {
           </div>
 
           {/* 右側: 神1 & 神2 (1-2以降) */}
-          <div style={{ width: 260, display: 'flex', justifyContent: 'flex-start', paddingLeft: 20, gap: 10 }}>
+          <div style={{ width: 420, display: 'flex', justifyContent: 'flex-start', paddingLeft: 20, gap: 10 }}>
             {round !== '1-1' && (
               <>
                 {encounterGods[0] && (
@@ -3134,6 +3136,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
         {/* 右側：ボタン類（変更なし） */}
         <div style={{ position: 'absolute', right: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+
           {freeRerolls > 0 && (
             <div style={{ background:'rgba(0,229,192,0.15)', border:'1px solid var(--teal)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--teal)', fontWeight:700 }}>
               🎲 ×{freeRerolls}
