@@ -2722,7 +2722,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     }}>
                       {champ && (
                         champ.isAnvil ? (
-                          <img src={champ.img} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={champ.jaName} />
+                          <img src={champ.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={champ.jaName} />
                         ) : (
                           <React.Fragment>
                             <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -3410,7 +3410,7 @@ const handleAugmentPick = (aug, historyContext) => {
               >
                 {champ.isAnvil ? (
                   <div style={{ width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:`2px solid ${champ.color}`, overflow:'hidden' }}>
-                    <img src={champ.img} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt={champ.jaName} />
+                    <img src={champ.img + "?cors=1"} crossOrigin="anonymous" style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt={champ.jaName} />
                   </div>
                 ) : (
                   <>
