@@ -3194,17 +3194,17 @@ const handleAugmentPick = (aug, historyContext) => {
       <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
         <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
-          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
+          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 180, padding: isLandscapeMobile ? 4 : 12, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             <div style={{ background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center' }}>
-              <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
-              <div style={{ fontSize:14, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{passiveBuffs.some(b => b.type === 'solo_leveling') ? 1 : level + teamSizeBonus}</div>
+              <div style={{ fontSize:10, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
+              <div style={{ fontSize:16, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{passiveBuffs.some(b => b.type === 'solo_leveling') ? 1 : level + teamSizeBonus}</div>
             </div>
-            {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg1)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
-            {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:6, border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
+            {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:11, marginBottom:6, background:'var(--bg1)', borderRadius:6, padding:'8px 6px', border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:16, height:16, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
+            {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:11, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:'6px', border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
           </div>
           {/* アイテム欄 */}
-          <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>
-            <div style={{ fontSize:9, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center' }}>アイテム</div>
+          <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 72, padding: isLandscapeMobile ? 4 : 12, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 12 }}>
+            <div style={{ fontSize:10, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center' }}>アイテム</div>
             {inventory.map((it, i) => (
               <div
                 key={i}
@@ -3216,12 +3216,12 @@ const handleAugmentPick = (aug, historyContext) => {
                 onDragOver={e => e.preventDefault()}
                 onDrop={hDrop('inventory', i)}
                 title={it?.name ? getJaName(it.name) : ""}
-                style={{ width:36, height:36, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
+                style={{ width: isLandscapeMobile ? 36 : 48, height: isLandscapeMobile ? 36 : 48, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
                 {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
                 {it?.id === 'remover' && (it.count || 1) > 1 && (
-                  <div style={{ position:'absolute', top:-6, left:-6, background:'var(--blue)', color:'white', fontSize:10, fontWeight:900, width:16, height:16, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--bg0)', zIndex:10, boxShadow:'0 2px 4px rgba(0,0,0,0.5)' }}>
+                  <div style={{ position:'absolute', top:-6, left:-6, background:'var(--blue)', color:'white', fontSize:10, fontWeight:900, width:18, height:18, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--bg0)', zIndex:10, boxShadow:'0 2px 4px rgba(0,0,0,0.5)' }}>
                     {it.count}
                   </div>
                 )}
@@ -3238,15 +3238,16 @@ const handleAugmentPick = (aug, historyContext) => {
           onTouchEnd={handleBoardTouchEnd}
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}
         >
-          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
-            <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(1.1, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
               {[0,1,2,3].map(row => (
-                <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
+                <div key={row} style={{ display:'flex', gap:4, marginLeft:row%2===1?45:0 }}>
                   {[0,1,2,3,4,5,6].map(col => {
                     const idx = row*7+col;
                     return (
                       <div key={idx} style={{ display:'contents' }}>
                         <HexCell
+                          size={90}
                           champ={board[idx]}
                           dropType="board"
                           dropIdx={idx}
@@ -3268,7 +3269,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
         {/* 🌟 右サイドバー: 取得済みオーグメント */}
         <div className="sp-right-aug" style={{
-          width: isLandscapeMobile ? 72 : 100,
+          width: isLandscapeMobile ? 72 : 120,
           background: 'var(--bg-sidebar)',
           borderLeft: '1px solid var(--border)',
           display: 'flex',
@@ -3292,8 +3293,8 @@ const handleAugmentPick = (aug, historyContext) => {
             }}>
               {/* アイコン画像 */}
               <div style={{
-                width: 50,
-                height: 50,
+                width: isLandscapeMobile ? 50 : 64,
+                height: isLandscapeMobile ? 50 : 64,
                 background: '#000',
                 border: `2px solid ${TIER_COLORS[a.tier]}`,
                 borderRadius: 8,
@@ -3313,7 +3314,7 @@ const handleAugmentPick = (aug, historyContext) => {
               
               {/* 名前 */}
               <span style={{
-                fontSize: 10,
+                fontSize: 11,
                 color: TIER_COLORS[a.tier],
                 fontWeight: 900,
                 lineHeight: 1.2,
@@ -3332,15 +3333,15 @@ const handleAugmentPick = (aug, historyContext) => {
       </div>
 
       {/* ベンチ */}
-      <div style={{ background:'var(--bg-panel)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '8px', display:'flex', justifyContent:'center', gap:4, flexShrink:0 }}>
+      <div style={{ background:'var(--bg-panel)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '12px', display:'flex', justifyContent:'center', gap: isLandscapeMobile ? 4 : 10, flexShrink:0 }}>
         
         {/* 🌟 メイン画面：オーラ育成中 の専用待機枠（左側） */}
         {auraTrainingUnit && (
           <div 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 42 : 64, 
+              height: isLandscapeMobile ? 42 : 64, 
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: `3px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
@@ -3372,8 +3373,8 @@ const handleAugmentPick = (aug, historyContext) => {
             onDrop={hDrop('bench', i)} 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 42 : 64, 
+              height: isLandscapeMobile ? 42 : 64, 
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: champ ? `3px solid ${COST_COLORS[champ.cost]}` : `1px solid var(--border)`,
