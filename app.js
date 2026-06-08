@@ -2717,17 +2717,21 @@ const handleAugmentPick = (aug, historyContext) => {
                   {bench.map((champ, i) => (
                     <div key={i} style={{
                       width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
-                      border: `1px solid ${champ ? COST_COLORS[champ.cost] : 'rgba(30,45,74,.4)'}`,
+                      border: `1px solid ${champ ? (champ.isAnvil ? champ.color : COST_COLORS[champ.cost]) : 'rgba(30,45,74,.4)'}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'
                     }}>
                       {champ && (
-                        <React.Fragment>
-                          <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                            {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
-                          </div>
-                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
-                        </React.Fragment>
+                        champ.isAnvil ? (
+                          <img src={champ.img} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={champ.jaName} />
+                        ) : (
+                          <React.Fragment>
+                            <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                              {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
+                            </div>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
+                          </React.Fragment>
+                        )
                       )}
                     </div>
                   ))}
