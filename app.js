@@ -2482,7 +2482,7 @@ const handleAugmentPick = (aug, historyContext) => {
         <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding:24,display:'flex',flexDirection:'column',gap:20,maxWidth:900,width:'100%'}}>
           
           {/* ヘッダー */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16, flexWrap:'wrap', gap:10}}>
             <div>
               <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET 17 — 1 STAGE RESULT</div>
               <div style={{fontFamily:'Orbitron',fontSize:28,fontWeight:900,color:'var(--text-main)'}}>結果</div>
@@ -2490,22 +2490,36 @@ const handleAugmentPick = (aug, historyContext) => {
             
             <div style={{display:'flex',alignItems:'center',gap:16}}>
               {/* 🌟 2. 遭遇した2体の神を並べて表示（画像ブロック解除済み） */}
-              <div style={{display:'flex',gap:10}}>
-                {encounterGods.map((god) => (
-                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${god.color}`,borderRadius:10,padding:'6px 12px'}}>
-                    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-                    <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
-                    <div>
-                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
-                      <div style={{fontSize:11,fontWeight:900,color:god.color,lineHeight:1.2}}>{god.name.replace('\n', ' ')}</div>
+              <div style={{display:'flex',gap:10, flexWrap:'wrap', justifyContent:'flex-end'}}>
+
+                {/* 🌟 星の観測者 */}
+                <div style={{display:'flex',alignItems:'center',gap:8,background:'#c46bff33',border:'3px solid #c46bff',borderRadius:10,padding:'6px 12px'}}>
+                  <div style={{width:32,height:32,borderRadius:'50%',border:'2px solid #c46bff',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#4a148c',flexShrink:0}}>
+                    <img src={getTraitIconUrl('Stargazer')} style={{width:16,height:16,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
+                  </div>
+                  <div>
+                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>星の観測者</div>
+                    <div style={{fontSize:11,fontWeight:900,color:'#c46bff',lineHeight:1.2}}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
+                  </div>
+                </div>
+
+                {/* 🌟 サイオニック */}
+                <div style={{display:'flex',alignItems:'center',gap:8,background:'#4caf5033',border:'3px solid #4caf50',borderRadius:10,padding:'6px 12px'}}>
+                  <div style={{width:32,height:32,borderRadius:'50%',border:'2px solid #4caf50',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#1b5e20',flexShrink:0}}>
+                    <img src={getTraitIconUrl('Psionic')} style={{width:16,height:16,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
+                  </div>
+                  <div>
+                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>サイオニック</div>
+                    <div style={{display:'flex',gap:3,alignItems:'center'}}>
+                      <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{width:16,height:16,borderRadius:2}} />
+                      <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{width:16,height:16,borderRadius:2}} />
                     </div>
                   </div>
-                ))}
-                
+                </div>
+
                 {/* 🌟 遭遇を同列に追加 */}
                 {encounter && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounter.color}`,borderRadius:10,padding:'6px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:10,padding:'6px 12px'}}>
                     <div style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
                       {(() => {
                         let encChamp = CHAMPS.find(c => c.id === encounter.id);
@@ -2525,6 +2539,19 @@ const handleAugmentPick = (aug, historyContext) => {
                     </div>
                   </div>
                 )}
+
+                {/* 🌟 遭遇した神 */}
+                {encounterGods.map((god) => (
+                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:`${god.color}33`,border:`3px solid ${god.color}`,borderRadius:10,padding:'6px 12px'}}>
+                    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
+                    <GodImg god={god} style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: '#04060e'}} />
+                    <div>
+                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
+                      <div style={{fontSize:11,fontWeight:900,color:god.color,lineHeight:1.2}}>{god.name.replace('\n', ' ')}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
               
               <div style={{fontFamily:'Orbitron',fontSize:11,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
@@ -3031,7 +3058,7 @@ const handleAugmentPick = (aug, historyContext) => {
             
             {/* 星の観測者 */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '2px solid #c46bff', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#c46bff33', border: '3px solid #c46bff', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
             >
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
@@ -3045,7 +3072,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* サイオニック */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg2)', border: '2px solid #4caf50', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#4caf5033', border: '3px solid #4caf50', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
               title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
             >
               <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
@@ -3062,7 +3089,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounter.color}`,borderRadius:8,padding:'4px 12px'}}>
+              <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:8,padding:'4px 12px'}}>
                 <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
                   {(() => {
                     let encChamp = CHAMPS.find(c => c.id === encounter.id);
@@ -3111,7 +3138,7 @@ const handleAugmentPick = (aug, historyContext) => {
             {round !== '1-1' && (
               <>
                 {encounterGods[0] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[0].color}33`,border:`3px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
                     <GodImg god={encounterGods[0]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
@@ -3120,7 +3147,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 )}
                 {encounterGods[1] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg2)',border:`2px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[1].color}33`,border:`3px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
                     <GodImg god={encounterGods[1]} style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: '#04060e'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
