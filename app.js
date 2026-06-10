@@ -3575,9 +3575,8 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
               </div>
 
-              {/* 操作エリア（XP・リロール・チャンピオン枠） */}
-              {/* NEXTボタン幅ぶんを左パディングで補正し、カード5枚を画面全体の中央に固定 */}
-              <div style={{ position:'relative', display:'flex', justifyContent:'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 0 0 86px' : '0 0 0 140px', height:'100%' }}>
+              {/* XP/リロールは左に絶対配置、カードは50vw中央固定。op-rowはその基準(relative)のみ */}
+              <div style={{ position:'relative', display:'flex', alignItems:'center', height:'100%' }}>
                 <div style={{ position:'absolute', left: isLandscapeMobile ? 4 : 8, top:'50%', transform:'translateY(-50%)', display:'flex', flexDirection:'column', gap: isLandscapeMobile ? 4 : 6, width: isLandscapeMobile ? 84 : 130, zIndex:2 }}>
                   {/* XP購入ボタン */}
                   <button
@@ -3621,8 +3620,8 @@ const handleAugmentPick = (aug, historyContext) => {
                   </button>
                 </div>
 
-                {/* チャンピオン枠 */}
-                <div style={{ display:'flex', gap: isLandscapeMobile ? 5 : 8, height:'100%', padding:'8px 0' }}>
+                {/* チャンピオン枠：画面幅の中央(50vw)に直接固定。NEXTやパディング幅に依存しない */}
+                <div style={{ position:'absolute', left:'50vw', top:'50%', transform:'translate(-50%, -50%)', height:'100%', display:'flex', alignItems:'center', gap: isLandscapeMobile ? 5 : 8, padding:'8px 0', boxSizing:'border-box', zIndex:1 }}>
                   {shop.map((champ, i) => (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
