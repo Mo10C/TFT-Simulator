@@ -935,7 +935,7 @@ function Main() {
 
   if (view === 'MENU') {
     return (
-      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
+      <div style={{ height:'var(--app-h, 100vh)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
 <div style={{ 
   fontFamily:'Orbitron', 
   fontSize:'clamp(30px, 8vw, 70px)', // 改行するので少し小さめに調整
@@ -1160,14 +1160,42 @@ function App({ seed, onRestart, onNewGame }) {
   const [anvilOptions, setAnvilOptions] = useState(null);
 
   // スマホ横持ち対応：ウィンドウリサイズ時に再レンダリング
+  // タッチ端末（スマホ/タブレット）かどうか。PCの小さいウィンドウでは縮小モードを出さない
+  const isTouchDevice = (typeof window !== 'undefined') &&
+    (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
+     (window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
-    const onResize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+    const onResize = () => {
+      // visualViewport があればツールバーを除いた「実際に見えている高さ」を使う
+      const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+      const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
+      // 全画面コンテナの高さに使う変数。Safariのバー裏に隠れなくなる
+      document.documentElement.style.setProperty('--app-h', vh + 'px');
+      setWindowSize({ w: vw, h: vh });
+    };
+    onResize();
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
-    return () => { window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize); };
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onResize);
+      window.visualViewport.addEventListener('scroll', onResize);
+    }
+    return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', onResize);
+        window.visualViewport.removeEventListener('scroll', onResize);
+      }
+    };
   }, []);
-  const isLandscapeMobile = windowSize.h <= 500;
+  const isLandscapeMobile = isTouchDevice && windowSize.h <= 500;
+  // 横持ちスマホでは画面の高さに合わせて盤面をさらに自動縮小する
+  // （ヘッダー/ベンチ/ショップ等の固定高ぶんを引いた残りに収める）
+  const boardFitScale = isLandscapeMobile
+    ? Math.max(0.38, Math.min(0.62, (windowSize.h - 215) / 320))
+    : 0.9;
 
 
   // シード値を基準にシャッフルして3つずつ抽出
@@ -2448,7 +2476,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
   if (isFinished) {
     return (
-      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
+      <div style={{height:'var(--app-h, 100vh)',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
         
         {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
         <div style={{display:'flex', gap:12, marginBottom:5}}>
@@ -2773,7 +2801,7 @@ const handleAugmentPick = (aug, historyContext) => {
   <div 
     onDragOver={e => e.preventDefault()} 
     onDrop={hDrop('anywhere', -1)} 
-    style={{ height:'100vh', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
+    style={{ height:'var(--app-h, 100vh)', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
   >
     
 
@@ -3035,7 +3063,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
       {/* ヘッダー：シンプル巨大ステージ表示版 */}
       <div className="sp-header-row" style={{ 
-        height: isLandscapeMobile ? 40 : 60,
+        height: isLandscapeMobile ? 46 : 60,
         background: 'var(--bg-panel)', 
         borderBottom: '1px solid rgba(30,45,74,.8)', 
         display: 'flex', 
@@ -3250,7 +3278,7 @@ const handleAugmentPick = (aug, historyContext) => {
           onTouchEnd={handleBoardTouchEnd}
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}
         >
-          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
+          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(boardFitScale, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
               {[0,1,2,3].map(row => (
                 <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
@@ -3538,8 +3566,8 @@ const handleAugmentPick = (aug, historyContext) => {
               </div>
 
               {/* 操作エリア（XP・リロール・チャンピオン枠） */}
-              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, padding:'0 20px', height:'100%' }}>
-                <div style={{ display:'flex', flexDirection:'column', gap:6, width:130, flexShrink:0 }}>
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 6px' : '0 20px', height:'100%' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap: isLandscapeMobile ? 4 : 6, width: isLandscapeMobile ? 84 : 130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
                     disabled={passiveBuffs.some(b => b.type === 'wise_spending')}
@@ -3553,7 +3581,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         setLevel(nl); setXp(nx);
                       }
                     }}
-                    style={{ height:38, background:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(30,45,74,.4)' : 'var(--blue)', border:`1px solid ${passiveBuffs.some(b => b.type === 'wise_spending') ? 'var(--border)' : 'var(--blue)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:passiveBuffs.some(b => b.type === 'wise_spending') ? 'not-allowed' : 'pointer', color:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(255,255,255,0.3)' : 'var(--text-inv)' }}>
+                    style={{ height: isLandscapeMobile ? 30 : 38, background:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(30,45,74,.4)' : 'var(--blue)', border:`1px solid ${passiveBuffs.some(b => b.type === 'wise_spending') ? 'var(--border)' : 'var(--blue)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:passiveBuffs.some(b => b.type === 'wise_spending') ? 'not-allowed' : 'pointer', color:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(255,255,255,0.3)' : 'var(--text-inv)' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
                       <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>XP購入</span>
                       <span style={{ fontSize:11, color:'white', fontFamily:'Orbitron' }}>💰 {xpCost}</span>
@@ -3573,7 +3601,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         }
                       }
                     }}
-                    style={{ height:38, background:'var(--gold)', border:`1px solid ${freeRerolls>0?'var(--teal)':'var(--gold)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
+                    style={{ height: isLandscapeMobile ? 30 : 38, background:'var(--gold)', border:`1px solid ${freeRerolls>0?'var(--teal)':'var(--gold)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
                       <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>リロール</span>
                       <span style={{ fontSize:11, color:freeRerolls>0?'var(--teal)':'white', fontFamily:'Orbitron' }}>{freeRerolls > 0 ? `🎲 無料(${freeRerolls})` : '💰 2'}</span>
@@ -3583,7 +3611,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
 
                 {/* チャンピオン枠 */}
-                <div style={{ display:'flex', gap:8, height:'100%', padding:'8px 0' }}>
+                <div style={{ display:'flex', gap: isLandscapeMobile ? 5 : 8, height:'100%', padding:'8px 0' }}>
                   {shop.map((champ, i) => (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
@@ -3597,7 +3625,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         setGold(g => g - unit.cost); setShop(ns);
                         setBench(nb);
                       }}
-                      style={{ height:'100%', aspectRatio:'400/237', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
+                      style={{ height:'100%', aspectRatio:'400/237', maxWidth: isLandscapeMobile ? 74 : 'none', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
                           <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
