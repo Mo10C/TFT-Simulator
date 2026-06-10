@@ -3621,7 +3621,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
 
                 {/* チャンピオン枠：画面幅の中央(50vw)に直接固定。NEXTやパディング幅に依存しない */}
-                <div style={{ position:'absolute', left:'10vw', top:'50%', transform:'translate(-50%, -50%)', height:'100%', display:'flex', alignItems:'center', gap: isLandscapeMobile ? 5 : 8, padding:'8px 0', boxSizing:'border-box', zIndex:1 }}>
+                <div style={{ position:'absolute', left:'25vw', top:'50%', transform:'translate(-50%, -50%)', height:'100%', display:'flex', alignItems:'center', gap: isLandscapeMobile ? 5 : 8, padding:'8px 0', boxSizing:'border-box', zIndex:1 }}>
                   {shop.map((champ, i) => (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
