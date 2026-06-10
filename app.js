@@ -2476,7 +2476,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
   if (isFinished) {
     return (
-      <div style={{height:'var(--app-h, 100vh)',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
+      <div style={{height:'var(--app-h, 100vh)',width:'100%',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
         
         {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
         <div style={{display:'flex', gap:12, marginBottom:5}}>
@@ -2801,7 +2801,7 @@ const handleAugmentPick = (aug, historyContext) => {
   <div 
     onDragOver={e => e.preventDefault()} 
     onDrop={hDrop('anywhere', -1)} 
-    style={{ height:'var(--app-h, 100vh)', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
+    style={{ height:'var(--app-h, 100vh)', width:'100%', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
   >
     
 
@@ -3567,7 +3567,7 @@ const handleAugmentPick = (aug, historyContext) => {
               </div>
 
               {/* 操作エリア（XP・リロール・チャンピオン枠） */}
-              <div style={{ display:'flex', justifyContent: isLandscapeMobile ? 'flex-start' : 'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 6px' : '0 20px', height:'100%' }}>
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 6px' : '0 20px', height:'100%' }}>
                 <div style={{ display:'flex', flexDirection:'column', gap: isLandscapeMobile ? 4 : 6, width: isLandscapeMobile ? 84 : 130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
