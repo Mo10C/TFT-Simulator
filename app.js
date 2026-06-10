@@ -3076,7 +3076,7 @@ const handleAugmentPick = (aug, historyContext) => {
       }}>
         
         {/* 左側：シード値と今回の変動要素 */}
-        <div style={{ position: 'absolute', left: 20, display: 'flex', alignItems: 'center', gap: 15 }}>
+        <div style={{ position: 'absolute', left: 20, display: isLandscapeMobile ? 'none' : 'flex', alignItems: 'center', gap: 15 }}>
           <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
             SEED: {seed}
           </div>
@@ -3086,7 +3086,8 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{ 
           position: 'absolute',
           left: '50%',
-          transform: 'translateX(-50%)',
+          transform: isLandscapeMobile ? 'translateX(-50%) scale(0.6)' : 'translateX(-50%)',
+          transformOrigin: 'center center',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
@@ -3231,7 +3232,7 @@ const handleAugmentPick = (aug, historyContext) => {
       </div>
 
       {/* メインエリア */}
-      <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, minHeight:0, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
         <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
@@ -3566,7 +3567,7 @@ const handleAugmentPick = (aug, historyContext) => {
               </div>
 
               {/* 操作エリア（XP・リロール・チャンピオン枠） */}
-              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 6px' : '0 20px', height:'100%' }}>
+              <div style={{ display:'flex', justifyContent: isLandscapeMobile ? 'flex-start' : 'center', alignItems:'center', gap: isLandscapeMobile ? 6 : 12, padding: isLandscapeMobile ? '0 6px' : '0 20px', height:'100%' }}>
                 <div style={{ display:'flex', flexDirection:'column', gap: isLandscapeMobile ? 4 : 6, width: isLandscapeMobile ? 84 : 130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
