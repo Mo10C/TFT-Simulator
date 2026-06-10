@@ -746,16 +746,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
 };
 
 /* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
-// スマホ横持ち判定（App外のコンポーネントでも使う共通ヘルパー）
-const detectLandscapeMobile = () => {
-  if (typeof window === 'undefined') return false;
-  const touch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
-    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
-  return touch && window.innerHeight <= 500;
-};
-
 const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0 }) => {
-  const isMobile = detectLandscapeMobile();
   const maxRerolls = 1 + (rerollBonus || 0); // 各枠のリロール可能回数（タロンで+1）
   const [tier] = useState(() => {
     if (forceTier) return forceTier;          // 遭遇によるティア強制（TF=gold / シェン・モルガナ=prismatic）
@@ -822,18 +813,18 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
         onClick={() => setViewBoard(!viewBoard)}
         style={{
           position: 'absolute',
-          bottom: isMobile ? 6 : 30,
+          bottom: 30,
           left: '50%',
           transform: 'translateX(-50%)',
           background: 'var(--blue)',
           color: 'white',
           border: '1px solid white',
           borderRadius: '8px',
-          padding: isMobile ? '6px 14px' : '12px 24px',
+          padding: '12px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: isMobile ? '11px' : '16px',
+          fontSize: '16px',
           fontWeight: 'bold',
           fontFamily: 'Noto Sans JP',
           cursor: 'pointer',
@@ -849,21 +840,21 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       {/* 🌟 盤面確認中はカード全体を非表示に */}
       {!viewBoard && (
         <div style={{ 
-          transform: isMobile ? 'scale(0.95)' : 'scale(0.8)', 
+          transform: 'scale(0.8)', 
           transformOrigin: 'center center',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: isMobile ? 12 : 30
+          gap: 30
         }}>
           <div style={{ textAlign: 'center', animation: 'fadeIn 0.4s ease' }}>
-            <div style={{ fontFamily: 'Orbitron', fontSize: isMobile ? '10px' : '14px', color: TIER_COLORS[tier], letterSpacing: 4, marginBottom: isMobile ? 3 : 8, fontWeight: 900 }}>{tier.toUpperCase()} TIER</div>
-            <div style={{ fontFamily: 'Noto Sans JP,Orbitron', fontSize: isMobile ? '15px' : '26px', fontWeight: 900, color: 'white', letterSpacing: isMobile ? 2 : 4, textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>オーグメントを選択してください</div>
+            <div style={{ fontFamily: 'Orbitron', fontSize: '14px', color: TIER_COLORS[tier], letterSpacing: 4, marginBottom: 8, fontWeight: 900 }}>{tier.toUpperCase()} TIER</div>
+            <div style={{ fontFamily: 'Noto Sans JP,Orbitron', fontSize: '26px', fontWeight: 900, color: 'white', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>オーグメントを選択してください</div>
           </div>
 
-          <div style={{ display: 'flex', gap: isMobile ? 10 : 25, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', animation: 'fadeIn 0.6s ease' }}>
+          <div style={{ display: 'flex', gap: 25, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', animation: 'fadeIn 0.6s ease' }}>
             {choices.map((aug, i) => (
-              <div key={aug.id} style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 8 : 15, width: isMobile ? 152 : 250 }}>
+              <div key={aug.id} style={{ display: 'flex', flexDirection: 'column', gap: 15, width: 250 }}>
                 <div
                   onClick={() => onPick(aug, { 
                     tier, 
@@ -873,22 +864,22 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                   })}
                   className={`aug-card-${aug.tier}`}
                   style={{
-                    height: isMobile ? 210 : 350, width: isMobile ? 152 : 250, background: 'var(--bg1)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
-                    borderRadius: isMobile ? 10 : 16, padding: isMobile ? '12px 10px' : '30px 20px', cursor: 'pointer', transition: 'all 0.2s',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isMobile ? 8 : 20, position: 'relative', boxSizing: 'border-box'
+                    height: 350, width: 250, background: 'var(--bg1)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
+                    borderRadius: 16, padding: '30px 20px', cursor: 'pointer', transition: 'all 0.2s',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, position: 'relative', boxSizing: 'border-box'
                   }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.background = 'var(--bg3)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'var(--bg1)'; }}
                 >
-                  <div style={{ width: '100%', height: isMobile ? '46px' : '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0, boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
+                  <div style={{ width: '100%', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0, boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
                     {aug.imgName && (
                       <img src={getAugmentIconUrl(aug)} style={{ height: '85%', width: 'auto', objectFit: 'contain' }} />
                     )}
                   </div>
-                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: isMobile ? '11px' : '17px', fontWeight: 900, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.2, minHeight: isMobile ? '24px' : '40px', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', fontWeight: 900, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.2, minHeight: '40px', display: 'flex', alignItems: 'center' }}>
                     {aug.name}
                   </div>
-                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: isMobile ? '9px' : '12px', color: 'var(--textdim)', lineHeight: isMobile ? 1.35 : 1.6, textAlign: 'center', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '12px', color: 'var(--textdim)', lineHeight: 1.6, textAlign: 'center', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
                     {aug.desc}
                   </div>
                 </div>
@@ -900,8 +891,8 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                     background: rerollUsed[i] >= maxRerolls ? 'rgba(30,45,74,.4)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${rerollUsed[i] >= maxRerolls ? 'var(--border)' : TIER_COLORS[tier]}`,
                     color: rerollUsed[i] >= maxRerolls ? 'rgba(255,255,255,0.3)' : 'white',
-                    borderRadius: 8, padding: isMobile ? '6px' : '10px', cursor: rerollUsed[i] >= maxRerolls ? 'default' : 'pointer',
-                    fontFamily: 'Noto Sans JP', fontSize: isMobile ? 10 : 12, fontWeight: 700, transition: 'all 0.2s'
+                    borderRadius: 8, padding: '10px', cursor: rerollUsed[i] >= maxRerolls ? 'default' : 'pointer',
+                    fontFamily: 'Noto Sans JP', fontSize: 12, fontWeight: 700, transition: 'all 0.2s'
                   }}
                 >
                   {rerollUsed[i] >= maxRerolls ? '再抽選済み' : (maxRerolls > 1 ? `再抽選 (残り${maxRerolls - rerollUsed[i]})` : '再抽選')}
@@ -944,7 +935,7 @@ function Main() {
 
   if (view === 'MENU') {
     return (
-      <div style={{ height:'var(--app-h, 100vh)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
+      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
 <div style={{ 
   fontFamily:'Orbitron', 
   fontSize:'clamp(30px, 8vw, 70px)', // 改行するので少し小さめに調整
@@ -1169,42 +1160,14 @@ function App({ seed, onRestart, onNewGame }) {
   const [anvilOptions, setAnvilOptions] = useState(null);
 
   // スマホ横持ち対応：ウィンドウリサイズ時に再レンダリング
-  // タッチ端末（スマホ/タブレット）かどうか。PCの小さいウィンドウでは縮小モードを出さない
-  const isTouchDevice = (typeof window !== 'undefined') &&
-    (('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
-     (window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
-    const onResize = () => {
-      // visualViewport があればツールバーを除いた「実際に見えている高さ」を使う
-      const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
-      const vw = (window.visualViewport && window.visualViewport.width) || window.innerWidth;
-      // 全画面コンテナの高さに使う変数。Safariのバー裏に隠れなくなる
-      document.documentElement.style.setProperty('--app-h', vh + 'px');
-      setWindowSize({ w: vw, h: vh });
-    };
-    onResize();
+    const onResize = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
     window.addEventListener('resize', onResize);
     window.addEventListener('orientationchange', onResize);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', onResize);
-      window.visualViewport.addEventListener('scroll', onResize);
-    }
-    return () => {
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('orientationchange', onResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', onResize);
-        window.visualViewport.removeEventListener('scroll', onResize);
-      }
-    };
+    return () => { window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize); };
   }, []);
-  const isLandscapeMobile = isTouchDevice && windowSize.h <= 500;
-  // 横持ちスマホでは画面の高さに合わせて盤面をさらに自動縮小する
-  // （ヘッダー/ベンチ/ショップ等の固定高ぶんを引いた残りに収める）
-  const boardFitScale = isLandscapeMobile
-    ? Math.max(0.38, Math.min(0.62, (windowSize.h - 215) / 320))
-    : 0.9;
+  const isLandscapeMobile = windowSize.h <= 500;
 
 
   // シード値を基準にシャッフルして3つずつ抽出
@@ -2485,12 +2448,12 @@ const handleAugmentPick = (aug, historyContext) => {
 
   if (isFinished) {
     return (
-      <div style={{height:'var(--app-h, 100vh)',width:'100%',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap: isLandscapeMobile ? 8 : 20,animation:'fadeIn 0.8s ease',padding: isLandscapeMobile ? 6 : 20,overflowY:'auto'}}>
+      <div style={{height:'100vh',width:'100vw',background:'var(--bg0)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:20,animation:'fadeIn 0.8s ease',padding:20,overflowY:'auto'}}>
         
         {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
-        <div style={{display:'flex', gap: isLandscapeMobile ? 6 : 12, marginBottom:5, flexWrap:'wrap', justifyContent:'center'}}>
-          <button className="menu-btn" onClick={onRestart} style={{padding: isLandscapeMobile ? '6px 12px' : '10px 20px',fontSize: isLandscapeMobile ? 11 : 13, background:'var(--blue)', color:'white', borderColor:'var(--blue)'}}>同じシードで再挑戦</button>
-          <button className="menu-btn" onClick={onNewGame} style={{padding: isLandscapeMobile ? '6px 12px' : '10px 20px',fontSize: isLandscapeMobile ? 11 : 13, background:'var(--teal)', color:'white', borderColor:'var(--teal)'}}>新しいゲーム</button>
+        <div style={{display:'flex', gap:12, marginBottom:5}}>
+          <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13, background:'var(--blue)', color:'white', borderColor:'var(--blue)'}}>同じシードで再挑戦</button>
+          <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13, background:'var(--teal)', color:'white', borderColor:'var(--teal)'}}>新しいゲーム</button>
 <button 
   className="menu-btn" 
   onClick={() => {
@@ -2509,7 +2472,7 @@ const handleAugmentPick = (aug, historyContext) => {
       </div>
     );
   }} 
-  style={{padding: isLandscapeMobile ? '6px 12px' : '10px 20px', fontSize: isLandscapeMobile ? 11 : 13, background:'var(--gold)', color:'white', borderColor:'var(--gold)'}}
+  style={{padding:'10px 20px', fontSize:13, background:'var(--gold)', color:'white', borderColor:'var(--gold)'}}
 >
   共有URLをコピー
 </button>
@@ -2517,17 +2480,17 @@ const handleAugmentPick = (aug, historyContext) => {
             className="menu-btn" 
             onClick={handleCopyImage} 
             disabled={isSaving}
-            style={{padding: isLandscapeMobile ? '6px 12px' : '10px 20px', fontSize: isLandscapeMobile ? 11 : 13, background:'var(--purple)', color:'white', borderColor:'var(--purple)', opacity: isSaving ? 0.5 : 1, cursor: isSaving ? 'wait' : 'pointer'}}
+            style={{padding:'10px 20px', fontSize:13, background:'var(--purple)', color:'white', borderColor:'var(--purple)', opacity: isSaving ? 0.5 : 1, cursor: isSaving ? 'wait' : 'pointer'}}
           >
             {isSaving ? '⏳ 処理中...' : '📸 画像をコピー'}
           </button>
         </div>
 
         {/* 🌟 キャプチャ対象エリア */}
-        <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding: isLandscapeMobile ? 12 : 24,display:'flex',flexDirection:'column',gap: isLandscapeMobile ? 10 : 20,maxWidth:900,width:'100%'}}>
+        <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding:24,display:'flex',flexDirection:'column',gap:20,maxWidth:900,width:'100%'}}>
           
           {/* ヘッダー */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom: isLandscapeMobile ? 8 : 16, flexWrap:'wrap', gap:10}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16, flexWrap:'wrap', gap:10}}>
             <div>
               <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET 17 — 1 STAGE RESULT</div>
 
@@ -2606,7 +2569,7 @@ const handleAugmentPick = (aug, historyContext) => {
             </div>
           </div>
 
-          <div style={{display:'flex',gap: isLandscapeMobile ? 10 : 20,flexWrap:'wrap'}}>
+          <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
             {/* 左カラム：ステータス */}
             <div style={{display:'flex',flexDirection:'column',gap:10,minWidth:200}}>
               
@@ -2810,7 +2773,7 @@ const handleAugmentPick = (aug, historyContext) => {
   <div 
     onDragOver={e => e.preventDefault()} 
     onDrop={hDrop('anywhere', -1)} 
-    style={{ height:'var(--app-h, 100vh)', width:'100%', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
+    style={{ height:'100vh', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
   >
     
 
@@ -3072,7 +3035,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
       {/* ヘッダー：シンプル巨大ステージ表示版 */}
       <div className="sp-header-row" style={{ 
-        height: isLandscapeMobile ? 46 : 60,
+        height: isLandscapeMobile ? 40 : 60,
         background: 'var(--bg-panel)', 
         borderBottom: '1px solid rgba(30,45,74,.8)', 
         display: 'flex', 
@@ -3085,7 +3048,7 @@ const handleAugmentPick = (aug, historyContext) => {
       }}>
         
         {/* 左側：シード値と今回の変動要素 */}
-        <div style={{ position: 'absolute', left: 20, display: isLandscapeMobile ? 'none' : 'flex', alignItems: 'center', gap: 15 }}>
+        <div style={{ position: 'absolute', left: 20, display: 'flex', alignItems: 'center', gap: 15 }}>
           <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
             SEED: {seed}
           </div>
@@ -3095,8 +3058,7 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{ 
           position: 'absolute',
           left: '50%',
-          transform: isLandscapeMobile ? 'translateX(-50%) scale(0.6)' : 'translateX(-50%)',
-          transformOrigin: 'center center',
+          transform: 'translateX(-50%)',
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
@@ -3241,7 +3203,7 @@ const handleAugmentPick = (aug, historyContext) => {
       </div>
 
       {/* メインエリア */}
-      <div style={{ flex:1, minHeight:0, display:'flex', overflow:'hidden', position:'relative' }}>
+      <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
         <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
@@ -3288,7 +3250,7 @@ const handleAugmentPick = (aug, historyContext) => {
           onTouchEnd={handleBoardTouchEnd}
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}
         >
-          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(boardFitScale, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
+          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
               {[0,1,2,3].map(row => (
                 <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
@@ -3575,9 +3537,9 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
               </div>
 
-              {/* XP/リロールは左に絶対配置、カードは50vw中央固定。op-rowはその基準(relative)のみ */}
-              <div style={{ position:'relative', display:'flex', alignItems:'center', height:'100%' }}>
-                <div style={{ position:'absolute', left: isLandscapeMobile ? 4 : 8, top:'50%', transform:'translateY(-50%)', display:'flex', flexDirection:'column', gap: isLandscapeMobile ? 4 : 6, width: isLandscapeMobile ? 84 : 130, zIndex:2 }}>
+              {/* 操作エリア（XP・リロール・チャンピオン枠） */}
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, padding:'0 20px', height:'100%' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, width:130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
                     disabled={passiveBuffs.some(b => b.type === 'wise_spending')}
@@ -3591,12 +3553,12 @@ const handleAugmentPick = (aug, historyContext) => {
                         setLevel(nl); setXp(nx);
                       }
                     }}
-                    style={{ height: isLandscapeMobile ? 30 : 38, background:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(30,45,74,.4)' : 'var(--blue)', border:`1px solid ${passiveBuffs.some(b => b.type === 'wise_spending') ? 'var(--border)' : 'var(--blue)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:passiveBuffs.some(b => b.type === 'wise_spending') ? 'not-allowed' : 'pointer', color:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(255,255,255,0.3)' : 'var(--text-inv)' }}>
+                    style={{ height:38, background:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(30,45,74,.4)' : 'var(--blue)', border:`1px solid ${passiveBuffs.some(b => b.type === 'wise_spending') ? 'var(--border)' : 'var(--blue)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:passiveBuffs.some(b => b.type === 'wise_spending') ? 'not-allowed' : 'pointer', color:passiveBuffs.some(b => b.type === 'wise_spending') ? 'rgba(255,255,255,0.3)' : 'var(--text-inv)' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
-                      <span style={{ fontSize: isLandscapeMobile ? 10 : 13, fontWeight:700, lineHeight:1.2 }}>XP購入</span>
-                      <span style={{ fontSize: isLandscapeMobile ? 9 : 11, color:'white', fontFamily:'Orbitron' }}>💰 {xpCost}</span>
+                      <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>XP購入</span>
+                      <span style={{ fontSize:11, color:'white', fontFamily:'Orbitron' }}>💰 {xpCost}</span>
                     </div>
-                    <div style={{ fontSize: isLandscapeMobile ? 12 : 16 }}>⬆️</div>
+                    <div style={{ fontSize: 16 }}>⬆️</div>
                   </button>
                   {/* リロールボタン */}
                   <button
@@ -3611,17 +3573,17 @@ const handleAugmentPick = (aug, historyContext) => {
                         }
                       }
                     }}
-                    style={{ height: isLandscapeMobile ? 30 : 38, background:'var(--gold)', border:`1px solid ${freeRerolls>0?'var(--teal)':'var(--gold)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
+                    style={{ height:38, background:'var(--gold)', border:`1px solid ${freeRerolls>0?'var(--teal)':'var(--gold)'}`, borderRadius:4, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 10px', cursor:'pointer', color:'var(--text-inv)' }}>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-start', fontFamily:'Noto Sans JP' }}>
-                      <span style={{ fontSize: isLandscapeMobile ? 10 : 13, fontWeight:700, lineHeight:1.2 }}>リロール</span>
-                      <span style={{ fontSize: isLandscapeMobile ? 9 : 11, color:freeRerolls>0?'var(--teal)':'white', fontFamily:'Orbitron' }}>{freeRerolls > 0 ? `🎲 無料(${freeRerolls})` : '💰 2'}</span>
+                      <span style={{ fontSize:13, fontWeight:700, lineHeight:1.2 }}>リロール</span>
+                      <span style={{ fontSize:11, color:freeRerolls>0?'var(--teal)':'white', fontFamily:'Orbitron' }}>{freeRerolls > 0 ? `🎲 無料(${freeRerolls})` : '💰 2'}</span>
                     </div>
-                    <div style={{ fontSize: isLandscapeMobile ? 12 : 16 }}>🔄</div>
+                    <div style={{ fontSize: 16 }}>🔄</div>
                   </button>
                 </div>
 
-                {/* チャンピオン枠：画面幅の中央(50vw)に直接固定。NEXTやパディング幅に依存しない */}
-                <div style={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', height:'100%', display:'flex', alignItems:'center', gap: isLandscapeMobile ? 5 : 8, padding:'8px 0', boxSizing:'border-box', zIndex:1 }}>
+                {/* チャンピオン枠 */}
+                <div style={{ display:'flex', gap:8, height:'100%', padding:'8px 0' }}>
                   {shop.map((champ, i) => (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
@@ -3635,7 +3597,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         setGold(g => g - unit.cost); setShop(ns);
                         setBench(nb);
                       }}
-                      style={{ height:'100%', aspectRatio:'400/237', maxWidth: isLandscapeMobile ? 74 : 'none', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
+                      style={{ height:'100%', aspectRatio:'400/237', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
                           <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
@@ -3647,15 +3609,15 @@ const handleAugmentPick = (aug, historyContext) => {
       if (champ.traits.includes('missfortuneuniquetrait')) displayTraits.push(champ.selectedMode || 'unselected');
       return displayTraits.map(t => (
         <div key={t} style={{ display:'flex', alignItems:'center', gap:4 }}>
-          <img src={getTraitIconUrl(t)} style={{ width: isLandscapeMobile ? 9 : 12, height: isLandscapeMobile ? 9 : 12, filter: t==='unselected'?'grayscale(1) opacity(0.5)':'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))' }} onError={(e)=>{if(t==='unselected')e.target.src="https://cdn.metatft.com/file/metatft/traits/unknown.png";else e.target.style.display='none';}}/>
-          <span style={{ fontSize: isLandscapeMobile ? 8 : 10, color: t==='unselected'?'rgba(255,255,255,0.5)':'white', fontWeight:900, textShadow:'0 0 3px rgba(0,0,0,0.8)' }}>{getTraitJaName(t)}</span>
+          <img src={getTraitIconUrl(t)} style={{ width:12, height:12, filter: t==='unselected'?'grayscale(1) opacity(0.5)':'drop-shadow(1px 1px 2px rgba(0,0,0,0.8))' }} onError={(e)=>{if(t==='unselected')e.target.src="https://cdn.metatft.com/file/metatft/traits/unknown.png";else e.target.style.display='none';}}/>
+          <span style={{ fontSize:10, color: t==='unselected'?'rgba(255,255,255,0.5)':'white', fontWeight:900, textShadow:'0 0 3px rgba(0,0,0,0.8)' }}>{getTraitJaName(t)}</span>
         </div>
       ));
     })()}
   </div>
                           <div style={{ position:'absolute', bottom:4, left:6, right:6, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
-                            <span style={{ fontSize: isLandscapeMobile ? 9 : 12, fontWeight:900, color:'white', textShadow:'0 0 3px rgba(0,0,0,1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{champ.jaName}</span>
-                            <span style={{ fontSize: isLandscapeMobile ? 9 : 12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {champ.cost}</span>
+                            <span style={{ fontSize:12, fontWeight:900, color:'white', textShadow:'0 0 3px rgba(0,0,0,1)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{champ.jaName}</span>
+                            <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {champ.cost}</span>
                           </div>
                         </React.Fragment>
                       )}
