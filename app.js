@@ -248,9 +248,9 @@ const TraitTooltip = ({ data, stargazerDesc, psionicItems, arbiterRule }) => {
   } else if (trait === 'Arbiter') {
     // 🌟 アービター専用の書き換え処理
     if (arbiterRule) {
-      desc = `独自の聖なる掟を定め、所定の原因が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n【現在の掟】\n⚖️ ${arbiterRule.cause.text}、${arbiterRule.effect.text}\n\n(2) 効果を発動\n(3) 効果が強化される`;
+      desc = `独自の聖なる掟を定め、所定の条件が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n【現在の掟】\n⚖️ ${arbiterRule.cause.text}、${arbiterRule.effect.text}\n\n(2) 効果を発動\n(3) 効果が強化される`;
     } else {
-      desc = `独自の聖なる掟を定め、所定の原因が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n(2) 自分の掟の原因と結果を選択する。\n(3) 効果が強化される。`;
+      desc = `独自の聖なる掟を定め、所定の条件が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n(2) 自分の掟の条件と効果を選択する。\n(3) 効果が強化される。`;
     }
   }
 
@@ -964,7 +964,7 @@ function Main() {
           <button 
             className="menu-btn" 
             style={{ width:220, background:'rgba(15,23,42,0.8)', color:'white', borderColor:'var(--border)', boxShadow:'0 10px 30px rgba(0,0,0,0.5)', transition:'all 0.2s ease', cursor:'pointer' }} 
-            onClick={() => window.open('https://note.com/mo10c_/n/n10666b1fb74e', '_blank')}
+            onClick={() => window.open('https://app.notion.com/p/TFT-Set-17-1-StageSimulator-32828a55d99c8096819cc141beb0c5be?source=copy_link', '_blank')}
             onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.background = 'rgba(30,45,74,0.9)'; }}
             onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'rgba(15,23,42,0.8)'; }}
           >
@@ -1170,10 +1170,20 @@ function App({ seed, onRestart, onNewGame }) {
   const isLandscapeMobile = windowSize.h <= 500;
 
 
-  // シード値を基準にシャッフルして3つずつ抽出
+  // シード値を基準に各カテゴリから1つずつ、指定の順序で抽出
   const arbiterOptions = useMemo(() => {
-    const causes = shuffleArray(ARBITER_CAUSES, rngSys).slice(0, 3);
-    const effects = shuffleArray(ARBITER_EFFECTS, rngSys).slice(0, 3);
+    const causeCategories = ['consistent', 'conditional', 'economy'];
+    const causes = causeCategories.map(cat => {
+      const options = ARBITER_CAUSES.filter(c => c.category === cat);
+      return shuffleArray(options, rngSys)[0];
+    });
+
+    const effectCategories = ['offence', 'defence', 'economy'];
+    const effects = effectCategories.map(cat => {
+      const options = ARBITER_EFFECTS.filter(e => e.category === cat);
+      return shuffleArray(options, rngSys)[0];
+    });
+
     return { causes, effects };
   }, [rngSys]);
 
@@ -2611,14 +2621,14 @@ const handleAugmentPick = (aug, historyContext) => {
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
                                     <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} />
                                     {/* 👇 名前を表示し、取り消し線（line-through）を引く */}
-                                    <div style={{ fontSize: 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px' }}>{initAug?.name}</div>
+                                    <div style={{ fontSize: initAug?.name.length > 9 ? 7 : 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{initAug?.name}</div>
                                     <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
                                   </div>
                                 )}
                                 
                                 {/* 最終的なオーグメント */}
                                 <img src={getAugmentIconUrl(finalAug)} style={{ width: 28, height: 28, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
-                                <div style={{ fontSize: 10, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400 }}>{finalAug.name}</div>
+                                <div style={{ fontSize: finalAug.name.length > 9 ? 8 : 10, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{finalAug.name}</div>
                                 
                                 {/* 選んだものにはチェックマーク */}
                                 {isPicked && (
