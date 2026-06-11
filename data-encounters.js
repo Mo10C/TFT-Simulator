@@ -92,10 +92,6 @@ const ENCOUNTERS = [
     icon:'🔹', color:'#a06bff',
     effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.TINY_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); } },
 
-  { id:'leblanc', champ:'ルブラン', jaName:'ステージ3オーグメント', prob:3.7,
-    desc:'オーグメントが3-1、3-2、3-3で出現するようになる。',
-    icon:'🃏', color:'#d16bff',
-    effect:(s,rng,h)=>{ h.setNoMoreAugments(true); h.showMsg('🃏 ルブラン: オーグメントが3-1、3-2、3-3で出現するようになる'); } },
 
   { id:'tahmkench', champ:'タムケンチ', jaName:'戦利品サブスク', prob:3.7,
     desc:'1ステージごとに、様々な戦利品の中からランダムな戦利品を獲得する。',
