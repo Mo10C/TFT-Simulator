@@ -145,7 +145,7 @@ const ARBITER_EFFECTS = [
   { id: 'e9', text: 'X秒間、すべての「アービター」が最大体力のX%にあたる耐久値を持つシールドを獲得する。', category: 'defence' },
   { id: 'e7', text: 'すべての「アービター」の物理防御と魔法防御がX増加する。', category: 'defence' },
   { id: 'e2', text: '戦闘終了時、X%の確率でレオナを1体獲得する。', category: 'economy' },
-  { id: 'e5', text: '戦闘終了時、25%の確率で3ゴールドを獲得する。', category: 'economy' }
+  { id: 'e5', text: '戦闘終了時、X%の確率でXゴールドを獲得する。', category: 'economy' }
 ];
 
 /* ── 神々（Set 17 遭遇ギミック） ── */
