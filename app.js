@@ -2877,7 +2877,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
           {/* ユーザーへの操作案内 */}
           <div style={{ marginTop: 40, color: tempCause ? 'var(--gold)' : 'var(--textdim)', fontSize: 16, fontWeight: 700, animation: 'pulse 2s infinite' }}>
-            {!tempCause ? 'まずは左側の【原因】を選択してください' : '次に右側の【結果】を選択して掟を決定します'}
+            {!tempCause ? 'まずは左側の【条件】を選択してください' : '次に右側の【効果】を選択して掟を決定します'}
           </div>
         </div>
       )}
