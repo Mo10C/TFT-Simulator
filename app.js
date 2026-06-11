@@ -2511,34 +2511,34 @@ const handleAugmentPick = (aug, historyContext) => {
               <div style={{display:'flex',gap:10, flexWrap:'wrap', justifyContent:'flex-end'}}>
 
                 {/* 🌟 星の観測者 */}
-                <div style={{display:'flex',alignItems:'center',gap:8,background:'#c46bff33',border:'3px solid #c46bff',borderRadius:10,padding:'6px 12px'}}>
-                  <div style={{width:32,height:32,borderRadius:'50%',border:'2px solid #c46bff',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#4a148c',flexShrink:0}}>
-                    <img src={getTraitIconUrl('Stargazer')} style={{width:16,height:16,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
+                <div style={{display:'flex',alignItems:'center',gap:6,background:'#c46bff33',border:'3px solid #c46bff',borderRadius:10,padding:'4px 8px'}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #c46bff',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#4a148c',flexShrink:0}}>
+                    <img src={getTraitIconUrl('Stargazer')} style={{width:14,height:14,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
                   </div>
                   <div>
                     <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>星の観測者</div>
-                    <div style={{fontSize:11,fontWeight:900,color:'#c46bff',lineHeight:1.2}}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
+                    <div style={{fontSize:10,fontWeight:900,color:'#c46bff',lineHeight:1.2,whiteSpace:'nowrap'}}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
                   </div>
                 </div>
 
                 {/* 🌟 サイオニック */}
-                <div style={{display:'flex',alignItems:'center',gap:8,background:'#4caf5033',border:'3px solid #4caf50',borderRadius:10,padding:'6px 12px'}}>
-                  <div style={{width:32,height:32,borderRadius:'50%',border:'2px solid #4caf50',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#1b5e20',flexShrink:0}}>
-                    <img src={getTraitIconUrl('Psionic')} style={{width:16,height:16,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
+                <div style={{display:'flex',alignItems:'center',gap:6,background:'#4caf5033',border:'3px solid #4caf50',borderRadius:10,padding:'4px 8px'}}>
+                  <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #4caf50',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#1b5e20',flexShrink:0}}>
+                    <img src={getTraitIconUrl('Psionic')} style={{width:14,height:14,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
                   </div>
                   <div>
                     <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>サイオニック</div>
                     <div style={{display:'flex',gap:3,alignItems:'center'}}>
-                      <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{width:16,height:16,borderRadius:2}} />
-                      <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{width:16,height:16,borderRadius:2}} />
+                      <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{width:14,height:14,borderRadius:2}} />
+                      <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{width:14,height:14,borderRadius:2}} />
                     </div>
                   </div>
                 </div>
 
                 {/* 🌟 遭遇を同列に追加 */}
                 {encounter && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:10,padding:'6px 12px'}}>
-                    <div style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:6,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:10,padding:'4px 8px'}}>
+                    <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`,flexShrink:0}}>
                       {(() => {
                         let encChamp = CHAMPS.find(c => c.id === encounter.id);
                         if (!encChamp) {
@@ -2548,25 +2548,25 @@ const handleAugmentPick = (aug, historyContext) => {
                         if (!encChamp) {
                           encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                         }
-                        return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 16 }}>{encounter.icon}</span>;
+                        return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
                       })()}
                     </div>
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
-                      <div style={{fontSize:11,fontWeight:900,color:encounter.color,lineHeight:1.2}}>{encounter.champ}</div>
+                      <div style={{fontSize: encounter.champ.length > 8 ? 9 : 10,fontWeight:900,color:encounter.color,lineHeight:1.2,whiteSpace:'nowrap'}}>{encounter.champ}</div>
                     </div>
                   </div>
                 )}
 
                 {/* 🌟 遭遇した神 */}
                 {encounterGods.map((god) => (
-                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:8,background:`${god.color}33`,border:`3px solid ${god.color}`,borderRadius:10,padding:'6px 12px'}}>
+                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:6,background:`${god.color}33`,border:`3px solid ${god.color}`,borderRadius:10,padding:'4px 8px'}}>
                     {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-                    <GodImg god={god} type="icon" style={{width:32,height:32,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: 'white'}} />
+                    <GodImg god={god} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
-                      <div style={{fontSize:11,fontWeight:900,color:god.color,lineHeight:1.2}}>{god.name.replace('\n', ' ')}</div>
+                      <div style={{fontSize:god.name.replace('\n', ' ').length > 8 ? 9 : 10,fontWeight:900,color:god.color,lineHeight:1.2,whiteSpace:'nowrap'}}>{god.name.replace('\n', ' ')}</div>
                     </div>
                   </div>
                 ))}
@@ -2581,7 +2581,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
           <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
             {/* 左カラム：ステータス */}
-            <div style={{display:'flex',flexDirection:'column',gap:10,minWidth:200}}>
+            <div style={{display:'flex',flexDirection:'column',gap:10,minWidth:200,width:260,flexShrink:0}}>
               
               {/* レベル・ゴールド */}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
@@ -2648,12 +2648,12 @@ const handleAugmentPick = (aug, historyContext) => {
               {activeTraits.length > 0 && (
                 <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(0,229,192,0.2)',borderRadius:10,padding:'12px 14px'}}>
                   <div style={{fontSize:9,color:'var(--teal)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>ACTIVE TRAITS</div>
-                  <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
                     {activeTraits.map(([t, c]) => (
-                      <div key={t} style={{display:'flex',alignItems:'center',gap:5,background:'rgba(200,169,110,0.12)',border:'1px solid rgba(200,169,110,0.3)',borderRadius:6,padding:'4px 8px'}}>
-                        <img src={getTraitIconUrl(t)} style={{width:12,height:12, filter: 'brightness(0) invert(1)'}} onError={e => e.target.style.display='none'}/>
+                      <div key={t} style={{display:'flex',alignItems:'center',gap:4,background:'rgba(200,169,110,0.12)',border:'1px solid rgba(200,169,110,0.3)',borderRadius:6,padding:'3px 6px',overflow:'hidden',whiteSpace:'nowrap'}}>
+                        <img src={getTraitIconUrl(t)} style={{width:12,height:12, filter: 'brightness(0) invert(1)', flexShrink:0}} onError={e => e.target.style.display='none'}/>
                         <span style={{fontSize:10,color:'var(--gold)',fontWeight:900}}>{c}</span>
-                        <span style={{fontSize:10,color:'white'}}>{getTraitJaName(t)}</span>
+                        <span style={{fontSize:9,color:'white',textOverflow:'ellipsis',overflow:'hidden'}}>{getTraitJaName(t)}</span>
                       </div>
                     ))}
                   </div>
