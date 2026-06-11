@@ -2803,7 +2803,7 @@ const handleAugmentPick = (aug, historyContext) => {
             
             {/* 左カラム：原因 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
-              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【原因】</div>
+              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【条件】</div>
               {arbiterOptions.causes.map((opt, i) => {
                 const isSelected = tempCause?.id === opt.id;
                 return (
@@ -2832,7 +2832,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* 右カラム：結果 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
-              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【結果】</div>
+              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【効果】</div>
               {arbiterOptions.effects.map((opt, i) => {
                 const isEnabled = !!tempCause; // 原因が選ばれていれば有効
                 return (
