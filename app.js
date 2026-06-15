@@ -1154,7 +1154,6 @@ function App({ seed, onRestart, onNewGame }) {
   const [showArbiterPopup, setShowArbiterPopup] = useState(false);
   const [arbiterStep, setArbiterStep] = useState('cause');
   const [tempCause, setTempCause] = useState(null);
-  const [tempEffect, setTempEffect] = useState(null); // 🌟 これが抜けていたためクラッシュしていました
 
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [mfTargetUid, setMfTargetUid] = useState(null);
@@ -1922,12 +1921,21 @@ useEffect(() => {
     }
 
     if (phase === 'main') {
-      // すべてのラウンドでドロップフェーズを正しく経由させる
-      triggerDrops(currentR);
-      setTimeout(() => {
-        setPhase('drop');
-        setIsTransitioning(false);
-      }, 800);
+      if (currentR === '1-2') {
+        triggerDrops(currentR);
+        setTimeout(() => {
+          setRound(nextR);
+          setPhase('main');
+          processRoundStart(nextR, currentR);
+          setIsTransitioning(false);
+        }, 800);
+      } else {
+        triggerDrops(currentR);
+        setTimeout(() => {
+          setPhase('drop');
+          setIsTransitioning(false);
+        }, 800);
+      }
     } else if (phase === 'drop') {
       setTimeout(() => {
         setRound(nextR);
@@ -2888,12 +2896,19 @@ const handleAugmentPick = (aug, historyContext) => {
                     key={`effect-${i}`} 
                     onClick={() => {
                       if (!isEnabled) return; // 有効でなければ何もしない
-                      setTempEffect(opt); // 🌟 即決定せず、選択状態（青枠）にする
+                      setArbiterRule({ cause: tempCause, effect: opt }); // 決定！
+                      setShowArbiterPopup(false);
+                      showMsg(
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ fontSize:18 }}>⚖️</span>
+                          <span>掟が決定しました</span>
+                        </div>
+                      );
                     }} 
                     style={{ 
                       width: isLandscapeMobile ? 200 : 240, height: isLandscapeMobile ? 70 : 80, 
-                      background: (tempEffect?.id === opt.id) ? 'var(--blue)' : 'rgba(15,23,42,0.6)', 
-                      border: `2px solid ${(tempEffect?.id === opt.id) ? 'white' : (isEnabled ? 'var(--gold)' : 'var(--border)')}`, 
+                      background: 'rgba(15,23,42,0.6)', 
+                      border: `2px solid ${isEnabled ? 'var(--gold)' : 'var(--border)'}`, 
                       borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
                       cursor: isEnabled ? 'pointer' : 'not-allowed', 
                       padding: '15px', textAlign: 'center', 
@@ -2901,11 +2916,10 @@ const handleAugmentPick = (aug, historyContext) => {
                       fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
                       transition: 'all 0.2s', 
                       opacity: isEnabled ? 1 : 0.4, // 選べない時は暗くする
-                      boxShadow: (tempEffect?.id === opt.id) ? '0 0 20px var(--blue)' : (isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'),
-                      transform: (tempEffect?.id === opt.id) ? 'scale(1.05)' : 'scale(1)'
+                      boxShadow: isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'
                     }} 
-                    onMouseEnter={e => { if(isEnabled && tempEffect?.id !== opt.id) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
-                    onMouseLeave={e => { if(isEnabled && tempEffect?.id !== opt.id) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
+                    onMouseEnter={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
+                    onMouseLeave={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
                   >
                     {opt.text}
                   </div>
@@ -3300,26 +3314,6 @@ const handleAugmentPick = (aug, historyContext) => {
             </div>
             {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg1)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
             {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:6, border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
-            
-            {/* デバッグ用: ドロッププラン表示 */}
-            <div style={{ marginTop: 10, background: 'rgba(0,0,0,0.5)', padding: 6, borderRadius: 4, fontSize: 9, color: 'var(--textdim)', border: '1px solid var(--border)' }}>
-              <div style={{ color: 'var(--blue)', fontWeight: 900, marginBottom: 4, letterSpacing: 1 }}>[DEBUG] ドロップ予定</div>
-              {(() => {
-                const total = { comp: 0, GRAY: 0, BLUE: 0 };
-                Object.values(dropPlan).flat().forEach(d => total[d] = (total[d] || 0) + 1);
-                return (
-                  <div style={{ marginBottom: 4, color: 'var(--gold2)', fontWeight: 700 }}>
-                    全体: 素材{total.comp} / 灰{total.GRAY} / 青{total.BLUE}
-                  </div>
-                );
-              })()}
-              {['1-2', '1-3', '1-4'].map(r => (
-                <div key={r} style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
-                  <span style={{ color: 'white', fontWeight: 700, width: 22, flexShrink: 0 }}>{r}</span>
-                  <span style={{ flex: 1, wordBreak: 'break-all', lineHeight: 1.2 }}>{dropPlan[r]?.map(d => d === 'comp' ? '素' : d === 'GRAY' ? '灰' : '青').join(', ') || 'なし'}</span>
-                </div>
-              ))}
-            </div>
           </div>
           {/* アイテム欄 */}
           <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>
