@@ -1922,21 +1922,12 @@ useEffect(() => {
     }
 
     if (phase === 'main') {
-      if (currentR === '1-2') {
-        triggerDrops(currentR);
-        setTimeout(() => {
-          setRound(nextR);
-          setPhase('main');
-          processRoundStart(nextR, currentR);
-          setIsTransitioning(false);
-        }, 800);
-      } else {
-        triggerDrops(currentR);
-        setTimeout(() => {
-          setPhase('drop');
-          setIsTransitioning(false);
-        }, 800);
-      }
+      // すべてのラウンドでドロップフェーズを正しく経由させる
+      triggerDrops(currentR);
+      setTimeout(() => {
+        setPhase('drop');
+        setIsTransitioning(false);
+      }, 800);
     } else if (phase === 'drop') {
       setTimeout(() => {
         setRound(nextR);
