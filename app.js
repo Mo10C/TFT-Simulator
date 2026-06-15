@@ -66,7 +66,7 @@ const getMetaTFTItemUrl = (item) => {
   }
   
   // アーティファクトとレディアントを結合して検索
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput);
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput || a.jaName === nameInput);
   if (specialItem) {
     if (specialItem.imgName) {
       return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${specialItem.imgName}.png`;
@@ -840,7 +840,7 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       {/* 🌟 盤面確認中はカード全体を非表示に */}
       {!viewBoard && (
         <div style={{ 
-          transform: 'scale(0.8)', 
+          transform: isLandscapeMobile ? 'scale(0.65)' : 'scale(0.8)', 
           transformOrigin: 'center center',
           display: 'flex',
           flexDirection: 'column',
@@ -1158,6 +1158,7 @@ function App({ seed, onRestart, onNewGame }) {
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [mfTargetUid, setMfTargetUid] = useState(null);
   const [anvilOptions, setAnvilOptions] = useState(null);
+  const [arbiterPopupDismissed, setArbiterPopupDismissed] = useState(false);
 
   // スマホ横持ち対応：ウィンドウリサイズ時に再レンダリング
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -1214,12 +1215,16 @@ function App({ seed, onRestart, onNewGame }) {
   // ==========================================
   useEffect(() => {
     const count = traitCounts['Arbiter'] || 0;
-    // アービターが(2)以上になり、かつまだルールが決まっていない場合にPOPを表示
-    if (count >= 2 && !arbiterRule && !showArbiterPopup) {
+    if (count < 2) {
+      if (arbiterRule) setArbiterRule(null);
+      if (tempCause) setTempCause(null);
+      if (tempEffect) setTempEffect(null);
+      if (showArbiterPopup) setShowArbiterPopup(false);
+      if (arbiterPopupDismissed) setArbiterPopupDismissed(false);
+    } else if (count >= 2 && !arbiterRule && !showArbiterPopup && !arbiterPopupDismissed) {
       setShowArbiterPopup(true);
-      setArbiterStep('cause'); // 開くときは必ず「原因」から
     }
-  }, [traitCounts['Arbiter'], arbiterRule, showArbiterPopup]);
+  }, [traitCounts['Arbiter'], arbiterRule, showArbiterPopup, arbiterPopupDismissed, tempCause, tempEffect]);
 
 
 
@@ -1673,16 +1678,38 @@ useEffect(() => {
     for (let i = 0; i < plan.gray; i++) allDrops.push('GRAY');
     for (let i = 0; i < plan.blue; i++) allDrops.push('BLUE');
 
-    // ドロップをシャッフル
-    const shuffled = shuffleArray(allDrops, rngDrop);
+    // 🌟 1-2ラウンドの確定枠を先に確保し、残りを分配するロジックに修正
     const drops = { '1-2': [], '1-3': [], '1-4': [] };
+
+    // 1. 'comp'を1つ allDrops から探して 1-2 に移動
+    const compIndex = allDrops.indexOf('comp');
+    if (compIndex > -1) {
+      drops['1-2'].push(allDrops.splice(compIndex, 1)[0]);
+    } else {
+      drops['1-2'].push('comp'); // 万が一compがなくても追加
+    }
+
+    // 2. 'BLUE'を1つ allDrops から探して 1-2 に移動 (なければGRAY等で代用)
+    const blueIndex = allDrops.indexOf('BLUE');
+    if (blueIndex > -1) {
+      drops['1-2'].push(allDrops.splice(blueIndex, 1)[0]);
+    } else {
+      const grayIndex = allDrops.indexOf('GRAY');
+      if (grayIndex > -1) {
+        drops['1-2'].push(allDrops.splice(grayIndex, 1)[0]); // GRAYを代用として追加
+      } else if (allDrops.length > 0) {
+        drops['1-2'].push(allDrops.pop());      // それもなければ最後の要素を追加
+      }
+    }
+
+    // 残りのドロップをシャッフル
+    const shuffled = shuffleArray(allDrops, rngDrop);
     
-    // 各ラウンドに最低1個はドロップするように割り当て
-    if (shuffled.length > 0) drops['1-2'].push(shuffled.pop());
+    // 1-3, 1-4 に最低1個はドロップするように割り当て
     if (shuffled.length > 0) drops['1-3'].push(shuffled.pop());
     if (shuffled.length > 0) drops['1-4'].push(shuffled.pop());
 
-    // 残りをランダムなラウンドに振り分ける
+    // 残りをランダムなラウンド(1-2, 1-3, 1-4)に振り分ける
     const rounds = ['1-2', '1-3', '1-4'];
     while (shuffled.length > 0) {
       const targetRound = rounds[Math.floor(rngDrop() * rounds.length)];
@@ -2790,6 +2817,35 @@ const handleAugmentPick = (aug, historyContext) => {
 
       <ChampionTooltip data={tooltipData} />
 
+      {/* 🌟 アービター未決定時のフローティングボタン */}
+      {traitCounts['Arbiter'] >= 2 && !arbiterRule && arbiterPopupDismissed && (
+        <button
+          onClick={() => {
+            setArbiterPopupDismissed(false);
+            setShowArbiterPopup(true);
+          }}
+          style={{
+            position: 'fixed',
+            top: 80,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            background: 'var(--gold)',
+            color: '#000',
+            border: '2px solid white',
+            borderRadius: 20,
+            padding: '8px 24px',
+            fontSize: 14,
+            fontWeight: 900,
+            fontFamily: 'Noto Sans JP',
+            boxShadow: '0 4px 15px rgba(200,169,110,0.5)',
+            cursor: 'pointer',
+            animation: 'pulse 2s infinite'
+          }}
+        >
+          ⚖️ アービターの掟を定める
+        </button>
+      )}
 
       {/* 🌟 アービターの掟選択POPアップ */}
       {showArbiterPopup && (
@@ -2799,7 +2855,7 @@ const handleAugmentPick = (aug, historyContext) => {
           </h2>
 
           {/* 左右に並べるコンテナ */}
-          <div style={{ display: 'flex', gap: 60, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: isLandscapeMobile ? 20 : 60, alignItems: 'flex-start', transform: isLandscapeMobile ? 'scale(0.8)' : 'scale(1)' }}>
             
             {/* 左カラム：原因 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
@@ -2811,7 +2867,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     key={`cause-${i}`} 
                     onClick={() => setTempCause(opt)} // 原因をセット
                     style={{ 
-                      width: 240, height: 80, 
+                      width: isLandscapeMobile ? 200 : 240, height: isLandscapeMobile ? 70 : 80, 
                       background: isSelected ? 'var(--blue)' : 'rgba(15,23,42,0.6)', 
                       border: `2px solid ${isSelected ? 'white' : 'var(--gold)'}`, 
                       borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -2845,12 +2901,12 @@ const handleAugmentPick = (aug, historyContext) => {
                       showMsg(
                         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                           <span style={{ fontSize:18 }}>⚖️</span>
-                          <span>掟が決定しました: {tempCause.text} ➔ {opt.text}</span>
+                          <span>掟が決定しました</span>
                         </div>
                       );
                     }} 
                     style={{ 
-                      width: 240, height: 80, 
+                      width: isLandscapeMobile ? 200 : 240, height: isLandscapeMobile ? 70 : 80, 
                       background: 'rgba(15,23,42,0.6)', 
                       border: `2px solid ${isEnabled ? 'var(--gold)' : 'var(--border)'}`, 
                       borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
@@ -2875,9 +2931,44 @@ const handleAugmentPick = (aug, historyContext) => {
 
           </div>
 
-          {/* ユーザーへの操作案内 */}
-          <div style={{ marginTop: 40, color: tempCause ? 'var(--gold)' : 'var(--textdim)', fontSize: 16, fontWeight: 700, animation: 'pulse 2s infinite' }}>
-            {!tempCause ? 'まずは左側の【条件】を選択してください' : '次に右側の【効果】を選択して掟を決定します'}
+          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 15 }}>
+            <div style={{ color: tempCause && tempEffect ? 'var(--gold)' : 'var(--textdim)', fontSize: 16, fontWeight: 700, animation: (tempCause && tempEffect) ? 'none' : 'pulse 2s infinite' }}>
+              {!tempCause ? 'まずは左側の【原因】を選択してください' : (!tempEffect ? '次に右側の【結果】を選択してください' : '選択が完了しました。決定ボタンを押してください')}
+            </div>
+
+            <div style={{ display: 'flex', gap: 20 }}>
+              <button 
+                onClick={() => setArbiterPopupDismissed(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 24px', cursor: 'pointer', fontFamily: 'Noto Sans JP', fontSize: 14, fontWeight: 700, transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              >
+                あとで決める
+              </button>
+
+              <button 
+                disabled={!tempCause || !tempEffect}
+                onClick={() => {
+                  setArbiterRule({ cause: tempCause, effect: tempEffect });
+                  setShowArbiterPopup(false);
+                  showMsg(
+                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                      <span style={{ fontSize:18 }}>⚖️</span>
+                      <span>掟が決定しました</span>
+                    </div>
+                  );
+                }}
+                style={{
+                  background: (tempCause && tempEffect) ? 'var(--gold)' : 'rgba(30,45,74,0.4)', color: (tempCause && tempEffect) ? '#000' : 'rgba(255,255,255,0.3)', border: `1px solid ${(tempCause && tempEffect) ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 8, padding: '12px 36px', cursor: (tempCause && tempEffect) ? 'pointer' : 'not-allowed', fontFamily: 'Noto Sans JP', fontSize: 16, fontWeight: 900, transition: 'all 0.2s', boxShadow: (tempCause && tempEffect) ? '0 0 15px rgba(200,169,110,0.6)' : 'none'
+                }}
+                onMouseEnter={e => { if (tempCause && tempEffect) e.currentTarget.style.transform = 'scale(1.05)'; }}
+                onMouseLeave={e => { if (tempCause && tempEffect) e.currentTarget.style.transform = 'scale(1)'; }}
+              >
+                決定する
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -3080,11 +3171,11 @@ const handleAugmentPick = (aug, historyContext) => {
             
             {/* 星の観測者 */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#c46bff33', border: '3px solid #c46bff', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: isLandscapeMobile ? 4 : 8, background: '#c46bff33', border: '3px solid #c46bff', borderRadius: 8, padding: isLandscapeMobile ? '2px 8px' : '4px 12px', cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
             >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Stargazer')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ width: isLandscapeMobile ? 22 : 28, height: isLandscapeMobile ? 22 : 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Stargazer')} style={{ width: isLandscapeMobile ? 12 : 16, height: isLandscapeMobile ? 12 : 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
               </div>
               <div>
                 <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
@@ -3094,25 +3185,25 @@ const handleAugmentPick = (aug, historyContext) => {
 
             {/* サイオニック */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#4caf5033', border: '3px solid #4caf50', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: isLandscapeMobile ? 4 : 8, background: '#4caf5033', border: '3px solid #4caf50', borderRadius: 8, padding: isLandscapeMobile ? '2px 8px' : '4px 12px', cursor: 'help' }}
               title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
             >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Psionic')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ width: isLandscapeMobile ? 22 : 28, height: isLandscapeMobile ? 22 : 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Psionic')} style={{ width: isLandscapeMobile ? 12 : 16, height: isLandscapeMobile ? 12 : 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
               </div>
               <div>
                 <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
                 <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: isLandscapeMobile ? 12 : 14, height: isLandscapeMobile ? 12 : 14, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: isLandscapeMobile ? 12 : 14, height: isLandscapeMobile ? 12 : 14, borderRadius: 2 }} />
                 </div>
               </div>
             </div>
 
             {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
-              <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:8,padding:'4px 12px'}}>
-                <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
+              <div style={{display:'flex',alignItems:'center',gap:isLandscapeMobile ? 4 : 8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:8,padding:isLandscapeMobile ? '2px 8px' : '4px 12px'}}>
+                <div style={{width:isLandscapeMobile ? 22 : 28,height:isLandscapeMobile ? 22 : 28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
                   {(() => {
                     let encChamp = CHAMPS.find(c => c.id === encounter.id);
                     if (!encChamp) {
@@ -3136,7 +3227,7 @@ const handleAugmentPick = (aug, historyContext) => {
           {/* ステージ番号 */}
           <div style={{ 
             fontFamily: 'Orbitron', 
-            fontSize: isLandscapeMobile ? '20px' : '32px', 
+            fontSize: isLandscapeMobile ? '20px' : '32px',
             fontWeight: 900, 
             color: '#3399ff', 
             letterSpacing: '4px',
@@ -3160,8 +3251,8 @@ const handleAugmentPick = (aug, historyContext) => {
             {round !== '1-1' && (
               <>
                 {encounterGods[0] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[0].color}33`,border:`3px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[0]} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white'}} />
+                  <div style={{display:'flex',alignItems:'center',gap:isLandscapeMobile ? 4 : 8,background:`${encounterGods[0].color}33`,border:`3px solid ${encounterGods[0].color}`,borderRadius:8,padding:isLandscapeMobile ? '2px 8px' : '4px 12px'}}>
+                    <GodImg god={encounterGods[0]} type="icon" style={{width:isLandscapeMobile ? 22 : 28,height:isLandscapeMobile ? 22 : 28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
@@ -3169,8 +3260,8 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 )}
                 {encounterGods[1] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[1].color}33`,border:`3px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[1]} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white'}} />
+                  <div style={{display:'flex',alignItems:'center',gap:isLandscapeMobile ? 4 : 8,background:`${encounterGods[1].color}33`,border:`3px solid ${encounterGods[1].color}`,borderRadius:8,padding:isLandscapeMobile ? '2px 8px' : '4px 12px'}}>
+                    <GodImg god={encounterGods[1]} type="icon" style={{width:isLandscapeMobile ? 22 : 28,height:isLandscapeMobile ? 22 : 28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white'}} />
                     <div>
                       <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
                       <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
@@ -3223,6 +3314,26 @@ const handleAugmentPick = (aug, historyContext) => {
             </div>
             {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg1)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
             {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:6, border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
+            
+            {/* デバッグ用: ドロッププラン表示 */}
+            <div style={{ marginTop: 10, background: 'rgba(0,0,0,0.5)', padding: 6, borderRadius: 4, fontSize: 9, color: 'var(--textdim)', border: '1px solid var(--border)' }}>
+              <div style={{ color: 'var(--blue)', fontWeight: 900, marginBottom: 4, letterSpacing: 1 }}>[DEBUG] ドロップ予定</div>
+              {(() => {
+                const total = { comp: 0, GRAY: 0, BLUE: 0 };
+                Object.values(dropPlan).flat().forEach(d => total[d] = (total[d] || 0) + 1);
+                return (
+                  <div style={{ marginBottom: 4, color: 'var(--gold2)', fontWeight: 700 }}>
+                    全体: 素材{total.comp} / 灰{total.GRAY} / 青{total.BLUE}
+                  </div>
+                );
+              })()}
+              {['1-2', '1-3', '1-4'].map(r => (
+                <div key={r} style={{ display: 'flex', gap: 4, marginBottom: 2 }}>
+                  <span style={{ color: 'white', fontWeight: 700, width: 22, flexShrink: 0 }}>{r}</span>
+                  <span style={{ flex: 1, wordBreak: 'break-all', lineHeight: 1.2 }}>{dropPlan[r]?.map(d => d === 'comp' ? '素' : d === 'GRAY' ? '灰' : '青').join(', ') || 'なし'}</span>
+                </div>
+              ))}
+            </div>
           </div>
           {/* アイテム欄 */}
           <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>
@@ -3362,8 +3473,8 @@ const handleAugmentPick = (aug, historyContext) => {
           <div 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 42 : 54,
+              height: isLandscapeMobile ? 42 : 54,
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: `3px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
@@ -3395,8 +3506,8 @@ const handleAugmentPick = (aug, historyContext) => {
             onDrop={hDrop('bench', i)} 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 42 : 54,
+              height: isLandscapeMobile ? 42 : 54,
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: champ ? `3px solid ${COST_COLORS[champ.cost]}` : `1px solid var(--border)`,
