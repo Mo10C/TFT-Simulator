@@ -3240,27 +3240,7 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
-            {/* 🌟 デバッグ表示: ドロップ予定 (一番上に移動して強調) */}
-            <div style={{ marginBottom: 10, background: 'rgba(0,0,0,0.8)', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--blue)', fontSize: 10, color: 'var(--textdim)', fontFamily: 'Noto Sans JP', boxShadow: '0 0 10px rgba(26,159,255,0.2)' }}>
-              <div style={{ color: 'var(--blue)', fontWeight: 900, marginBottom: 4, letterSpacing: 1 }}>[DEBUG] ドロップ</div>
-              {(() => {
-                const total = { comp: 0, GRAY: 0, BLUE: 0 };
-                Object.values(dropPlan).flat().forEach(d => total[d] = (total[d] || 0) + 1);
-                return (
-                  <div style={{ marginBottom: 6, color: 'var(--gold2)', fontWeight: 700 }}>
-                    全体: 素{total.comp} / 灰{total.GRAY} / 青{total.BLUE}
-                  </div>
-                );
-              })()}
-              {['1-2', '1-3', '1-4'].map(r => (
-                <div key={r} style={{ display: 'flex', gap: 6, marginBottom: 2 }}>
-                  <span style={{ color: 'white', fontWeight: 700, width: 22, flexShrink: 0 }}>{r}</span>
-                  <span style={{ flex: 1, wordBreak: 'break-all', lineHeight: 1.2 }}>
-                    {dropPlan[r]?.map(d => d === 'comp' ? '素' : d === 'GRAY' ? '灰' : '青').join(', ') || 'なし'}
-                  </span>
-                </div>
-              ))}
-            </div>
+           
 
             <div style={{ background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center' }}>
               <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
