@@ -3240,8 +3240,9 @@ const handleAugmentPick = (aug, historyContext) => {
         <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
-           
+            
 
+         
             <div style={{ background:'rgba(26,159,255,.1)', border:'1px solid var(--blue)', borderRadius:6, padding:6, marginBottom:10, textAlign:'center' }}>
               <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
               <div style={{ fontSize:14, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{passiveBuffs.some(b => b.type === 'solo_leveling') ? 1 : level + teamSizeBonus}</div>
