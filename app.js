@@ -1657,14 +1657,14 @@ useEffect(() => {
     let plan;
     // BASE (95%)
     if (roll < 33.25) plan = { comp: 3, gray: 3, blue: 0 };
-    else if (roll < 66.50) plan = { comp: 3, gray: 1, blue: 0 };
+    else if (roll < 66.50) plan = { comp: 3, gray: 0, blue: 1 };
     else if (roll < 77.90) plan = { comp: 2, gray: 1, blue: 1 };
     else if (roll < 89.30) plan = { comp: 2, gray: 2, blue: 1 };
     else if (roll < 95.00) plan = { comp: 1, gray: 1, blue: 2 };
     // HIGH (5%)
     else if (roll < 96.15) plan = { comp: 5, gray: 3, blue: 0 };
-    else if (roll < 97.30) plan = { comp: 5, gray: 1, blue: 0 };
-    else if (roll < 98.20) plan = { comp: 4, gray: 1, blue: 0 };
+    else if (roll < 97.30) plan = { comp: 5, gray: 0, blue: 1 };
+    else if (roll < 98.20) plan = { comp: 4, gray: 0, blue: 1 };
     else if (roll < 99.10) plan = { comp: 3, gray: 0, blue: 2 };
     else plan = { comp: 3, gray: 5, blue: 0 };
 
