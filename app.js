@@ -1154,6 +1154,7 @@ function App({ seed, onRestart, onNewGame }) {
   const [showArbiterPopup, setShowArbiterPopup] = useState(false);
   const [arbiterStep, setArbiterStep] = useState('cause');
   const [tempCause, setTempCause] = useState(null);
+  const [tempEffect, setTempEffect] = useState(null); // 🌟 これが抜けていたためクラッシュしていました
 
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [mfTargetUid, setMfTargetUid] = useState(null);
@@ -1709,8 +1710,8 @@ useEffect(() => {
     if (shuffled.length > 0) drops['1-3'].push(shuffled.pop());
     if (shuffled.length > 0) drops['1-4'].push(shuffled.pop());
 
-    // 残りをランダムなラウンド(1-2, 1-3, 1-4)に振り分ける
-    const rounds = ['1-2', '1-3', '1-4'];
+    // 残りをランダムなラウンド(1-3, 1-4)に振り分ける（1-2は確定枠のみにする）
+    const rounds = ['1-3', '1-4'];
     while (shuffled.length > 0) {
       const targetRound = rounds[Math.floor(rngDrop() * rounds.length)];
       drops[targetRound].push(shuffled.pop());
@@ -2896,19 +2897,12 @@ const handleAugmentPick = (aug, historyContext) => {
                     key={`effect-${i}`} 
                     onClick={() => {
                       if (!isEnabled) return; // 有効でなければ何もしない
-                      setArbiterRule({ cause: tempCause, effect: opt }); // 決定！
-                      setShowArbiterPopup(false);
-                      showMsg(
-                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ fontSize:18 }}>⚖️</span>
-                          <span>掟が決定しました</span>
-                        </div>
-                      );
+                      setTempEffect(opt); // 🌟 即決定せず、選択状態（青枠）にする
                     }} 
                     style={{ 
                       width: isLandscapeMobile ? 200 : 240, height: isLandscapeMobile ? 70 : 80, 
-                      background: 'rgba(15,23,42,0.6)', 
-                      border: `2px solid ${isEnabled ? 'var(--gold)' : 'var(--border)'}`, 
+                      background: (tempEffect?.id === opt.id) ? 'var(--blue)' : 'rgba(15,23,42,0.6)', 
+                      border: `2px solid ${(tempEffect?.id === opt.id) ? 'white' : (isEnabled ? 'var(--gold)' : 'var(--border)')}`, 
                       borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
                       cursor: isEnabled ? 'pointer' : 'not-allowed', 
                       padding: '15px', textAlign: 'center', 
@@ -2916,10 +2910,11 @@ const handleAugmentPick = (aug, historyContext) => {
                       fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
                       transition: 'all 0.2s', 
                       opacity: isEnabled ? 1 : 0.4, // 選べない時は暗くする
-                      boxShadow: isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'
+                      boxShadow: (tempEffect?.id === opt.id) ? '0 0 20px var(--blue)' : (isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'),
+                      transform: (tempEffect?.id === opt.id) ? 'scale(1.05)' : 'scale(1)'
                     }} 
-                    onMouseEnter={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
-                    onMouseLeave={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
+                    onMouseEnter={e => { if(isEnabled && tempEffect?.id !== opt.id) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
+                    onMouseLeave={e => { if(isEnabled && tempEffect?.id !== opt.id) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
                   >
                     {opt.text}
                   </div>
