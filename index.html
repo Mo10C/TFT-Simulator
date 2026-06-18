@@ -9,8 +9,17 @@
 <link rel="icon" href="favicon.ico" type="image/x-icon">
 <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- 🌟 Babelをバージョン固定（未固定だと自動更新で壊れる）。8系で従来のJSX変換に固定する -->
+<script src="https://unpkg.com/@babel/standalone@8.0.1/babel.min.js"></script>
+<script>
+  // 🌟 JSXを classic ランタイム（React.createElement）に強制。
+  //    これをしないと Babel 8 既定の automatic ランタイムが import 文を出力し、
+  //    「Cannot use import statement outside a module」で全画面が真っ白になる。
+  Babel.registerPreset('jsx-classic', {
+    presets: [[Babel.availablePresets.react, { runtime: 'classic' }]],
+  });
+</script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 
 
@@ -25,9 +34,9 @@
 <script src="data-items.js"></script>
 <script src="data-encounters.js"></script>
 <!-- augments は内部に JSX を含むため Babel で変換 -->
-<script type="text/babel" src="data-augments.js"></script>
+<script type="text/babel" data-presets="jsx-classic" src="data-augments.js"></script>
 
 <!-- アプリ本体（JSX を含むため Babel で変換） -->
-<script type="text/babel" src="app.js"></script>
+<script type="text/babel" data-presets="jsx-classic" src="app.js"></script>
 </body>
 </html>
