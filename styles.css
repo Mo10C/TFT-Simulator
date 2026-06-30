@@ -236,3 +236,31 @@ html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sa
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 .asset-icon-wrapper img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+
+/* ============================================================
+   📱 スマホ・タブレット横向き専用 UI (Landscape Only)
+   ============================================================ */
+
+/* 縦向き（ポートレート）時に警告を表示して操作をロック */
+@media screen and (orientation: portrait) {
+  body::after {
+    content: "画面を横向きにしてください\A (Please rotate your device)";
+    white-space: pre-wrap;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: var(--bg0); color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; font-weight: bold; text-align: center;
+    z-index: 99999;
+  }
+}
+
+/* 全体のコンテナを画面いっぱい（フルブリード）に固定。
+   ※ html/body/#root に padding:env(safe-area-inset-*) を入れると
+     #root が width:100vw を持つため、ノッチ側のパディング分だけ中身が右へはみ出し
+     「左側が空白・画面が右に寄る」状態になる。
+     セーフエリアは各端の要素（左サイドバー等）に内側パディングとして個別付与する。 */
+html, body, #root {
+  height: 100vh; width: 100vw;
+  overflow: hidden;
+  background: var(--bg0);
+}

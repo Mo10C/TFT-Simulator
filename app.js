@@ -1645,6 +1645,18 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
     return () => { window.removeEventListener('resize', onResize); window.removeEventListener('orientationchange', onResize); };
   }, []);
   const isLandscapeMobile = windowSize.h <= 500;
+  // 横向きスマホ時のヘッダー用コンパクトサイズ
+  const hIco      = isLandscapeMobile ? 18 : 28;          // カード内の丸アイコン
+  const hImg      = isLandscapeMobile ? 12 : 16;          // 丸アイコン内の特性画像
+  const hItemImg  = isLandscapeMobile ? 11 : 14;          // サイオニックのアイテム画像
+  const hCardPad  = isLandscapeMobile ? '2px 5px' : '4px 12px';
+  const hCardBd   = isLandscapeMobile ? 2 : 3;            // カード枠線
+  const hLabFont  = isLandscapeMobile ? 7 : 8;            // 小ラベル
+  const hValFont  = isLandscapeMobile ? 9 : 10;           // 値テキスト
+  const hCardGap  = isLandscapeMobile ? 5 : 8;            // カード内 アイコン↔テキスト
+  const hSideW    = isLandscapeMobile ? 'auto' : 420;     // 中央左右グループの幅
+  const hSidePad  = isLandscapeMobile ? 6 : 20;           // 左右グループの内側パディング
+  const hGroupGap = isLandscapeMobile ? 5 : 8;            // グループ内カード間
 
 
   // シード値を基準に各カテゴリから1つずつ、指定の順序で抽出
@@ -3585,8 +3597,8 @@ const handleAugmentPick = (aug, historyContext) => {
       }}>
         
         {/* 左側：シード値と今回の変動要素 */}
-        <div style={{ position: 'absolute', left: 20, display: 'flex', alignItems: 'center', gap: 15 }}>
-          <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
+        <div style={{ position: 'absolute', left: isLandscapeMobile ? 'max(8px, env(safe-area-inset-left))' : 20, display: 'flex', alignItems: 'center', gap: 15 }}>
+          <div style={{ fontFamily: 'Orbitron', fontWeight: 900, fontSize: isLandscapeMobile ? 9 : 12, color: 'var(--textdim)', opacity: 0.6, letterSpacing: 1 }}>
             SEED: {seed}
           </div>
         </div>
@@ -3603,43 +3615,43 @@ const handleAugmentPick = (aug, historyContext) => {
         }}>
           
           {/* 左側: 星の観測者 ＋ サイオニック ＋ 遭遇 */}
-          <div style={{ width: 420, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: 20, gap: 8 }}>
+          <div style={{ width: hSideW, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: hSidePad, gap: hGroupGap }}>
             
             {/* 星の観測者 */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#c46bff33', border: '3px solid #c46bff', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: hCardGap, background: '#c46bff33', border: `${hCardBd}px solid #c46bff`, borderRadius: 8, padding: hCardPad, cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
             >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Stargazer')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ width: hIco, height: hIco, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Stargazer')} style={{ width: hImg, height: hImg, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
               </div>
               <div>
-                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
-                <div style={{ fontSize: 10, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
+                <div style={{ fontSize: hLabFont, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
+                <div style={{ fontSize: hValFont, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
               </div>
             </div>
 
             {/* サイオニック */}
             <div 
-              style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#4caf5033', border: '3px solid #4caf50', borderRadius: 8, padding: '4px 12px', cursor: 'help' }}
+              style={{ display: 'flex', alignItems: 'center', gap: hCardGap, background: '#4caf5033', border: `${hCardBd}px solid #4caf50`, borderRadius: 8, padding: hCardPad, cursor: 'help' }}
               title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
             >
-              <div style={{ width: 28, height: 28, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Psionic')} style={{ width: 16, height: 16, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
+              <div style={{ width: hIco, height: hIco, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
+                <img src={getTraitIconUrl('Psionic')} style={{ width: hImg, height: hImg, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
               </div>
               <div>
-                <div style={{ fontSize: 8, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
+                <div style={{ fontSize: hLabFont, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
                 <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: 14, height: 14, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: hItemImg, height: hItemImg, borderRadius: 2 }} />
+                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: hItemImg, height: hItemImg, borderRadius: 2 }} />
                 </div>
               </div>
             </div>
 
             {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
-              <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounter.color}33`,border:`3px solid ${encounter.color}`,borderRadius:8,padding:'4px 12px'}}>
-                <div style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`}}>
+              <div style={{display:'flex',alignItems:'center',gap:hCardGap,background:`${encounter.color}33`,border:`${hCardBd}px solid ${encounter.color}`,borderRadius:8,padding:hCardPad}}>
+                <div style={{width:hIco,height:hIco,borderRadius:'50%',border:`2px solid ${encounter.color}`,display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:`${encounter.color}22`,flexShrink:0}}>
                   {(() => {
                     let encChamp = CHAMPS.find(c => c.id === encounter.id);
                     if (!encChamp) {
@@ -3649,12 +3661,12 @@ const handleAugmentPick = (aug, historyContext) => {
                     if (!encChamp) {
                       encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                     }
-                    return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
+                    return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: hImg }}>{encounter.icon}</span>;
                   })()}
                 </div>
                 <div>
-                  <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
-                  <div style={{fontSize:10,fontWeight:900,color:encounter.color,lineHeight:1.1}}>{encounter.champ}</div>
+                  <div style={{fontSize:hLabFont,color:'var(--textdim)',marginBottom:1}}>遭遇</div>
+                  <div style={{fontSize:hValFont,fontWeight:900,color:encounter.color,lineHeight:1.1}}>{encounter.champ}</div>
                 </div>
               </div>
             )}
@@ -3666,12 +3678,12 @@ const handleAugmentPick = (aug, historyContext) => {
             fontSize: isLandscapeMobile ? '20px' : '32px', 
             fontWeight: 900, 
             color: '#3399ff', 
-            letterSpacing: '4px',
+            letterSpacing: isLandscapeMobile ? '2px' : '4px',
             textShadow: '0 0 15px rgba(26,159,255,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: 15,
+            gap: isLandscapeMobile ? 8 : 15,
             flexShrink: 0
           }}>
             {round}
@@ -3683,24 +3695,24 @@ const handleAugmentPick = (aug, historyContext) => {
           </div>
 
           {/* 右側: 神1 & 神2 (1-2以降) */}
-          <div style={{ width: 420, display: 'flex', justifyContent: 'flex-start', paddingLeft: 20, gap: 10 }}>
+          <div style={{ width: hSideW, display: 'flex', justifyContent: 'flex-start', paddingLeft: hSidePad, gap: hGroupGap }}>
             {round !== '1-1' && (
               <>
                 {encounterGods[0] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[0].color}33`,border:`3px solid ${encounterGods[0].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[0]} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white'}} />
+                  <div style={{display:'flex',alignItems:'center',gap:hCardGap,background:`${encounterGods[0].color}33`,border:`${hCardBd}px solid ${encounterGods[0].color}`,borderRadius:8,padding:hCardPad}}>
+                    <GodImg god={encounterGods[0]} type="icon" style={{width:hIco,height:hIco,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
                     <div>
-                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      <div style={{fontSize:10,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
+                      <div style={{fontSize:hLabFont,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      <div style={{fontSize:hValFont,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
                     </div>
                   </div>
                 )}
                 {encounterGods[1] && (
-                  <div style={{display:'flex',alignItems:'center',gap:8,background:`${encounterGods[1].color}33`,border:`3px solid ${encounterGods[1].color}`,borderRadius:8,padding:'4px 12px'}}>
-                    <GodImg god={encounterGods[1]} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white'}} />
+                  <div style={{display:'flex',alignItems:'center',gap:hCardGap,background:`${encounterGods[1].color}33`,border:`${hCardBd}px solid ${encounterGods[1].color}`,borderRadius:8,padding:hCardPad}}>
+                    <GodImg god={encounterGods[1]} type="icon" style={{width:hIco,height:hIco,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
                     <div>
-                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      <div style={{fontSize:10,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
+                      <div style={{fontSize:hLabFont,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
+                      <div style={{fontSize:hValFont,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
                     </div>
                   </div>
                 )}
@@ -3711,7 +3723,7 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
 
         {/* 右側：ボタン類（変更なし） */}
-        <div style={{ position: 'absolute', right: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ position: 'absolute', right: isLandscapeMobile ? 'max(8px, env(safe-area-inset-right))' : 20, display: 'flex', alignItems: 'center', gap: isLandscapeMobile ? 6 : 10 }}>
 
           {freeRerolls > 0 && (
             <div style={{ background:'rgba(0,229,192,0.15)', border:'1px solid var(--teal)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--teal)', fontWeight:700 }}>
@@ -3721,18 +3733,18 @@ const handleAugmentPick = (aug, historyContext) => {
 
           <button 
             onClick={() => setShowTierList(true)}
-            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
+            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
             title="ティアリスト"
           >
-            📊 ティアリスト
+            {isLandscapeMobile ? '📊' : '📊 ティアリスト'}
           </button>
 
           <button 
             onClick={() => setShowAssetDrawer(true)}
-            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
+            style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
             title="チート"
           >
-            🎒 チート
+            {isLandscapeMobile ? '🎒' : '🎒 チート'}
           </button>
 
 
@@ -3742,7 +3754,7 @@ const handleAugmentPick = (aug, historyContext) => {
       {/* メインエリア */}
       <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
-        <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0 }}>
+        <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0, paddingLeft:'env(safe-area-inset-left)' }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
             
@@ -3831,7 +3843,8 @@ const handleAugmentPick = (aug, historyContext) => {
           padding: isLandscapeMobile ? '8px 3px' : '15px 5px',
           gap: isLandscapeMobile ? 10 : 20,
           overflowY: 'auto',
-          flexShrink: 0
+          flexShrink: 0,
+          paddingRight: 'env(safe-area-inset-right)'
         }}>
           <div style={{ fontSize: 9, color: 'var(--gold2)', fontWeight: 900, marginBottom: 5, textAlign: 'center', fontFamily:'Noto Sans JP' }}>AUGMENTS</div>
           
@@ -3972,7 +3985,7 @@ const handleAugmentPick = (aug, historyContext) => {
       {/* ショップ */}
       {/* ショップエリア */}
      {/* 🌟 ショップ・NEXTボタン エリア 🌟 */}
-      <div className="sp-shop-area" style={{ height: isLandscapeMobile ? 108 : 140, background:'var(--bg-panel)', borderTop:'2px solid var(--border)', display:'flex', flexShrink:0, position: 'relative' }}>
+      <div className="sp-shop-area" style={{ height: isLandscapeMobile ? 108 : 140, background:'var(--bg-panel)', borderTop:'2px solid var(--border)', display:'flex', flexShrink:0, position: 'relative', paddingLeft:'env(safe-area-inset-left)', paddingRight:'env(safe-area-inset-right)' }}>
         
         {/* 左側〜中央：ショップ内容（ドロップ判定はここに残す） */}
         <div onDragOver={e => e.preventDefault()} onDrop={hDrop('shop', -1)} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -4079,8 +4092,8 @@ const handleAugmentPick = (aug, historyContext) => {
               </div>
 
               {/* 操作エリア（XP・リロール・チャンピオン枠） */}
-              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:12, padding:'0 20px', height:'100%' }}>
-                <div style={{ display:'flex', flexDirection:'column', gap:6, width:130, flexShrink:0 }}>
+              <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap: isLandscapeMobile ? 8 : 12, padding: isLandscapeMobile ? '0 8px' : '0 20px', height:'100%' }}>
+                <div style={{ display:'flex', flexDirection:'column', gap:6, width: isLandscapeMobile ? 104 : 130, flexShrink:0 }}>
                   {/* XP購入ボタン */}
                   <button
                     disabled={passiveBuffs.some(b => b.type === 'wise_spending')}
@@ -4111,7 +4124,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
 
                 {/* チャンピオン枠 */}
-                <div style={{ display:'flex', gap:8, height:'100%', padding:'8px 0' }}>
+                <div style={{ display:'flex', gap: isLandscapeMobile ? 5 : 8, height:'100%', padding:'8px 0', flex: isLandscapeMobile ? '1 1 0' : '0 0 auto', minWidth: 0, justifyContent:'center', alignItems: isLandscapeMobile ? 'center' : 'stretch' }}>
                   {shop.map((champ, i) => (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
@@ -4125,7 +4138,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         setGold(g => g - unit.cost); setShop(ns);
                         setBench(nb);
                       }}
-                      style={{ height:'100%', aspectRatio:'400/237', flexShrink:0, borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
+                      style={{ ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }), borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
                           <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
