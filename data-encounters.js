@@ -27,8 +27,21 @@ const ENCOUNTERS = [
   { id:'lissandra', champ:'リサンドラ', jaName:'ハウリングアビス', prob:7.3,
     desc:'ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。',
     icon:'🌉', color:'#5b6cff',
-    effect:(s,rng,h)=>{
-      h.addUniqueChampsToBench(1, 5, rng);
+    effect:(s,rng,h)=>{ 
+      const pool = CHAMPS.filter(c => c.cost === 1);
+      const tempPool = [...pool];
+      const chosen = [];
+      for (let i = 0; i < 5; i++) {
+        if (tempPool.length === 0) break;
+        const idx = Math.floor(rng() * tempPool.length);
+        chosen.push({ ...tempPool.splice(idx, 1)[0], star: 1, uid: rng(), items: [] });
+      }
+      if (h.addChampToBoardDirect) {
+        h.addChampToBoardDirect(chosen[0]);
+        for (let i = 1; i < chosen.length; i++) h.addChampToBenchDirect(chosen[i]);
+      } else {
+        chosen.forEach(c => h.addChampToBenchDirect(c));
+      }
       h.showMsg('🌉 リサンドラ: 異なる1コストを5体獲得！'); 
     } 
   },

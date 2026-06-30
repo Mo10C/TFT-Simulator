@@ -2331,19 +2331,19 @@ useEffect(() => {
   };
 
   // レベルアップ処理（addXpの安定版）
-  const applyXp = useCallback((amount, curLevel, curXp) => {
-      let lv = curLevel;
-      let x = curXp + amount;
-      while (x >= (XP_FOR_NEXT_LEVEL[lv] || 999) && lv < 9) {
-          x -= XP_FOR_NEXT_LEVEL[lv];
-          lv++;
-      }
-      return { level: lv, xp: x };
-  }, []); // この関数はstateに依存しないため、空のままでOK
+  const applyXp = (amount, curLevel, curXp) => {
+    let lv = curLevel;
+    let x = curXp + amount;
+    while (x >= (XP_FOR_NEXT_LEVEL[lv] || 999) && lv < 9) {
+      x -= XP_FOR_NEXT_LEVEL[lv];
+      lv++;
+    }
+    return { level: lv, xp: x };
+  };
 
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const handleNextRound = useCallback((forcedRound) => {
+  const handleNextRound = (forcedRound) => {
     if (isTransitioning) return;
 
     const currentR = forcedRound || round;
@@ -2433,9 +2433,9 @@ useEffect(() => {
         setIsTransitioning(false);
       }, 800);
     }
-  }, [isTransitioning, round, phase, encounter, introStep, rngMisc, augmentHelpers, triggerDrops, processRoundStart]);
+  };
 
-  const processRoundStart = useCallback((nextR, currentR) => {
+  const processRoundStart = (nextR, currentR) => {
     // 🌟 ゾーイの遭遇「ゴールドのサブスク」: ステージ2以降、各ステージ開始時にゴールド獲得
     if (passiveBuffs.some(b => b.type === 'gold_subscription')) {
       const stageNum = parseInt(nextR.split('-')[0]);
@@ -2530,7 +2530,7 @@ useEffect(() => {
       addFreeRerolls(encounter.freeRerollsAt21);
       showMsg(`🎲 ${encounter.champ}: 無料リロール +${encounter.freeRerollsAt21}！`);
     }
-  }, [afkRoundsLeft, passiveBuffs, maxInterest, level, xp, noMoreAugments, encounter, rngEnc, rngMisc, applyXp, addChampToBenchDirect, addFreeRerolls, showMsg]);
+  };
 
 const handleAugmentPick = (aug, historyContext) => {
   // 🌟 augデータの中に history オブジェクトとして文脈データをまるごと保存
