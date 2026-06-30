@@ -2436,6 +2436,16 @@ useEffect(() => {
   };
 
   const processRoundStart = (nextR, currentR) => {
+    // 🌟 ゾーイの遭遇「ゴールドのサブスク」: ステージ2以降、各ステージ開始時にゴールド獲得
+    if (passiveBuffs.some(b => b.type === 'gold_subscription')) {
+      const stageNum = parseInt(nextR.split('-')[0]);
+      if (stageNum >= 2) {
+        const g = 2 + Math.floor(rngEnc() * 5); // 2-6G
+        setGold(prev => prev + g);
+        showMsg(`💳 ゴールドのサブスク: ${g}G 獲得！`);
+      }
+    }
+
     if (afkRoundsLeft > 0) {
       const newLeft = afkRoundsLeft - 1;
       setAfkRoundsLeft(newLeft);

@@ -71,9 +71,9 @@ const ENCOUNTERS = [
     effect:(s,rng,h)=>{ h.setXpCostReduction(2); h.showMsg('🎵 ソナ: XPコスト -2！'); } },
 
   { id:'zoe', champ:'ゾーイ', jaName:'ゴールドのサブスク', prob:4.9,
-    desc:'毎ステージ、ランダムな量のゴールドを獲得する。全プレイヤーが同じ量のゴールドを獲得する。',
+    desc:'ステージ2以降、毎ステージ開始時に2〜6ゴールドを獲得する。全プレイヤーが同じ量のゴールドを獲得する。',
     icon:'💳', color:'#ffd76e',
-    effect:(s,rng,h)=>{ const g=2+Math.floor(rng()*5); h.addGold(g); h.showMsg(`💳 ゾーイ: ${g}G 獲得！`); } },
+    effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'gold_subscription' }); h.showMsg('💳 ゾーイ: ゴールドのサブスクが有効になりました！'); } },
 
   { id:'graves', champ:'グレイブス', jaName:'プリズム フィナーレ', prob:4.9,
     desc:'この試合で最後に提示されるオーグメントがプリズムティアになる。',
