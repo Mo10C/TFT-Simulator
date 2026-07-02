@@ -39,7 +39,26 @@ const DEFAULT_OVERRIDES = {
   stargazer: null,    // stargazerVariants の index
   psionic: null,      // [name(初手), name(2手目)]
   augmentTier: null,  // 'silver' | 'gold' | 'prismatic'
-  dropPlanIndex: null // DROP_PLANS の index
+  dropPlanIndex: null,// DROP_PLANS の index
+  // 🌟 ドロップ設定：オーブごとのラウンド指定・内容指定
+  //   { planIndex, orbs:[{ round, outcome, champs:[champId...], compId }] }
+  //   orbs の並びは comp×n → GRAY×n → BLUE×n（選択中プランの構成と同順）
+  //   planIndex が dropPlanIndex と一致する時のみ有効。
+  dropConfig: null,
+  // 🌟 ショップ指定：各ラウンド開始時のショップ5枠を固定
+  //   { '1-2':[champId|null ×5], '1-3':[...], '1-4':[...], '2-1':[...] }
+  //   null枠はランダム（従来通り）。リロール後のショップには適用されない。
+  shopPicks: null,
+  // 🌟 チート：2-1で提示されるオーグメントを任意指定
+  //   { initial:[id|null,id|null,id|null], reroll:[id|null,id|null,id|null] }
+  //   initial = 最初に出る3枠 / reroll = 各枠を再抽選したとき最初に出る3枠。
+  //   null または各要素null＝その枠はランダム（従来通り）。ティアはまたいで指定可。
+  augmentPicks: null,
+  // 🌟 チート：ドロップの順番と内容を任意指定
+  //   { sequence: [ { orb:'comp'|'GRAY'|'BLUE', outcome:string|null, champs:[id|null,..]|null, itemId:string|null } ] }
+  //   sequence があれば dropPlanIndex のプランに代わり、この順番・内容でドロップする。
+  //   outcome/champs/itemId が null の部分は従来通りランダム。
+  dropSetup: null
 };
 const OVERRIDE_STORAGE_KEY = 'tft_set17_overrides_v1';
 function loadOverrides() {
@@ -67,6 +86,36 @@ const DROP_PLANS = [
   { label: '【HIGH】素材3 / 灰0 / 青2', plan: { comp: 3, gray: 0, blue: 2 } },
   { label: '【HIGH】素材3 / 灰5 / 青0', plan: { comp: 3, gray: 5, blue: 0 } },
 ];
+
+// 🌟 ドロップ設定UI用のアイコン（metatft CDN）
+const DROP_ICONS = {
+  comp: 'https://cdn.metatft.com/file/metatft/items/assistrandomcomponent.png',
+  gold: 'https://cdn.metatft.com/file/metatft/items/assistgivegold.png',
+  c1:   'https://cdn.metatft.com/file/metatft/items/doubleup_assistarmory_champ_1c.png',
+  c2:   'https://cdn.metatft.com/file/metatft/items/doubleup_assistarmory_champ_2c.png',
+  c3:   'https://cdn.metatft.com/file/metatft/items/doubleup_assistarmory_champ_3c.png',
+};
+
+// 🌟 オーブ内容の選択肢（executeOrbDrop の抽選テーブルと1:1対応）
+//    champs: 指定可能なチャンピオン枠のコスト配列
+//    icons: 表示用アイコン。DROP_ICONS のキー、またはmetatftアイテム名
+const ORB_OUTCOMES = {
+  GRAY: [
+    { id: 'g_1c2',     label: '1コスト×2体',            champs: [1, 1], icons: ['c1', 'c1'] },
+    { id: 'g_2c1',     label: '2コスト×1体',            champs: [2],    icons: ['c2'] },
+    { id: 'g_reforge', label: '再合成 + 2G',            champs: [],     icons: ['Reforger', 'gold'] },
+    { id: 'g_remover', label: '除去装置 + 2G',          champs: [],     icons: ['itemremover', 'gold'] },
+    { id: 'g_dupe',    label: '小型複製機',             champs: [],     icons: ['Lesser Champion Duplicator'] },
+  ],
+  BLUE: [
+    { id: 'b_3c2',       label: '3コスト×2体',              champs: [3, 3],    icons: ['c3', 'c3'] },
+    { id: 'b_3c1g',      label: '3コスト×1体 + 3G',         champs: [3],       icons: ['c3', 'gold'] },
+    { id: 'b_2c3',       label: '2コスト×3体',              champs: [2, 2, 2], icons: ['c2', 'c2', 'c2'] },
+    { id: 'b_dupe_2c2',  label: '小型複製機 + 2コスト×2体', champs: [2, 2],    icons: ['Lesser Champion Duplicator', 'c2', 'c2'] },
+    { id: 'b_reforge',   label: '再合成 + 6G',              champs: [],        icons: ['Reforger', 'gold'] },
+    { id: 'b_cdupe_3c1', label: '複製機 + 3コスト×1体',     champs: [3],       icons: ['Champion Duplicator', 'c3'] },
+  ],
+};
 
 // 星の観測者の星座名（短縮ラベル）を取り出す
 function stargazerShort(v) {
@@ -237,6 +286,93 @@ function rollShop(level, rng){
   });
 }
 
+/* ── 🎬 振り返り: 前後スナップショットの差分からアクション名を生成 ── */
+function describeReplayDiff(prev, cur) {
+  if (!prev) return '🏁 ゲーム開始';
+
+  // ユニットを uid → unit のマップに（盤面＋ベンチ）
+  const unitMap = (s) => {
+    const m = new Map();
+    [...s.board, ...s.bench].forEach(u => { if (u && !u.isAnvil && u.uid != null) m.set(u.uid, u); });
+    return m;
+  };
+  const pm = unitMap(prev), cm = unitMap(cur);
+  const added = [], removed = [];
+  cm.forEach((u, uid) => { if (!pm.has(uid)) added.push(u); });
+  pm.forEach((u, uid) => { if (!cm.has(uid)) removed.push(u); });
+
+  const goldDiff = cur.gold - prev.gold;
+  const labels = [];
+
+  // ラウンド進行（最優先で単独表示）
+  if (cur.round !== prev.round) return `📅 ラウンド ${cur.round} 開始`;
+  if (cur.phase !== prev.phase) return cur.phase === 'drop' ? '📦 アイテムドロップ' : '▶ フェーズ再開';
+
+  // オーグメント選択
+  if (cur.augments.length > prev.augments.length) {
+    const a = cur.augments[cur.augments.length - 1];
+    return `${a.icon || '✨'} オーグメント選択: ${a.name}`;
+  }
+
+  // ★昇格（同idで星が上がったユニットが追加され、複数消えた）
+  const merged = added.find(u => removed.some(r => r.id === u.id && r.star < u.star));
+  if (merged) labels.push(`⭐ ${merged.jaName}が★${merged.star}に昇格`);
+
+  // 購入（ゴールド減 ＋ ユニット追加）
+  const bought = added.filter(u => !merged || u.uid !== merged.uid);
+  if (goldDiff < 0 && bought.length > 0 && !merged) {
+    labels.push(`🛒 ${bought.map(u => u.jaName).join('・')}を購入`);
+  } else if (bought.length > 0 && !merged && goldDiff >= 0) {
+    labels.push(`🎁 ${bought.map(u => u.jaName).join('・')}を獲得`);
+  }
+
+  // 売却（ユニット減 ＋ ゴールド増）
+  const sold = removed.filter(u => !merged || u.id !== merged.id);
+  if (sold.length > 0 && goldDiff > 0 && !merged) {
+    labels.push(`💰 ${sold.map(u => u.jaName).join('・')}を売却`);
+  }
+
+  // アイテム装備（同一ユニットの items 数が増えた）
+  let equipped = null;
+  cm.forEach((u, uid) => {
+    const p = pm.get(uid);
+    if (p && (u.items || []).length > (p.items || []).length) {
+      const newIt = (u.items || [])[(u.items || []).length - 1];
+      equipped = `🔧 ${u.jaName}に${newIt?.jaName || newIt?.name || 'アイテム'}を装備`;
+    }
+  });
+  if (equipped) labels.push(equipped);
+
+  // アイテム獲得/消費
+  if (cur.inventory.length > prev.inventory.length) labels.push('📦 アイテム獲得');
+  else if (cur.inventory.length < prev.inventory.length && !equipped) labels.push('🧰 アイテム使用');
+
+  // 経験値購入 / レベルアップ
+  if (cur.level > prev.level) labels.push(`📈 レベル${cur.level}に到達`);
+  else if (cur.xp > prev.xp && goldDiff < 0 && added.length === 0) labels.push('📖 経験値購入');
+
+  // リロール（ショップ内容が変化 ＋ 購入以外 ＋ G-2または無料リロール消費）
+  const shopChanged = JSON.stringify(cur.shop.map(s => s && s.uid)) !== JSON.stringify(prev.shop.map(s => s && s.uid));
+  if (shopChanged && added.length === 0 && (goldDiff === -2 || cur.freeRerolls < prev.freeRerolls)) {
+    labels.push(cur.freeRerolls < prev.freeRerolls ? '🎲 リロール（無料）' : '🎲 リロール');
+  }
+
+  // 配置変更（構成同じで位置だけ違う）
+  if (labels.length === 0 && added.length === 0 && removed.length === 0) {
+    const posChanged = cur.board.some((u, i) => (u && u.uid) !== (prev.board[i] && prev.board[i].uid))
+      || cur.bench.some((u, i) => (u && u.uid) !== (prev.bench[i] && prev.bench[i].uid));
+    if (posChanged) labels.push('↔️ 配置変更');
+  }
+
+  // ゴールドのみ変化（利子・オーグメント効果など）
+  if (labels.length === 0 && goldDiff !== 0) {
+    labels.push(goldDiff > 0 ? `🪙 ${goldDiff}G獲得` : `🪙 ${-goldDiff}G消費`);
+  }
+
+  if (labels.length === 0) return null; // 表示すべき変化なし → コマとして記録しない
+  return labels.join(' ／ ');
+}
+
 /* ── UIコンポーネント ── */
 const Stars = ({star}) => (
   <div style={{display:'flex', gap:2, justifyContent:'center', alignItems:'center'}}>
@@ -282,6 +418,165 @@ const HexCell = ({ champ, size = 78, onDragStart, onDrop, onMouseEnter, onMouseL
     </div>
   );
 };
+
+/* ── 🎬 振り返り（感想戦）ビューア ── */
+function ReplayViewer({ history, seed, onClose }) {
+  const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const total = history.length;
+  const frame = history[Math.min(idx, total - 1)] || null;
+
+  // 自動再生
+  useEffect(() => {
+    if (!playing) return;
+    const iv = setInterval(() => {
+      setIdx(i => {
+        if (i >= total - 1) { setPlaying(false); return i; }
+        return i + 1;
+      });
+    }, 900 / speed);
+    return () => clearInterval(iv);
+  }, [playing, speed, total]);
+
+  // キーボード操作（←/→/Space/Esc）
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'ArrowRight') { e.preventDefault(); setPlaying(false); setIdx(i => Math.min(total - 1, i + 1)); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); setPlaying(false); setIdx(i => Math.max(0, i - 1)); }
+      else if (e.key === ' ') { e.preventDefault(); setPlaying(p => !p); }
+      else if (e.key === 'Escape') { onClose(); }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [total, onClose]);
+
+  if (!frame) return null;
+
+  const cellStyle = (champ) => ({
+    width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)', flexShrink: 0,
+    border: `1px solid ${champ ? (champ.isAnvil ? (champ.color || 'var(--border)') : COST_COLORS[champ.cost]) : 'rgba(30,45,74,.4)'}`,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'
+  });
+  const renderMini = (champ, i) => (
+    <div key={i} style={cellStyle(champ)}>
+      {champ && (champ.isAnvil
+        ? <img src={champ.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <React.Fragment>
+            <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {(champ.items || []).map((it, k) => (<img key={k} src={getMetaTFTItemUrl(it)} style={{ width: 7, height: 7, border: '1px solid white', borderRadius: 1 }} />))}
+            </div>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.55)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
+          </React.Fragment>)}
+    </div>
+  );
+  const btn = (label, onClick, disabled = false, primary = false) => (
+    <button onClick={onClick} disabled={disabled}
+      style={{ padding: '9px 14px', borderRadius: 8, fontSize: 14, fontWeight: 900, fontFamily: 'Noto Sans JP',
+        cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.35 : 1, transition: 'all 0.12s',
+        color: primary ? '#08101a' : '#fff', background: primary ? 'var(--gold2)' : 'rgba(255,255,255,0.08)',
+        border: `1px solid ${primary ? 'var(--gold2)' : 'var(--border)'}` }}>{label}</button>
+  );
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9500, background: 'rgba(4,8,16,0.94)', backdropFilter: 'blur(6px)',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 12px', overflowY: 'auto', animation: 'fadeIn 0.25s ease' }}>
+
+      {/* 🌟 画面中央に大きく表示するメインパネル */}
+      <div style={{ width: 'min(1020px, 97vw)', maxHeight: '96vh', background: 'rgba(8,16,26,0.92)', border: '1px solid var(--border)', borderRadius: 16, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 10, boxShadow: '0 24px 80px rgba(0,0,0,0.7)', overflowY: 'auto' }}>
+
+        {/* ヘッダー：タイトル＋閉じる */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
+          <div style={{ fontFamily: 'Orbitron', fontSize: 16, fontWeight: 900, color: '#fff', letterSpacing: 3 }}>🎬 振り返り <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', letterSpacing: 1 }}>SEED: {seed}</span></div>
+          <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, background: 'rgba(220,53,69,0.7)', border: '1px solid var(--red)', color: '#fff', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>✕ 閉じる (Esc)</button>
+        </div>
+
+        {/* アクションラベル＋ステータス */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
+          <div style={{ fontSize: 15.5, fontWeight: 900, color: 'var(--gold2)', minHeight: 22 }}>{frame.label}</div>
+          <div style={{ fontFamily: 'Orbitron', fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{idx + 1} / {total}</div>
+        </div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12.5, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+          <span>📅 {frame.round}</span>
+          <span style={{ color: 'var(--gold2)' }}>🪙 {frame.gold}G</span>
+          <span>Lv.{frame.level} <span style={{ color: 'rgba(255,255,255,0.5)' }}>(XP {frame.xp})</span></span>
+          {frame.freeRerolls > 0 && <span style={{ color: '#7fd0ff' }}>🎟️ 無料リロール×{frame.freeRerolls}</span>}
+          {frame.augments.length > 0 && (
+            <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {frame.augments.map((a, i) => (<span key={i} style={{ color: TIER_COLORS[a.tier], fontSize: 11.5 }}>{a.icon || '✨'}{a.name}</span>))}
+            </span>
+          )}
+        </div>
+
+        {/* 🌟 ゲーム画面と同じ配置：左にアイテム縦列、中央に盤面→ベンチ→ショップ */}
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'flex-start', flexShrink: 0 }}>
+
+          {/* 左：アイテム縦列 */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.35)', padding: '10px 8px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', alignItems: 'center', minWidth: 48, alignSelf: 'stretch' }}>
+            <div style={{ fontSize: 9, color: 'var(--gold)', fontFamily: 'Orbitron', letterSpacing: 1 }}>ITEMS</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5, alignItems: 'center', flex: 1, flexWrap: 'wrap', justifyContent: 'flex-start', maxHeight: 340 }}>
+              {frame.inventory.length > 0 ? frame.inventory.map((it, i) => (
+                <div key={i} style={{ width: 28, height: 28, background: '#1e293b', borderRadius: 4, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                  {it?.name ? <img src={getMetaTFTItemUrl(it)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 12, display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>{it?.icon}</span>}
+                  {it?.id === 'remover' && (it.count || 1) > 1 && (
+                    <div style={{ position: 'absolute', top: -1, left: -1, background: 'var(--blue)', color: 'white', fontSize: 8, fontWeight: 900, width: 12, height: 12, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{it.count}</div>
+                  )}
+                </div>
+              )) : <div style={{ fontSize: 10, color: 'var(--textdim)', writingMode: 'vertical-rl', padding: '6px 0' }}>なし</div>}
+            </div>
+          </div>
+
+          {/* 中央：盤面 → ベンチ → ショップ */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+            {/* 盤面（大きく） */}
+            <div>
+              {[0, 1, 2, 3].map(row => (
+                <div key={row} style={{ display: 'flex', gap: 2, marginLeft: row % 2 === 1 ? 29 : 0 }}>
+                  {[0, 1, 2, 3, 4, 5, 6].map(col => <HexCell key={row * 7 + col} champ={frame.board[row * 7 + col]} size={58} />)}
+                </div>
+              ))}
+            </div>
+
+            {/* ベンチ */}
+            <div style={{ background: 'rgba(0,0,0,0.35)', padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)' }}>
+              <div style={{ fontSize: 9, color: 'var(--textdim)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center', marginBottom: 4 }}>BENCH</div>
+              <div style={{ display: 'flex', gap: 5 }}>{frame.bench.map(renderMini)}</div>
+            </div>
+
+            {/* ショップ */}
+            <div style={{ background: 'rgba(0,0,0,0.35)', padding: '6px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)' }}>
+              <div style={{ fontSize: 9, color: 'var(--blue)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center', marginBottom: 4 }}>SHOP</div>
+              <div style={{ display: 'flex', gap: 5 }}>{frame.shop.map(renderMini)}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* コントロール */}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0, marginTop: 2 }}>
+          {btn('|◀', () => { setPlaying(false); setIdx(0); }, idx === 0)}
+          {btn('◀ 前', () => { setPlaying(false); setIdx(i => Math.max(0, i - 1)); }, idx === 0)}
+          {btn(playing ? '⏸ 停止' : '▶ 再生', () => setPlaying(p => !p), idx >= total - 1 && !playing, true)}
+          {btn('次 ▶', () => { setPlaying(false); setIdx(i => Math.min(total - 1, i + 1)); }, idx >= total - 1)}
+          {btn('▶|', () => { setPlaying(false); setIdx(total - 1); }, idx >= total - 1)}
+          <select value={speed} onChange={e => setSpeed(Number(e.target.value))}
+            style={{ padding: '8px 10px', borderRadius: 8, background: 'rgba(15,23,42,0.9)', color: '#fff', border: '1px solid var(--border)', fontSize: 12.5, fontFamily: 'Noto Sans JP', cursor: 'pointer' }}>
+            <option value={0.5}>0.5倍速</option>
+            <option value={1}>1倍速</option>
+            <option value={2}>2倍速</option>
+            <option value={4}>4倍速</option>
+          </select>
+        </div>
+
+        {/* シークバー */}
+        <input type="range" min={0} max={Math.max(0, total - 1)} value={idx}
+          onChange={e => { setPlaying(false); setIdx(Number(e.target.value)); }}
+          style={{ width: '100%', accentColor: 'var(--gold2)', cursor: 'pointer', flexShrink: 0 }} />
+        <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', textAlign: 'center', flexShrink: 0 }}>← / → キーでコマ送り、スペースで再生/停止</div>
+      </div>
+    </div>
+  );
+}
 
 const ChampionTooltip = ({ data }) => {
   if (!data) return null;
@@ -824,11 +1119,12 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
 };
 
 /* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
-const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0 }) => {
+const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0, augmentPicks = null }) => {
   const maxRerolls = 1 + (rerollBonus || 0); // 各枠のリロール可能回数（タロンで+1）
   const [tier] = useState(() => {
-    if (forceTier) return forceTier;          // 遭遇によるティア強制（TF=gold / シェン・モルガナ=prismatic）
+    // 🌟 ティア固定時も必ず1回引く（引かないと rngAug の位置がズレて抽選結果が変わる）
     const baseTierRoll = rng() * 100;
+    if (forceTier) return forceTier;          // 遭遇によるティア強制（TF=gold / シェン・モルガナ=prismatic）
     const adjusted = baseTierRoll - (augmentTierBoost * 30);
     if (adjusted < 9) return 'prismatic';
     if (adjusted < 74) return 'gold';
@@ -839,7 +1135,11 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
 
   const [augmentSetup] = useState(() => {
     const pool = [...AUGMENTS_DATA[tier]];
-    const need = 3 + 3 * maxRerolls;          // 初期3 + (枠ごとmaxRerolls個)の控え
+    // 🌟 抽選枚数を常に一定にする（リロール+1の遭遇の有無で rngAug の消費回数が
+    //    変わらないように、常に最大リロール数ぶんの控えを引いておく）
+    const RESERVE_REROLLS = 2;                // 現状の最大（基本1 + タロン+1）
+    const drawRerolls = Math.max(maxRerolls, RESERVE_REROLLS);
+    const need = 3 + 3 * drawRerolls;         // 初期3 + (枠ごとdrawRerolls個)の控え
     const drawn = [];
     while (drawn.length < need && pool.length > 0) {
       const idx = Math.floor(rng() * pool.length);
@@ -848,9 +1148,36 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
     const initial = drawn.slice(0, 3);
     const backups = [[], [], []];             // 枠ごとの控え（複数回リロール対応）
     let k = 3;
-    for (let r = 0; r < maxRerolls; r++) {
+    for (let r = 0; r < maxRerolls; r++) {    // 実際に使うのは maxRerolls ぶんだけ
       for (let s = 0; s < 3; s++) { if (drawn[k]) backups[s].push(drawn[k]); k++; }
     }
+
+    // 🌟 ============ チート：任意オーグメント指定で上書き ============
+    //   augmentPicks.initial[s] があれば初期のs枠を、reroll[s] があれば
+    //   s枠の「1回目のリロール結果」をそのオーグメントに固定する。
+    //   指定はティア横断（silver/gold/prismatic のどれからでも）で検索。
+    if (augmentPicks) {
+      const findAug = (id) => {
+        if (!id) return null;
+        for (const t of ['silver', 'gold', 'prismatic']) {
+          const found = (AUGMENTS_DATA[t] || []).find(a => a.id === id);
+          if (found) return found;
+        }
+        return null;
+      };
+      const initPicks = Array.isArray(augmentPicks.initial) ? augmentPicks.initial : [];
+      const rerollPicks = Array.isArray(augmentPicks.reroll) ? augmentPicks.reroll : [];
+      for (let s = 0; s < 3; s++) {
+        const ia = findAug(initPicks[s]);
+        if (ia) initial[s] = ia;
+        const ra = findAug(rerollPicks[s]);
+        if (ra) {                              // maxRerolls>=1 は常に成立（1+bonus）
+          if (backups[s].length === 0) backups[s].push(ra);
+          else backups[s][0] = ra;             // 1回目のリロール結果を固定
+        }
+      }
+    }
+
     return { initial, backups };
   });
 
@@ -984,6 +1311,393 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
   );
 };
 
+/* ── オーグメント指定 専用画面（設定から開く） ── */
+function AugmentPickerScreen({ augData, value, onChange, onBack }) {
+  const init   = Array.isArray(value.initial) ? value.initial : [null, null, null];
+  const reroll = Array.isArray(value.reroll)  ? value.reroll  : [null, null, null];
+  const [selected, setSelected] = useState({ kind: 'initial', idx: 0 }); // 編集中の枠
+  const [query, setQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState('all');
+
+  const findAug = (id) => {
+    if (!id) return null;
+    for (const t of ['silver', 'gold', 'prismatic']) {
+      const f = (augData[t] || []).find(a => a.id === id);
+      if (f) return f;
+    }
+    return null;
+  };
+  const setSlot = (kind, idx, id) => {
+    const next = { initial: [...init], reroll: [...reroll] };
+    next[kind][idx] = id || null;
+    onChange(next);
+  };
+  const clearAll = () => onChange({ initial: [null, null, null], reroll: [null, null, null] });
+  const setCount = [...init, ...reroll].filter(Boolean).length;
+  const curId = selected.kind === 'initial' ? init[selected.idx] : reroll[selected.idx];
+
+  // ライブラリ（検索・ティア絞り込み）
+  const q = query.trim().toLowerCase();
+  const lib = [];
+  for (const t of ['silver', 'gold', 'prismatic']) {
+    if (tierFilter !== 'all' && tierFilter !== t) continue;
+    for (const a of (augData[t] || [])) {
+      if (q && !(a.name || '').toLowerCase().includes(q)) continue;
+      lib.push(a);
+    }
+  }
+
+  const slotCard = (kind, idx) => {
+    const id = kind === 'initial' ? init[idx] : reroll[idx];
+    const aug = findAug(id);
+    const active = selected.kind === kind && selected.idx === idx;
+    return (
+      <div key={kind + idx} onClick={() => setSelected({ kind, idx })}
+        style={{ position: 'relative', flex: '1 1 0', minWidth: 0, cursor: 'pointer', borderRadius: 12, padding: '12px 8px',
+          border: `2px solid ${active ? 'var(--blue)' : (aug ? TIER_COLORS[aug.tier] : 'var(--border)')}`,
+          background: active ? 'rgba(0,102,204,0.18)' : 'rgba(15,23,42,0.6)',
+          boxShadow: active ? '0 0 16px rgba(0,102,204,0.55)' : 'none',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, transition: 'all 0.12s' }}>
+        <div style={{ position: 'absolute', top: 6, left: 8, fontSize: 11, fontWeight: 900, color: active ? 'var(--blue)' : 'rgba(255,255,255,0.4)' }}>{idx + 1}</div>
+        <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', background: '#0b1622', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${aug ? TIER_COLORS[aug.tier] : 'var(--border)'}` }}>
+          {aug && aug.imgName
+            ? <img src={getAugmentIconUrl(aug)} alt={aug.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            : <span style={{ fontSize: 24 }}>🎲</span>}
+        </div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: aug ? '#fff' : 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 1.25, minHeight: 28, display: 'flex', alignItems: 'center' }}>{aug ? aug.name : 'ランダム'}</div>
+        {aug && (
+          <button onClick={(e) => { e.stopPropagation(); setSlot(kind, idx, null); }}
+            style={{ fontSize: 10, fontWeight: 700, color: '#fff', background: 'rgba(220,53,69,0.5)', border: '1px solid var(--red)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>× 解除</button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
+      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🎯 オーグメントを指定</div>
+
+      <div style={{ width: 'min(760px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+
+        {/* スロット群 */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0 }}>
+          <div>
+            <div style={{ color: 'var(--gold2)', fontWeight: 900, fontSize: 12.5, marginBottom: 6 }}>最初に出る3枚</div>
+            <div style={{ display: 'flex', gap: 8 }}>{[0, 1, 2].map(i => slotCard('initial', i))}</div>
+          </div>
+          <div>
+            <div style={{ color: 'var(--gold2)', fontWeight: 900, fontSize: 12.5, marginBottom: 6 }}>リロールして出る3枚 <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 400, fontSize: 11 }}>（各枠を1回再抽選したとき）</span></div>
+            <div style={{ display: 'flex', gap: 8 }}>{[0, 1, 2].map(i => slotCard('reroll', i))}</div>
+          </div>
+        </div>
+
+        {/* 編集中の案内 */}
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#fff', textAlign: 'center', padding: '8px 10px', borderRadius: 8, background: 'rgba(0,102,204,0.2)', border: '1px solid var(--blue)', flexShrink: 0 }}>
+          いま編集中：<b style={{ color: 'var(--gold2)' }}>{selected.kind === 'initial' ? '最初' : 'リロール'}の{selected.idx + 1}枠目</b> ── 下の一覧から選ぶと設定されます
+        </div>
+
+        {/* 検索＋ティア絞り込み */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', flexShrink: 0 }}>
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="名前で検索…"
+            style={{ flex: '1 1 160px', minWidth: 0, padding: '9px 12px', borderRadius: 8, background: 'rgba(15,23,42,0.9)', color: '#fff', border: '1px solid var(--border)', fontSize: 13, fontFamily: 'Noto Sans JP' }} />
+          {[{ v: 'all', l: '全て' }, { v: 'silver', l: 'シルバー' }, { v: 'gold', l: 'ゴールド' }, { v: 'prismatic', l: 'プリズム' }].map(t => (
+            <button key={t.v} onClick={() => setTierFilter(t.v)}
+              style={{ padding: '7px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                color: tierFilter === t.v ? '#08101a' : '#fff', background: tierFilter === t.v ? 'var(--gold2)' : 'rgba(255,255,255,0.06)', border: `1px solid ${tierFilter === t.v ? 'var(--gold2)' : 'var(--border)'}` }}>{t.l}</button>
+          ))}
+        </div>
+
+        {/* ライブラリ */}
+        <div style={{ flex: 1, minHeight: 80, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 10, padding: 10, background: 'rgba(15,23,42,0.4)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 8 }}>
+            {lib.map(a => {
+              const chosen = a.id === curId;
+              return (
+                <div key={a.id} onClick={() => setSlot(selected.kind, selected.idx, a.id)} title={a.desc || a.name}
+                  style={{ cursor: 'pointer', borderRadius: 8, padding: 6, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, textAlign: 'center',
+                    border: `2px solid ${chosen ? 'var(--blue)' : TIER_COLORS[a.tier]}`, background: chosen ? 'rgba(0,102,204,0.2)' : 'rgba(11,22,34,0.8)', transition: 'all 0.1s' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 7, overflow: 'hidden', background: '#0b1622', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {a.imgName
+                      ? <img src={getAugmentIconUrl(a)} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      : <span>❔</span>}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{a.name}</div>
+                </div>
+              );
+            })}
+            {lib.length === 0 && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, padding: 12 }}>該当なし</div>}
+          </div>
+        </div>
+
+        {/* フッター */}
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <button onClick={clearAll} disabled={setCount === 0}
+            style={{ flex: '0 0 auto', padding: '11px 16px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: setCount === 0 ? 'default' : 'pointer',
+              color: '#fff', background: setCount === 0 ? 'rgba(80,20,20,0.35)' : 'rgba(80,20,20,0.7)', border: '1px solid var(--red)', opacity: setCount === 0 ? 0.5 : 1 }}>
+            ↺ 全部ランダムに戻す
+          </button>
+          <button onClick={onBack} className="menu-btn" style={{ flex: 1, background: 'var(--blue)', color: '#fff', borderColor: 'var(--blue)', fontWeight: 900 }}>
+            ✓ 設定に戻る（{setCount}/6 指定中）
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 📦 ドロップ設定 専用画面（設定から開く） ── */
+function DropPickerScreen({ ov, setOvKey, onBack }) {
+  const dropPlanSel = (ov.dropPlanIndex != null && DROP_PLANS[ov.dropPlanIndex]) ? DROP_PLANS[ov.dropPlanIndex] : null;
+  const dropChips = dropPlanSel ? [
+    ...Array(dropPlanSel.plan.comp).fill('comp'),
+    ...Array(dropPlanSel.plan.gray).fill('GRAY'),
+    ...Array(dropPlanSel.plan.blue).fill('BLUE'),
+  ] : [];
+  const dcOrbs = (ov.dropConfig && ov.dropConfig.planIndex === ov.dropPlanIndex && Array.isArray(ov.dropConfig.orbs)) ? ov.dropConfig.orbs : [];
+  const compItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
+  const champsByCost = (cost) => (typeof CHAMPS !== 'undefined' ? CHAMPS : []).filter(c => c.cost === cost);
+  const setOrbCfg = (i, patch) => {
+    const orbs = dropChips.map((t, k) => {
+      const cur = { ...(dcOrbs[k] || {}) };
+      return k === i ? { ...cur, ...patch } : cur;
+    });
+    const any = orbs.some(o => o.round || o.outcome || o.compId || (o.champs || []).some(Boolean));
+    setOvKey({ dropConfig: any ? { planIndex: ov.dropPlanIndex, orbs } : null });
+  };
+  const setOrbChamp = (i, slot, champId) => {
+    const cur = dcOrbs[i] || {};
+    const champs = [...(cur.champs || [])];
+    champs[slot] = champId || null;
+    setOrbCfg(i, { champs });
+  };
+  const pickDropPlan = (v) => setOvKey({ dropPlanIndex: v, dropConfig: null }); // テーブル変更でオーブ設定リセット
+  const clearOrbs = () => setOvKey({ dropConfig: null });
+  const dropSetCount = dcOrbs.filter(o => o && (o.round || o.outcome || o.compId || (o.champs || []).some(Boolean))).length;
+  const ORB_META = {
+    comp: { icon: '🔩', label: '素材',    color: 'rgba(255,255,255,0.85)' },
+    GRAY: { icon: '⚪', label: '灰オーブ', color: '#aab4c0' },
+    BLUE: { icon: '🔵', label: '青オーブ', color: '#5b9dff' },
+  };
+  const selStyle = { padding:'9px 10px', borderRadius:8, background:'rgba(15,23,42,0.9)', color:'#fff', border:'1px solid var(--border)', fontSize:12.5, fontFamily:'Noto Sans JP', cursor:'pointer' };
+  const iconUrl = (key) => DROP_ICONS[key] || getMetaTFTItemUrl(key);
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
+      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>📦 ドロップを指定</div>
+
+      <div style={{ width: 'min(980px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+
+        {/* ① テーブル選択 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flexShrink: 0 }}>
+          <span style={{ color: 'var(--gold2)', fontWeight: 900, fontSize: 13 }}>① ドロップテーブル:</span>
+          <select style={{ ...selStyle, flex: 1, minWidth: 200 }} value={ov.dropPlanIndex == null ? '' : String(ov.dropPlanIndex)} onChange={e => pickDropPlan(e.target.value === '' ? null : Number(e.target.value))}>
+            <option value="">ランダム</option>
+            {DROP_PLANS.map((d, i) => (<option key={i} value={i}>{d.label}</option>))}
+          </select>
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11.5, lineHeight: 1.6, flexShrink: 0 }}>
+          テーブルを選ぶと下に各オーブが表示され、② 落ちるラウンドと ③ 中身・チャンピオンを個別に固定できます。「自動 / ランダム」のままの項目は従来通りの抽選です。
+        </div>
+
+        {/* ②③ オーブカードのグリッド */}
+        <div style={{ flex: 1, minHeight: 80, overflowY: 'auto', paddingRight: 4 }}>
+          {!dropPlanSel ? (
+            <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: 700 }}>
+              まずドロップテーブルを選択してください
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: 10 }}>
+              {dropChips.map((t, i) => {
+                const cfg = dcOrbs[i] || {};
+                const meta = ORB_META[t];
+                const typeNum = dropChips.slice(0, i).filter(x => x === t).length + 1; // 種類ごと番号
+                const outcomes = t === 'comp' ? null : ORB_OUTCOMES[t];
+                const selOutcome = cfg.outcome ? (outcomes || []).find(o => o.id === cfg.outcome) : null;
+                const selCompItem = cfg.compId ? compItems.find(c => c.id === cfg.compId) : null;
+                const hasAny = !!(cfg.round || cfg.outcome || cfg.compId || (cfg.champs || []).some(Boolean));
+                return (
+                  <div key={i} style={{ background: 'rgba(15,23,42,0.6)', border: `2px solid ${hasAny ? 'var(--gold2)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {/* カードヘッダー：種別＋ラウンド */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 900, color: meta.color, display: 'inline-flex', alignItems: 'center', gap: 7, flex: 1 }}>
+                        {t === 'comp'
+                          ? <img src={DROP_ICONS.comp} style={{ width: 26, height: 26, borderRadius: 5, flexShrink: 0 }} />
+                          : <span style={{ fontSize: 17 }}>{meta.icon}</span>}
+                        {meta.label} {typeNum}
+                      </span>
+                      <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)' }}>ラウンド:</span>
+                      <select style={{ ...selStyle, padding: '7px 9px', fontSize: 12 }} value={cfg.round || ''} onChange={e => setOrbCfg(i, { round: e.target.value || null })}>
+                        <option value="">自動</option>
+                        <option value="1-2">1-2</option>
+                        <option value="1-3">1-3</option>
+                        <option value="1-4">1-4</option>
+                      </select>
+                    </div>
+
+                    {/* 内容 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)', flexShrink: 0 }}>内容:</span>
+                      {t === 'comp' ? (
+                        <React.Fragment>
+                          {selCompItem && <img src={getMetaTFTItemUrl(selCompItem.name)} style={{ width: 26, height: 26, borderRadius: 5, border: '1px solid var(--gold)', background: '#1e293b', flexShrink: 0 }} />}
+                          <select style={{ ...selStyle, flex: 1, minWidth: 0, padding: '7px 9px', fontSize: 12 }} value={cfg.compId || ''} onChange={e => setOrbCfg(i, { compId: e.target.value || null })}>
+                            <option value="">ランダム</option>
+                            {compItems.map(it => (<option key={it.id} value={it.id}>{getJaName(it.name)}</option>))}
+                          </select>
+                        </React.Fragment>
+                      ) : (
+                        <React.Fragment>
+                          {selOutcome && (
+                            <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', flexShrink: 0 }}>
+                              {selOutcome.icons.map((k, j) => (
+                                <img key={j} src={iconUrl(k)} style={{ width: 24, height: 24, borderRadius: 4, border: '1px solid var(--border)', background: '#1e293b' }} />
+                              ))}
+                            </span>
+                          )}
+                          <select style={{ ...selStyle, flex: 1, minWidth: 0, padding: '7px 9px', fontSize: 12 }} value={cfg.outcome || ''} onChange={e => setOrbCfg(i, { outcome: e.target.value || null, champs: [] })}>
+                            <option value="">ランダム</option>
+                            {outcomes.map(o => (<option key={o.id} value={o.id}>{o.label}</option>))}
+                          </select>
+                        </React.Fragment>
+                      )}
+                    </div>
+
+                    {/* チャンピオン指定（縦積み・列揃え） */}
+                    {selOutcome && selOutcome.champs.length > 0 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingLeft: 6 }}>
+                        <span style={{ fontSize: 11, color: 'var(--gold2)', fontWeight: 700 }}>└ チャンピオン:</span>
+                        {selOutcome.champs.map((cost, slot) => {
+                          const selChampId = (cfg.champs || [])[slot];
+                          const selChamp = selChampId ? champsByCost(cost).find(c => c.id === selChampId) : null;
+                          return (
+                            <div key={slot} style={{ display: 'flex', gap: 7, alignItems: 'center', paddingLeft: 14 }}>
+                              <img src={selChamp ? boardIcon(selChamp.img) : DROP_ICONS['c' + cost]}
+                                style={{ width: 30, height: 30, borderRadius: 6, border: `2px solid ${selChamp ? COST_COLORS[cost] : 'var(--border)'}`, background: '#1e293b', objectFit: 'cover', flexShrink: 0 }} />
+                              <select style={{ ...selStyle, flex: 1, minWidth: 0, padding: '7px 9px', fontSize: 12 }} value={selChampId || ''} onChange={e => setOrbChamp(i, slot, e.target.value || null)}>
+                                <option value="">ランダム（{cost}コス）</option>
+                                {champsByCost(cost).map(c => (<option key={c.id} value={c.id}>{c.jaName}</option>))}
+                              </select>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* フッター */}
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <button onClick={clearOrbs} disabled={dropSetCount === 0}
+            style={{ flex: '0 0 auto', padding: '11px 16px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: dropSetCount === 0 ? 'default' : 'pointer',
+              color: '#fff', background: dropSetCount === 0 ? 'rgba(80,20,20,0.35)' : 'rgba(80,20,20,0.7)', border: '1px solid var(--red)', opacity: dropSetCount === 0 ? 0.5 : 1 }}>
+            ↺ オーブ設定をクリア
+          </button>
+          <button onClick={onBack} className="menu-btn" style={{ flex: 1, background: 'var(--blue)', color: '#fff', borderColor: 'var(--blue)', fontWeight: 900 }}>
+            ✓ 設定に戻る{dropPlanSel ? `（${dropSetCount}件指定中）` : ''}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 🛍️ ショップ指定 専用画面（設定から開く） ── */
+function ShopPickerScreen({ ov, setOvKey, onBack }) {
+  const ROUNDS = ['1-2', '1-3', '1-4', '2-1'];
+  const allChamps = (typeof CHAMPS !== 'undefined' ? CHAMPS : []);
+  const sp = (ov.shopPicks && typeof ov.shopPicks === 'object') ? ov.shopPicks : {};
+  const getRow = (r) => Array.isArray(sp[r]) ? sp[r] : [null, null, null, null, null];
+  const setSlot = (r, i, id) => {
+    const next = {};
+    ROUNDS.forEach(rr => {
+      const row = [...getRow(rr)];
+      if (rr === r) row[i] = id || null;
+      next[rr] = row;
+    });
+    const any = ROUNDS.some(rr => next[rr].some(Boolean));
+    setOvKey({ shopPicks: any ? next : null });
+  };
+  const clearAll = () => setOvKey({ shopPicks: null });
+  const setCount = ROUNDS.reduce((n, r) => n + getRow(r).filter(Boolean).length, 0);
+  const selStyle = { padding: '8px 9px', borderRadius: 8, background: 'rgba(15,23,42,0.9)', color: '#fff', border: '1px solid var(--border)', fontSize: 12, fontFamily: 'Noto Sans JP', cursor: 'pointer' };
+  const costGroups = [1, 2, 3, 4, 5].map(cost => ({ cost, list: allChamps.filter(c => c.cost === cost) })).filter(g => g.list.length > 0);
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
+      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🛍️ ショップを指定</div>
+
+      <div style={{ width: 'min(1020px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+
+        <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11.5, lineHeight: 1.6, flexShrink: 0 }}>
+          各ラウンド<b style={{ color: '#fff' }}>開始時</b>のショップ5枠を固定できます。「ランダム」のままの枠は従来通りの抽選です。※リロール後のショップには適用されません。
+        </div>
+
+        {/* ラウンドごとのショップ行 */}
+        <div style={{ flex: 1, minHeight: 80, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {ROUNDS.map(r => {
+            const row = getRow(r);
+            const rowCount = row.filter(Boolean).length;
+            return (
+              <div key={r} style={{ background: 'rgba(15,23,42,0.6)', border: `2px solid ${rowCount > 0 ? 'var(--gold2)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontFamily: 'Orbitron', fontSize: 14, fontWeight: 900, color: rowCount > 0 ? 'var(--gold2)' : '#fff', letterSpacing: 2 }}>📅 {r} のショップ</span>
+                  {rowCount > 0 && <span style={{ fontSize: 10.5, fontWeight: 700, color: 'rgba(255,255,255,0.6)' }}>{rowCount}/5 指定中</span>}
+                </div>
+                {/* 5枠を横並び（狭い画面では折り返し） */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+                  {[0, 1, 2, 3, 4].map(i => {
+                    const selId = row[i];
+                    const selChamp = selId ? allChamps.find(c => c.id === selId) : null;
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(11,22,34,0.7)', border: `1px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, borderRadius: 9, padding: '7px 8px' }}>
+                        <div style={{ width: 34, height: 34, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#1e293b', border: `2px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {selChamp
+                            ? <img src={boardIcon(selChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>{i + 1}</span>}
+                        </div>
+                        <select style={{ ...selStyle, flex: 1, minWidth: 0 }} value={selId || ''} onChange={e => setSlot(r, i, e.target.value || null)}>
+                          <option value="">ランダム</option>
+                          {costGroups.map(g => (
+                            <optgroup key={g.cost} label={`${g.cost}コスト`}>
+                              {g.list.map(c => (<option key={c.id} value={c.id}>{c.jaName}</option>))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* フッター */}
+        <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+          <button onClick={clearAll} disabled={setCount === 0}
+            style={{ flex: '0 0 auto', padding: '11px 16px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: setCount === 0 ? 'default' : 'pointer',
+              color: '#fff', background: setCount === 0 ? 'rgba(80,20,20,0.35)' : 'rgba(80,20,20,0.7)', border: '1px solid var(--red)', opacity: setCount === 0 ? 0.5 : 1 }}>
+            ↺ 全部ランダムに戻す
+          </button>
+          <button onClick={onBack} className="menu-btn" style={{ flex: 1, background: 'var(--blue)', color: '#fff', borderColor: 'var(--blue)', fontWeight: 900 }}>
+            ✓ 設定に戻る（{setCount}/20 指定中）
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── メインアプリ ── */
 /* ── メインアプリ ── */
 function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onChangeOverrides = () => {}, onBack, onStartNewGame = null, backLabel = 'メニューに戻る' }) {
@@ -991,6 +1705,9 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
   const [listening, setListening] = useState(null); // 入力待ち中のアクションID
   const [note, setNote] = useState('');
   const [ov, setOv] = useState(overrides);          // 🌟 ゲーム内設定のオーバーライド
+  const [augPickerOpen, setAugPickerOpen] = useState(false); // 🌟 オーグメント指定の別画面
+  const [dropPickerOpen, setDropPickerOpen] = useState(false); // 🌟 ドロップ設定の別画面
+  const [shopPickerOpen, setShopPickerOpen] = useState(false); // 🌟 ショップ指定の別画面
 
   // 入力待ち中：次に押されたキーを割り当てる
   useEffect(() => {
@@ -1020,6 +1737,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
   const gods    = (typeof GOD_DATA !== 'undefined' && Array.isArray(GOD_DATA)) ? GOD_DATA : [];
   const stars   = (typeof stargazerVariants !== 'undefined' && Array.isArray(stargazerVariants)) ? stargazerVariants : [];
   const psi     = (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) ? PSIONIC_ITEMS : [];
+  const augData = (typeof AUGMENTS_DATA !== 'undefined' && AUGMENTS_DATA) ? AUGMENTS_DATA : { silver:[], gold:[], prismatic:[] };
 
   const TIER_JA = { silver:'シルバー', gold:'ゴールド', prismatic:'プリズム' };
   const setOvKey = (patch) => { const next = { ...ov, ...patch }; setOv(next); onChangeOverrides(next); };
@@ -1059,6 +1777,28 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
     setOvKey({ psionic: (cur[0] || cur[1]) ? cur : null });
   };
 
+  // 🌟 ===== オーグメント指定（別画面ピッカーで設定） =====
+  const augPicks = (ov.augmentPicks && typeof ov.augmentPicks === 'object')
+    ? ov.augmentPicks
+    : { initial:[null,null,null], reroll:[null,null,null] };
+  const augInit = Array.isArray(augPicks.initial) ? augPicks.initial : [null,null,null];
+  const augRe   = Array.isArray(augPicks.reroll)  ? augPicks.reroll  : [null,null,null];
+  const augSetCount = [...augInit, ...augRe].filter(Boolean).length;
+  // ピッカー画面へ渡す現在値
+  const augPickerValue = {
+    initial: [ augInit[0]||null, augInit[1]||null, augInit[2]||null ],
+    reroll:  [ augRe[0]||null,   augRe[1]||null,   augRe[2]||null   ],
+  };
+  const applyAugPicks = (next) => {
+    const anySet = [...(next.initial||[]), ...(next.reroll||[])].some(Boolean);
+    setOvKey({ augmentPicks: anySet ? next : null });
+  };
+
+  // 🌟 ===== ドロップ設定（別画面ピッカーで設定） =====
+  const dropPlanSel = (ov.dropPlanIndex != null && DROP_PLANS[ov.dropPlanIndex]) ? DROP_PLANS[ov.dropPlanIndex] : null;
+  const dcOrbs = (ov.dropConfig && ov.dropConfig.planIndex === ov.dropPlanIndex && Array.isArray(ov.dropConfig.orbs)) ? ov.dropConfig.orbs : [];
+  const dropSetCount = dcOrbs.filter(o => o && (o.round || o.outcome || o.compId || (o.champs || []).some(Boolean))).length;
+
   // スタイル
   const secTitle = { color:'#fff', fontWeight:900, fontSize:14, marginTop:22, marginBottom:10, borderTop:'1px solid var(--border)', paddingTop:16 };
   const fLabel = { color:'rgba(255,255,255,0.85)', fontWeight:700, fontSize:12.5, marginBottom:6 };
@@ -1068,6 +1808,40 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
 
   const tierOpts = [ {v:null,l:'ランダム'}, {v:'silver',l:'シルバー'}, {v:'gold',l:'ゴールド'}, {v:'prismatic',l:'プリズム'} ];
   const effTier = forcedTier || ov.augmentTier || null;
+
+  // 🌟 オーグメント指定は専用の別画面で行う
+  if (augPickerOpen) {
+    return (
+      <AugmentPickerScreen
+        augData={augData}
+        value={augPickerValue}
+        onChange={applyAugPicks}
+        onBack={() => setAugPickerOpen(false)}
+      />
+    );
+  }
+
+  // 🌟 ドロップ設定も専用の別画面で行う
+  if (dropPickerOpen) {
+    return (
+      <DropPickerScreen
+        ov={ov}
+        setOvKey={setOvKey}
+        onBack={() => setDropPickerOpen(false)}
+      />
+    );
+  }
+
+  // 🌟 ショップ指定も専用の別画面で行う
+  if (shopPickerOpen) {
+    return (
+      <ShopPickerScreen
+        ov={ov}
+        setOvKey={setOvKey}
+        onBack={() => setShopPickerOpen(false)}
+      />
+    );
+  }
 
   return (
     <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, backgroundImage:`linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.78)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:16, animation:'fadeIn 0.6s ease' }}>
@@ -1223,13 +1997,70 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
           ))}
         </div>
 
-        {/* アイテムドロップテーブル */}
+        {/* 📦 ドロップ設定（別画面ピッカー） */}
+        <div style={{ marginBottom:16 }}>
+          <div style={fLabel}>📦 ドロップ設定 <span style={{ color:'rgba(255,255,255,0.45)', fontWeight:400 }}>（テーブル・順番・中身を固定）</span></div>
+          <button
+            onClick={() => setDropPickerOpen(true)}
+            style={{ width:'100%', padding:'13px 16px', borderRadius:10, cursor:'pointer', fontFamily:'Noto Sans JP', fontWeight:900, fontSize:13.5,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all 0.15s',
+              color: dropPlanSel ? '#08101a' : '#fff',
+              background: dropPlanSel ? 'var(--gold2)' : 'rgba(15,23,42,0.85)',
+              border:`2px solid ${dropPlanSel ? 'var(--gold2)' : 'var(--blue)'}`,
+              boxShadow: dropPlanSel ? '0 0 14px var(--gold)' : 'none' }}>
+            ドロップを指定
+            <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20,
+              background: dropPlanSel ? 'rgba(8,16,26,0.25)' : 'rgba(255,255,255,0.12)',
+              color: dropPlanSel ? '#08101a' : 'rgba(255,255,255,0.8)' }}>
+              {dropPlanSel ? `${dropPlanSel.label.replace(/【(BASE|HIGH)】/, '')}${dropSetCount > 0 ? ` ・ ${dropSetCount}件指定` : ''}` : '未指定'}
+            </span>
+          </button>
+        </div>
+
+        {/* 🛍️ ショップ指定（別画面ピッカー） */}
+        <div style={{ marginBottom:16 }}>
+          <div style={fLabel}>🛍️ ショップ指定 <span style={{ color:'rgba(255,255,255,0.45)', fontWeight:400 }}>（各ラウンド開始時の5枠を固定）</span></div>
+          {(() => {
+            const spRows = (ov.shopPicks && typeof ov.shopPicks === 'object') ? ov.shopPicks : {};
+            const shopSetCount = ['1-2','1-3','1-4','2-1'].reduce((n, r) => n + (Array.isArray(spRows[r]) ? spRows[r].filter(Boolean).length : 0), 0);
+            return (
+              <button
+                onClick={() => setShopPickerOpen(true)}
+                style={{ width:'100%', padding:'13px 16px', borderRadius:10, cursor:'pointer', fontFamily:'Noto Sans JP', fontWeight:900, fontSize:13.5,
+                  display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all 0.15s',
+                  color: shopSetCount>0 ? '#08101a' : '#fff',
+                  background: shopSetCount>0 ? 'var(--gold2)' : 'rgba(15,23,42,0.85)',
+                  border:`2px solid ${shopSetCount>0 ? 'var(--gold2)' : 'var(--blue)'}`,
+                  boxShadow: shopSetCount>0 ? '0 0 14px var(--gold)' : 'none' }}>
+                ショップを指定
+                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20,
+                  background: shopSetCount>0 ? 'rgba(8,16,26,0.25)' : 'rgba(255,255,255,0.12)',
+                  color: shopSetCount>0 ? '#08101a' : 'rgba(255,255,255,0.8)' }}>
+                  {shopSetCount>0 ? `${shopSetCount}/20 指定中` : '未指定'}
+                </span>
+              </button>
+            );
+          })()}
+        </div>
+
+        {/* オーグメント指定（別画面ピッカー） */}
         <div style={{ marginBottom:8 }}>
-          <div style={fLabel}>アイテムドロップテーブル <span style={{ color:'rgba(255,255,255,0.45)', fontWeight:400 }}>（素材/灰オーブ/青オーブ）</span></div>
-          <select style={selStyle} value={ov.dropPlanIndex == null ? '' : String(ov.dropPlanIndex)} onChange={e => setOvKey({ dropPlanIndex: e.target.value === '' ? null : Number(e.target.value) })}>
-            <option value="">ランダム</option>
-            {DROP_PLANS.map((d, i) => (<option key={i} value={i}>{d.label}</option>))}
-          </select>
+          <div style={fLabel}>🎯 オーグメント指定 <span style={{ color:'rgba(255,255,255,0.45)', fontWeight:400 }}>（2-1の提示を固定）</span></div>
+          <button
+            onClick={() => setAugPickerOpen(true)}
+            style={{ width:'100%', padding:'13px 16px', borderRadius:10, cursor:'pointer', fontFamily:'Noto Sans JP', fontWeight:900, fontSize:13.5,
+              display:'flex', alignItems:'center', justifyContent:'center', gap:10, transition:'all 0.15s',
+              color: augSetCount>0 ? '#08101a' : '#fff',
+              background: augSetCount>0 ? 'var(--gold2)' : 'rgba(15,23,42,0.85)',
+              border:`2px solid ${augSetCount>0 ? 'var(--gold2)' : 'var(--blue)'}`,
+              boxShadow: augSetCount>0 ? '0 0 14px var(--gold)' : 'none' }}>
+            オーグメントを指定
+            <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:20,
+              background: augSetCount>0 ? 'rgba(8,16,26,0.25)' : 'rgba(255,255,255,0.12)',
+              color: augSetCount>0 ? '#08101a' : 'rgba(255,255,255,0.8)' }}>
+              {augSetCount>0 ? `${augSetCount}/6 指定中` : '未指定'}
+            </span>
+          </button>
         </div>
 
         <button className="menu-btn" style={{ width:'100%', marginTop:14, background:'rgba(80,20,20,0.7)', color:'#fff', borderColor:'var(--red)', fontSize:13 }} onClick={resetOverrides}>
@@ -1358,40 +2189,46 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
   const rngEnc  = useMemo(() => createRNG(seed + "_enc"),  [seed]);
 
   const currentStargazerDesc = useMemo(() => {
+    // 🌟 固定時も必ず1回引く（引かないと rngSys の位置がズレて神/サイオニックが変わる）
+    const rolled = stargazerVariants[Math.floor(rngSys() * stargazerVariants.length)];
     const i = gameOverrides && gameOverrides.stargazer;
     if (i != null && stargazerVariants[i]) return stargazerVariants[i];   // 🌟 手動指定
-    return stargazerVariants[Math.floor(rngSys() * stargazerVariants.length)];
+    return rolled;
   }, [rngSys, gameOverrides]);
 
   // 1. 神の抽選
   const encounterGods = useMemo(() => {
+    // 🌟 固定の有無に関わらず毎回同じ回数シャッフルし、結果だけ上書きする
+    const shuffled = shuffleArray(GOD_DATA, rngSys);
     const ov = gameOverrides && gameOverrides.gods;                       // 🌟 手動指定（1体目が発動）
     if (ov && ov.length) {
       const chosen = ov.map(id => GOD_DATA.find(g => g.id === id)).filter(Boolean);
       if (chosen.length >= 2) return [chosen[0], chosen[1]];
       if (chosen.length === 1) {
-        const others = shuffleArray(GOD_DATA.filter(g => g.id !== chosen[0].id), rngSys);
-        return [chosen[0], others[0]];
+        // 2体目は「通常抽選の並び」から1体目と被らない先頭を採用（追加の乱数は引かない）
+        const second = shuffled.find(g => g.id !== chosen[0].id);
+        return [chosen[0], second];
       }
     }
-    const shuffled = shuffleArray(GOD_DATA, rngSys);
     return [shuffled[0], shuffled[1]];
   }, [rngSys, gameOverrides]);
 
   // 2. サイオニックアイテムの抽選
   const currentPsionicItems = useMemo(() => {
+    // 🌟 固定の有無に関わらず毎回同じ回数シャッフルし、結果だけ上書きする
+    const shuffled = shuffleArray(PSIONIC_ITEMS, rngSys);
     const ov = gameOverrides && gameOverrides.psionic;                    // 🌟 [初手, 2手目]（null可）
     if (ov && (ov[0] || ov[1])) {
       let first  = ov[0] ? PSIONIC_ITEMS.find(p => p.name === ov[0]) : null;
       let second = ov[1] ? PSIONIC_ITEMS.find(p => p.name === ov[1]) : null;
       const used = new Set([first && first.name, second && second.name].filter(Boolean));
-      const pool = shuffleArray(PSIONIC_ITEMS.filter(p => !used.has(p.name)), rngSys);
+      // 未指定スロットは「通常抽選の並び」から順に埋める（追加の乱数は引かない）
+      const pool = shuffled.filter(p => !used.has(p.name));
       let pi = 0;
       if (!first)  first  = pool[pi++];
       if (!second) second = pool[pi++];
       return [first, second];
     }
-    const shuffled = shuffleArray(PSIONIC_ITEMS, rngSys);
     return [shuffled[0], shuffled[1]];
   }, [rngSys, gameOverrides]);
 
@@ -1400,12 +2237,14 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
   const encounter = useMemo(() => {
     const list = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
     if (list.length === 0) return null;
-    const ovId = gameOverrides && gameOverrides.encounter;               // 🌟 手動指定
-    if (ovId) { const f = list.find(e => e.id === ovId); if (f) return f; }
+    // 🌟 固定時も必ず加重抽選を1回引く（rngEnc の消費回数を一定に保つ）
     const total = list.reduce((sum, e) => sum + (e.prob || 0), 0);
     let r = rngEnc() * total;
-    for (const e of list) { r -= (e.prob || 0); if (r <= 0) return e; }
-    return list[list.length - 1];
+    let rolled = list[list.length - 1];
+    for (const e of list) { r -= (e.prob || 0); if (r <= 0) { rolled = e; break; } }
+    const ovId = gameOverrides && gameOverrides.encounter;               // 🌟 手動指定
+    if (ovId) { const f = list.find(e => e.id === ovId); if (f) return f; }
+    return rolled;
   }, [rngEnc, gameOverrides]);
   const encounterAppliedRef = useRef(false);    // 1-1→1-2 の開始効果ガード
   const encounter21AppliedRef = useRef(false);  // 2-1 到達時の効果ガード
@@ -1420,7 +2259,18 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
   const [level, setLevel] = useState(1);
   const [xp, setXp] = useState(0);
   const [round, setRound] = useState('1-1');
-  const [shop, setShop] = useState(() => rollShop(1, rngShop));
+  const [shop, setShop] = useState(() => {
+    // 🌟 ショップ指定：1-2の初期ショップ。自然な抽選を必ず消費した上で指定枠だけ上書き
+    const natural = rollShop(1, rngShop);
+    const picks = gameOverrides && gameOverrides.shopPicks && gameOverrides.shopPicks['1-2'];
+    if (!picks) return natural;
+    return natural.map((slot, i) => {
+      const id = picks[i];
+      if (!id) return slot;
+      const c = CHAMPS.find(ch => ch.id === id);
+      return c ? { ...c, star: 1, uid: slot.uid } : slot;  // uidは自然抽選のものを流用
+    });
+  });
   const [bench, setBench] = useState(Array(9).fill(null));
   const [board, setBoard] = useState(initBoard);
   const [inventory, setInventory] = useState([]);
@@ -1449,6 +2299,31 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
   const [auraTrainingUnit, setAuraTrainingUnit] = useState(null); // 🌟 オーラ育成中 専用の待機枠
   const [phase, setPhase] = useState('main'); // 🌟 追加: 'main' | 'drop'
 
+  // 🎬 ============ 振り返り（感想戦）用の履歴記録 ============
+  //    状態変化を監視して1操作＝1コマのスナップショットを自動記録する。
+  //    React 18 のバッチングにより、1つの操作内の複数 setState は1回の再レンダー
+  //    ＝1回の effect 実行にまとまるため、個別のアクションをフックする必要がない。
+  const historyRef = useRef([]);
+  const [showReplay, setShowReplay] = useState(false);
+
+  useEffect(() => {
+    // 終了後は状態変化が起きないため自然に記録が止まる（最終コマまで記録される）
+    const cloneUnit = (u) => u ? { ...u, items: (u.items || []).map(it => it) } : null;
+    const snap = {
+      round, phase, gold, level, xp, freeRerolls,
+      board: board.map(cloneUnit),
+      bench: bench.map(cloneUnit),
+      shop: shop.map(s => s ? { ...s } : null),
+      inventory: inventory.map(it => it),
+      augments: augments.map(a => ({ name: a.name, tier: a.tier, imgName: a.imgName, icon: a.icon })),
+      t: Date.now(),
+    };
+    const prev = historyRef.current[historyRef.current.length - 1] || null;
+    snap.label = describeReplayDiff(prev, snap);
+    if (snap.label === null) return; // 意味のある変化なし（ツールチップ等）
+    historyRef.current.push(snap);
+  }, [board, bench, gold, level, xp, round, phase, shop, inventory, augments, freeRerolls]);
+
   // 🌟 ============ キーボードショートカット ============
   const hoveredUnitRef = useRef(null);   // カーソル下の駒 { type:'bench'|'board', idx }
   const actionsRef = useRef({});         // 常に最新の処理を保持
@@ -1475,7 +2350,7 @@ function App({ seed, onRestart, onNewGame, keyBindings = DEFAULT_KEYBINDINGS, ga
     if (freeRerolls > 0) { setFreeRerolls(fr => fr - 1); setShop(rollShop(level, rngShop)); return; }
     if (gold >= 2) {
       setGold(g => g - 2); setShop(rollShop(level, rngShop));
-      if (passiveBuffs.some(b => b.type === 'prism_ticket') && rngShop() < 0.5) setFreeRerolls(fr => fr + 1);
+      if (passiveBuffs.some(b => b.type === 'prism_ticket') && rngShop() < 0.45) setFreeRerolls(fr => fr + 1);
       if (passiveBuffs.some(b => b.type === 'wise_spending')) {
         const { level: nl, xp: nx } = applyXp(2, level, xp);
         setLevel(nl); setXp(nx);
@@ -2085,6 +2960,7 @@ useEffect(() => {
 
   // 🌟 レベルアップ時に発動するオーグメントを管理する（関数定義より後ろに移動）
   const prevLevelRef = useRef(level);
+  const birthdayReunionDoneRef = useRef(false); // 🎉 バースデーリユニオンLv5報酬の発動済みフラグ
   useEffect(() => {
     if (prevLevelRef.current < level) {
       // Level up occurred!
@@ -2101,7 +2977,19 @@ useEffect(() => {
       }
       const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
       if (hasUM) {
-        setFreeRerolls(fr => fr + 2);
+        setFreeRerolls(fr => fr + 1);
+      }
+      // 🎉 バースデー リユニオン: レベル5到達で★2のコスト2を1体（1回のみ）
+      //    ※ レベル7/9の効果は本シムの範囲(1-1〜2-1)外のため未実装
+      const brBuff = passiveBuffs.find(b => b.type === 'birthday_reunion');
+      if (brBuff && level >= 5 && !birthdayReunionDoneRef.current) {
+        birthdayReunionDoneRef.current = true;
+        const pool = CHAMPS.filter(c => c.cost === 2);
+        if (pool.length) {
+          const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
+          addChampToBenchDirect(champ);
+          showMsg(`🎉 バースデー リユニオン: レベル5到達！★★${champ.jaName}を獲得！`);
+        }
       }
       const protectorsPactBuff = passiveBuffs.find(b => b.type === 'protectors_pact');
       if (protectorsPactBuff) {
@@ -2142,24 +3030,25 @@ useEffect(() => {
   }, [mergeToast]);
 
   const [dropPlan] = useState(() => {
+    // 🌟 固定時も必ず1回引く（引かないと rngDrop の位置がズレてオーブ中身が変わる）
+    const roll = rngDrop() * 100;
     let plan;
-    const ovIdx = gameOverrides && gameOverrides.dropPlanIndex;          // 🌟 手動指定
+    // BASE (95%)
+    if (roll < 33.25) plan = { comp: 3, gray: 3, blue: 0 };
+    else if (roll < 66.50) plan = { comp: 3, gray: 0, blue: 1 };
+    else if (roll < 77.90) plan = { comp: 2, gray: 1, blue: 1 };
+    else if (roll < 89.30) plan = { comp: 2, gray: 2, blue: 1 };
+    else if (roll < 95.00) plan = { comp: 1, gray: 1, blue: 2 };
+    // HIGH (5%)
+    else if (roll < 96.15) plan = { comp: 5, gray: 3, blue: 0 };
+    else if (roll < 97.30) plan = { comp: 5, gray: 0, blue: 1 };
+    else if (roll < 98.20) plan = { comp: 4, gray: 0, blue: 1 };
+    else if (roll < 99.10) plan = { comp: 3, gray: 0, blue: 2 };
+    else plan = { comp: 3, gray: 5, blue: 0 };
+
+    const ovIdx = gameOverrides && gameOverrides.dropPlanIndex;          // 🌟 手動指定（結果だけ上書き）
     if (ovIdx != null && DROP_PLANS[ovIdx]) {
       plan = { ...DROP_PLANS[ovIdx].plan };
-    } else {
-      const roll = rngDrop() * 100;
-      // BASE (95%)
-      if (roll < 33.25) plan = { comp: 3, gray: 3, blue: 0 };
-      else if (roll < 66.50) plan = { comp: 3, gray: 0, blue: 1 };
-      else if (roll < 77.90) plan = { comp: 2, gray: 1, blue: 1 };
-      else if (roll < 89.30) plan = { comp: 2, gray: 2, blue: 1 };
-      else if (roll < 95.00) plan = { comp: 1, gray: 1, blue: 2 };
-      // HIGH (5%)
-      else if (roll < 96.15) plan = { comp: 5, gray: 3, blue: 0 };
-      else if (roll < 97.30) plan = { comp: 5, gray: 0, blue: 1 };
-      else if (roll < 98.20) plan = { comp: 4, gray: 0, blue: 1 };
-      else if (roll < 99.10) plan = { comp: 3, gray: 0, blue: 2 };
-      else plan = { comp: 3, gray: 5, blue: 0 };
     }
 
     const allDrops = [];
@@ -2205,20 +3094,59 @@ useEffect(() => {
       drops[targetRound].push(shuffled.pop());
     }
 
-    return drops;
+    // 🌟 ============ ドロップ設定（ラウンド指定・内容指定）を適用 ============
+    //    自然な抽選・配分は上で全て消費済み。ここからは結果の並べ替えと
+    //    内容cfgの紐付けのみ（乱数は追加消費しない → シード互換を維持）。
+    const cfgs = { '1-2': drops['1-2'].map(() => null), '1-3': drops['1-3'].map(() => null), '1-4': drops['1-4'].map(() => null) };
+    const dc = gameOverrides && gameOverrides.dropConfig;
+    if (dc && Array.isArray(dc.orbs) && ovIdx != null && dc.planIndex === ovIdx) {
+      // チップ並び：設定UIと同じ comp×n → GRAY×n → BLUE×n
+      const chips = [];
+      for (let i = 0; i < plan.comp; i++) chips.push('comp');
+      for (let i = 0; i < plan.gray; i++) chips.push('GRAY');
+      for (let i = 0; i < plan.blue; i++) chips.push('BLUE');
+      chips.forEach((t, i) => {
+        const cfg = dc.orbs[i];
+        if (!cfg) return;
+        const hasContent = !!(cfg.outcome || cfg.compId || (cfg.champs || []).some(Boolean));
+        const pin = (cfg.round && rounds.includes(cfg.round)) ? cfg.round : null;
+        if (!hasContent && !pin) return;
+        if (pin) {
+          // 自然配置から未割当の同タイプを1個抜き、指定ラウンドへ移動
+          for (const r of rounds) {
+            const k = drops[r].findIndex((dt, j) => dt === t && cfgs[r][j] === null);
+            if (k !== -1) {
+              drops[r].splice(k, 1); cfgs[r].splice(k, 1);
+              drops[pin].push(t); cfgs[pin].push(cfg);
+              break;
+            }
+          }
+        } else {
+          // ラウンド自動：自然配置順（1-2→1-3→1-4）の最初の未割当同タイプに内容を紐付け
+          for (const r of rounds) {
+            const k = drops[r].findIndex((dt, j) => dt === t && cfgs[r][j] === null);
+            if (k !== -1) { cfgs[r][k] = cfg; break; }
+          }
+        }
+      });
+    }
+
+    return { rounds: drops, cfgs };
   });
 
-  const executeOrbDrop = (type) => {
-    const roll = rngDrop() * 100;
+  const executeOrbDrop = (type, cfg = null) => {
+    const roll = rngDrop() * 100;  // 🌟 内容指定時も必ず1回引く（乱数消費を一定に保つ）
     const rowStyle = { display: 'flex', alignItems: 'center', gap: 10, color: 'white', fontFamily: 'Noto Sans JP', fontWeight: 900, fontSize: '20px' };
     const iconStyle = (cost) => ({ width: 50, height: 50, border: `1px solid ${COST_COLORS[cost]}`, borderRadius: 3, background: '#1e293b' });
 
-    // 🌟 複数体ドロップ用の汎用ヘルパー
-    const rollMultiple = (cost, count) => {
+    // 🌟 複数体ドロップ用の汎用ヘルパー（champIds で個別指定可、自然抽選は常に消費）
+    const rollMultiple = (cost, count, champIds = null) => {
       const pool = CHAMPS.filter(c => c.cost === cost);
       const droppedUnits = [];
       for (let i = 0; i < count; i++) {
-        const c = pool[Math.floor(rngDrop() * pool.length)];
+        const natural = pool[Math.floor(rngDrop() * pool.length)];   // 指定時も必ず引く
+        const forced = (champIds && champIds[i]) ? pool.find(c => c.id === champIds[i]) : null;
+        const c = forced || natural;
         const unit = { ...c, star: 1, uid: rngMisc(), items: [] };
         addChampToBenchDirect(unit);
         droppedUnits.push(unit);
@@ -2235,14 +3163,25 @@ useEffect(() => {
       );
     };
 
+    // 🌟 自然抽選の結果IDを算出 → 内容指定があれば上書き
+    let outcome;
     if (type === 'GRAY') {
-      if (roll < 48) return rollMultiple(1, 2); // 🌟 1コス×2体（個別抽選）
-      if (roll < 95) return rollMultiple(2, 1); // 🌟 2コス×1体
-      if (roll < 98) {
+      outcome = roll < 48 ? 'g_1c2' : roll < 95 ? 'g_2c1' : roll < 98 ? 'g_reforge' : roll < 99 ? 'g_remover' : 'g_dupe';
+    } else {
+      outcome = roll < 33 ? 'b_3c2' : roll < 64 ? 'b_3c1g' : roll < 95 ? 'b_2c3' : roll < 97 ? 'b_dupe_2c2' : roll < 99 ? 'b_reforge' : 'b_cdupe_3c1';
+    }
+    if (cfg && cfg.outcome) outcome = cfg.outcome;
+    const champIds = (cfg && Array.isArray(cfg.champs)) ? cfg.champs : null;
+
+    switch (outcome) {
+      // ── 灰色オーブ ──
+      case 'g_1c2': return rollMultiple(1, 2, champIds);
+      case 'g_2c1': return rollMultiple(2, 1, champIds);
+      case 'g_reforge': {
         setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 2);
         return <div style={rowStyle}><img src={getMetaTFTItemUrl('Reforger')} style={iconStyle(1)} /><span>再合成 + 2G</span></div>;
       }
-      if (roll < 99) {
+      case 'g_remover': {
         setInventory(p => {
           const nb = [...p];
           const ex = nb.findIndex(i => i.id === 'remover');
@@ -2253,36 +3192,43 @@ useEffect(() => {
         setGold(g => g + 2);
         return <div style={rowStyle}><img src={getMetaTFTItemUrl('itemremover')} style={iconStyle(1)} /><span>除去装置 + 2G</span></div>;
       }
-      setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]);
-      return <div style={rowStyle}><img src={getMetaTFTItemUrl('Lesser Champion Duplicator')} style={iconStyle(1)} /><span>小型複製機</span></div>;
-
-    } else if (type === 'BLUE') {
-      if (roll < 33) return rollMultiple(3, 2); // 🌟 3コス×2体（個別抽選）
-      if (roll < 64) {
-        const res = rollMultiple(3, 1);
+      case 'g_dupe': {
+        setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]);
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Lesser Champion Duplicator')} style={iconStyle(1)} /><span>小型複製機</span></div>;
+      }
+      // ── 青オーブ ──
+      case 'b_3c2': return rollMultiple(3, 2, champIds);
+      case 'b_3c1g': {
+        const res = rollMultiple(3, 1, champIds);
         setGold(g => g + 3);
         return <div style={rowStyle}>{res}<span> + 3G</span></div>;
       }
-      if (roll < 95) return rollMultiple(2, 3); // 🌟 2コス×3体（個別抽選）
-      if (roll < 97) {
-        const res = rollMultiple(2, 2);
+      case 'b_2c3': return rollMultiple(2, 3, champIds);
+      case 'b_dupe_2c2': {
+        const res = rollMultiple(2, 2, champIds);
         setInventory(p => [...p, CONSUMABLES.LESSER_DUPE]);
         return <div style={rowStyle}><img src={getMetaTFTItemUrl('Lesser Champion Duplicator')} style={iconStyle(1)} /><span>＋</span>{res}</div>;
       }
-      if (roll < 99) {
+      case 'b_reforge': {
         setInventory(p => [...p, CONSUMABLES.REFORGER]); setGold(g => g + 6);
         return <div style={rowStyle}><img src={getMetaTFTItemUrl('Reforger')} style={iconStyle(1)} /><span>再合成 + 6G</span></div>;
       }
-      const pool = CHAMPS.filter(c => c.cost === 3);
-      const c = pool[Math.floor(rngDrop() * pool.length)];
-      setInventory(p => [...p, CONSUMABLES.CHAMP_DUPE]);
-      addChampToBenchDirect({ ...c, star: 1, uid: rngMisc(), items: [] });
-      return <div style={rowStyle}><img src={getMetaTFTItemUrl('Champion Duplicator')} style={iconStyle(1)} /><span>＋</span><img src={boardIcon(c.img)} style={iconStyle(3)} /><span>{c.jaName}</span></div>;
+      case 'b_cdupe_3c1':
+      default: {
+        const pool = CHAMPS.filter(c => c.cost === 3);
+        const natural = pool[Math.floor(rngDrop() * pool.length)];
+        const forced = (champIds && champIds[0]) ? pool.find(c => c.id === champIds[0]) : null;
+        const c = forced || natural;
+        setInventory(p => [...p, CONSUMABLES.CHAMP_DUPE]);
+        addChampToBenchDirect({ ...c, star: 1, uid: rngMisc(), items: [] });
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Champion Duplicator')} style={iconStyle(1)} /><span>＋</span><img src={boardIcon(c.img)} style={iconStyle(3)} /><span>{c.jaName}</span></div>;
+      }
     }
   };
 
   const triggerDrops = (currentRound) => {
-    const drops = dropPlan[currentRound];
+    const drops = dropPlan.rounds[currentRound];
+    const cfgList = (dropPlan.cfgs && dropPlan.cfgs[currentRound]) || [];
     if (!drops || drops.length === 0) return;
 
     let newItems = [];
@@ -2290,6 +3236,7 @@ useEffect(() => {
     let newlyDroppedIds = [];
 
     drops.forEach((dropType, i) => {
+      const cfg = cfgList[i] || null;
       if (dropType === 'comp') {
         const comps = ITEMS.filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
         let availableComps = comps.filter(c => !droppedComps.includes(c.id) && !newlyDroppedIds.includes(c.id));
@@ -2298,7 +3245,12 @@ useEffect(() => {
           availableComps = comps;
         }
 
-        const item = availableComps[Math.floor(rngDrop() * availableComps.length)];
+        let item = availableComps[Math.floor(rngDrop() * availableComps.length)];  // 指定時も必ず引く
+        // 🌟 ドロップ設定：素材の内容指定
+        if (cfg && cfg.compId) {
+          const forced = comps.find(c => c.id === cfg.compId);
+          if (forced) item = forced;
+        }
         
         newItems.push(item);
         newlyDroppedIds.push(item.id);
@@ -2310,7 +3262,7 @@ useEffect(() => {
           </div>
         );
       } else {
-        const orbResult = executeOrbDrop(dropType);
+        const orbResult = executeOrbDrop(dropType, cfg);
         dropElements.push(<div key={`orb-${i}`}>{orbResult}</div>);
       }
     });
@@ -2450,8 +3402,8 @@ useEffect(() => {
       const newLeft = afkRoundsLeft - 1;
       setAfkRoundsLeft(newLeft);
       if (newLeft === 0) {
-        setGold(g => g + 20);
-        setDropMsg('💤 AFK解除！20G獲得！');
+        setGold(g => g + 17);
+        setDropMsg('💤 AFK解除！17G獲得！');
         setTimeout(() => setDropMsg(null), 2500);
       }
     }
@@ -2486,7 +3438,7 @@ useEffect(() => {
       const interest = Math.min(maxInterest, Math.floor(g / 10));
       const baseIncome = {  '1-4': 2, '2-1': 3 }[nextR] || 5;
       const hasSA = passiveBuffs.some(b => b.type === 'savings_account');
-      const extraG = (hasSA && interest >= 5) ? 30 : 0;
+      const extraG = (hasSA && interest >= 5) ? 25 : 0;
       return g + baseIncome + interest + extraG;
     });
 
@@ -2507,7 +3459,7 @@ useEffect(() => {
         }
       }
       const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
-      if (hasUM) setFreeRerolls(fr => fr + 2);
+      if (hasUM) setFreeRerolls(fr => fr + 1);
       
       const hasEp = passiveBuffs.some(b => b.type === 'epoch');
       if (hasEp) {
@@ -2519,7 +3471,18 @@ useEffect(() => {
 
     setLevel(newLevel); 
     setXp(newXp);
-    setShop(rollShop(newLevel, rngShop));
+    // 🌟 ショップ指定：自然な抽選（rollShop）を必ず消費した上で、指定枠だけ内容を上書き
+    {
+      const natural = rollShop(newLevel, rngShop);
+      const picks = gameOverrides && gameOverrides.shopPicks && gameOverrides.shopPicks[nextR];
+      const finalShop = picks ? natural.map((slot, i) => {
+        const id = picks[i];
+        if (!id) return slot;
+        const c = CHAMPS.find(ch => ch.id === id);
+        return c ? { ...c, star: 1, uid: slot.uid } : slot;  // uidは自然抽選のものを流用
+      }) : natural;
+      setShop(finalShop);
+    }
 
     if (nextR === '2-1' && !noMoreAugments) {
       setShowAugment(true);
@@ -3008,8 +3971,14 @@ const handleAugmentPick = (aug, historyContext) => {
           </div>
         )}
         
+        {/* 🎬 振り返り（感想戦）ビューア */}
+        {showReplay && (
+          <ReplayViewer history={historyRef.current} seed={seed} onClose={() => setShowReplay(false)} />
+        )}
+
         {/* 🌟 1. ボタン類を上部に集約！シード値コピーもここへ移動 */}
         <div style={{display:'flex', gap:12, marginBottom:5}}>
+          <button className="menu-btn" onClick={() => setShowReplay(true)} style={{padding:'10px 20px',fontSize:13, background:'var(--gold2)', color:'#08101a', borderColor:'var(--gold2)', fontWeight:900}}>🎬 振り返り</button>
           <button className="menu-btn" onClick={onRestart} style={{padding:'10px 20px',fontSize:13, background:'var(--blue)', color:'white', borderColor:'var(--blue)'}}>同じシードで再挑戦</button>
           <button className="menu-btn" onClick={onNewGame} style={{padding:'10px 20px',fontSize:13, background:'var(--teal)', color:'white', borderColor:'var(--teal)'}}>新しいゲーム</button>
           <button className="menu-btn" onClick={() => setShowSettings(true)} style={{padding:'10px 20px',fontSize:13, background:'rgba(15,23,42,0.85)', color:'white', borderColor:'var(--border)'}}>⚙️ 設定</button>
@@ -3433,7 +4402,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
 
       <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} arbiterRule={arbiterRule} />
-      {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || (gameOverrides && gameOverrides.augmentTier) || null} rerollBonus={encounter?.augmentRerollBonus || 0} />}
+      {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || (gameOverrides && gameOverrides.augmentTier) || null} rerollBonus={encounter?.augmentRerollBonus || 0} augmentPicks={gameOverrides && gameOverrides.augmentPicks} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, color:'white', textAlign:'center', maxWidth:'90%', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>{dropMsg}</div>}
       {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
 
