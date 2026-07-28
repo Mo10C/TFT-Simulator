@@ -53,11 +53,11 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'afk', name: 'AFK', tier: 'silver', category: 'economy', imgName: 'afk-i',
-      desc: '次の3ラウンドの間、アクションを行えなくなる。その後、20ゴールドを獲得する。',
+      desc: '次の3ラウンドの間、アクションを行えなくなる。その後、17ゴールドを獲得する。',
       icon: '💤',
       effect: (state, rng, helpers) => {
         helpers.setAfkRoundsLeft(3);
-        helpers.showMsg('💤 AFK: 次の3ラウンドはアクション不可。3ラウンド後に20G獲得！');
+        helpers.showMsg('💤 AFK: 次の3ラウンドはアクション不可。3ラウンド後に17G獲得！');
         if (helpers.setIsFinished) helpers.setIsFinished(true);
       }
     },
@@ -120,7 +120,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'continuous_magic', name: '連続魔法', tier: 'silver', category: 'item', imgName: 'hyperbolicrodextender_i',
-      desc: '「ムダニ デカイ ロッド」を1個獲得する。味方チームが38000の魔法ダメージを与えると、さらに2個獲得する。',
+      desc: '「ムダニ デカイ ロッド」を1個獲得する。味方チームが42000の魔法ダメージを与えると、さらに2個獲得する。',
       icon: '🔮',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEMS.find(i=>i.id==='rod')});
@@ -172,10 +172,10 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'small_giant', name: '小さな巨人', tier: 'silver', category: 'combat', imgName: 'tiny-titans-i',
-      desc: 'プレイヤーの現在体力と最大体力が30増加する。',
+      desc: 'プレイヤーの現在体力と最大体力が20増加する。',
       icon: '🏔️',
       effect: (state, rng, helpers) => {
-        helpers.addPassiveBuff({ type: 'hp_boost', value: 30 });
+        helpers.addPassiveBuff({ type: 'hp_boost', value: 20 });
       }
     },
     {
@@ -295,10 +295,10 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'savings_account', name: '普通預金口座', tier: 'gold', category: 'economy', imgName: 'savingsaccount_ii',
-      desc: '利子で50ゴールドを獲得後、30ゴールドを獲得する。最大利子が7に増加する。即座に4ゴールドを獲得する',
+      desc: '利子で50ゴールドを獲得後、25ゴールドを獲得する。最大利子が7に増加する。即座に2ゴールドを獲得する',
       icon: '🏦',
       effect: (state, rng, helpers) => {
-        helpers.addGold(4);
+        helpers.addGold(2);
         helpers.setMaxInterest(7);
         helpers.addPassiveBuff({ type: 'savings_account' });
       }
@@ -480,7 +480,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'anima_commander', name: 'アニマ司令官', tier: 'gold', category: 'combat', imgName: 'animacommander_ii',
-      desc: 'ブライアー、ジンクス、イラオイを1体ずつ獲得する。プレイヤーの現在体力と最大体力が10増加する。',
+      desc: 'ブライアー、ジンクス、イラオイを1体ずつ獲得する。プレイヤーの現在体力と最大体力が5増加する。',
       icon: '🐰',
       effect: (state, rng, helpers) => {
         const briar = CHAMPS.find(c => c.id === 'briar');
@@ -488,11 +488,12 @@ const AUGMENTS_DATA = {
         const illaoi = CHAMPS.find(c => c.id === 'illaoi');
         const units = [briar, jinx, illaoi].map(c => ({ ...c, star: 1, uid: rng(), items: [] }));
         helpers.addPendingUnits(units);
+        helpers.addPassiveBuff({ type: 'hp_boost', value: 5 });
       }
     },
     {
       id: 'urf', name: 'U.R.F.', tier: 'gold', category: 'item', imgName: 'ultrarapidfire_ii',
-      desc: '「へら」を1個獲得する。「へら」または「フライパン」アイテムを装備しているチャンピオンの攻撃速度が15%、マナ自動回復が2増加する。',
+      desc: '「へら」を1個獲得する。「へら」または「フライパン」アイテムを装備しているチャンピオンの攻撃速度が20%、マナ自動回復が3増加する。',
       icon: '🍳',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEMS.find(i=>i.id==='spatula')});
@@ -636,7 +637,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'two_tanks', name: '2体のタンク', tier: 'gold', category: 'combat', imgName: 'two-tanky-ii',
-      desc: 'フィールド上にまったく同じチャンピオンを2体配置すると、両者の体力が600増加する。そのチャンピオンのいずれかが倒されると、もう一体のチャンピオンは12秒間、最大体力の40%の耐久値のシールドを獲得する。★3にアップグレードすると、★2のコピーを1体獲得する。',
+      desc: 'フィールド上にまったく同じチャンピオンを2体配置すると、両者の体力が400増加する。そのチャンピオンのいずれかが倒されると、もう一体のチャンピオンは12秒間、最大体力の35%の耐久値のシールドを獲得する。★3にアップグレードすると、★2のコピーを1体獲得する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'two_tanks' });
@@ -644,13 +645,12 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'birthday_reunion', name: 'バースデー リユニオン', tier: 'gold', category: 'combat', imgName: 'birthdayreunion_ii',
-      desc: 'ランダムな★2のコスト2チャンピオンを1体獲得する。レベル7に到達すると、「盗賊のグローブ」を1個獲得する。レベル9に到達すると、ランダムな★2のコスト5チャンピオンを1体獲得する。',
+      desc: '3ゴールドを獲得する。レベル5でランダムな★2のコスト2チャンピオンを1体獲得する。レベル7で「盗賊のグローブ」を1個獲得する。レベル9でランダムな★2のコスト5チャンピオンを1体獲得する。',
       icon: '🎉',
       effect: (state, rng, helpers) => {
-        const pool = CHAMPS.filter(c => c.cost === 2);
-        const chosen = pool[Math.floor(rng() * pool.length)];
-        const unitData = { ...chosen, star: 2, uid: rng(), items: [] };
-        helpers.addPendingUnits([unitData]);
+        helpers.addGold(3);
+        helpers.addPassiveBuff({ type: 'birthday_reunion' });  // レベル5到達で★2コスト2（app.js側で処理）
+        helpers.showMsg('🎉 バースデー リユニオン: 3G獲得！レベル5で★2のコスト2を獲得します');
       }
     },
     {
@@ -663,7 +663,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'sunfire_board', name: 'サンファイア ボード', tier: 'gold', category: 'combat', imgName: 'sunfireboard2',
-      desc: '戦闘開始時: すべての敵を焼き、15秒かけて対象の最大体力の15%にあたるダメージを与え、対象が受ける回復効果を33%低下させる。',
+      desc: '戦闘開始時: すべての敵を焼き、18秒かけて対象の最大体力の18%にあたるダメージを与え、対象が受ける回復効果を33%低下させる。',
       icon: '🔥',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'sunfire_board' });
@@ -925,7 +925,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'blood_offering', name: '血の供物', tier: 'gold', category: 'combat', imgName: 'trailofblood_ii',
-      desc: '「ブラッドサースター」を1個獲得する。戦闘開始時: 「ブラッドサースター」を装備した味方の体力が20%減少するが、体力の30%にあたる耐久値を持つシールドを獲得し、攻撃力が10%増加する。',
+      desc: '「ブラッドサースター」を1個獲得する。戦闘開始時: 「ブラッドサースター」を装備した味方の体力が15%減少するが、体力の20%にあたる耐久値を持つシールドを獲得し、攻撃力と魔力が12%増加する。',
       icon: '🩸',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEM_RECIPES['bf_cloak'], type:'completed'});
@@ -955,7 +955,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'cry_all_you_want', name: '好きなだけ泣くがいい', tier: 'gold', category: 'combat', imgName: 'crymeariver_ii',
-      desc: '「女神の涙」を1個獲得する。味方チームが1のマナ自動回復を獲得する。戦闘開始から12秒後にこの効果は3になる。',
+      desc: '「女神の涙」を1個獲得する。味方チームが1のマナ自動回復を獲得する。戦闘開始から12秒後にこの効果は4になる。',
       icon: '😭',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEMS.find(i=>i.id==='tear')});
@@ -974,7 +974,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'high_voltage', name: '高電圧', tier: 'gold', category: 'combat', imgName: 'highvoltage_ii',
-      desc: '「アイオニック スパーク」を1個獲得する。「アイオニック スパーク」の半径が3マス増加し、ダメージが20%増加する。',
+      desc: '「アイオニック スパーク」を1個獲得する。「アイオニック スパーク」の半径が3マス増加し、ダメージが25%増加する。',
       icon: '⚡',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEM_RECIPES['rod_cloak'], type:'completed'});
@@ -1004,7 +1004,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'timestream', name: 'タイムストリーム', tier: 'gold', category: 'combat', imgName: 'timestream_ii',
-      desc: '「タイムブレーカー」は、リロールするたび(無料のリロールも含む)に体力が7と攻撃速度が0.25%増加する。エズリアルとパンテオンを1体ずつ獲得する。',
+      desc: '「タイムブレーカー」の体力が100増加し、リロールするたび(無料のリロールも含む)に攻撃速度が0.3%増加する。エズリアルとパンテオンを1体ずつ獲得する。',
       icon: '⏱️',
       effect: (state, rng, helpers) => {
         const ezreal = CHAMPS.find(c => c.id === 'ezreal');
@@ -1018,7 +1018,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'treasure_hunt', name: '宝探し', tier: 'gold', category: 'economy', imgName: 'treasurehunt_ii',
-      desc: '現時点からステージ6まで、ステージごとにロックされた宝箱を1個獲得する。ショップのリロールで16ゴールドを使用すると、宝箱を1個開封できる。これらの宝箱は開封するまで消えずに残る。',
+      desc: '現時点からステージ6まで、ステージごとにロックされた宝箱を1個獲得する。ショップのリロールで18ゴールドを使用すると、宝箱を1個開封できる。これらの宝箱は開封するまで消えずに残る。',
       icon: '🧰',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'treasure_hunt' });
@@ -1052,7 +1052,7 @@ const AUGMENTS_DATA = {
   prismatic: [
     {
       id: 'upward_mobility', name: '上方移動', tier: 'prismatic', category: 'economy', imgName: 'upwardmobility_iii',
-      desc: '経験値の購入コストが1減少する。レベルアップするたびに、体力2と無料リロールを2獲得する。。',
+      desc: '経験値の購入コストが1減少する。レベルアップするたびに、体力2と無料リロールを1獲得する。',
       icon: '🚀',
       effect: (state, rng, helpers) => {
         helpers.setXpCostReduction(1);
@@ -1061,16 +1061,16 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'hedge_fund', name: 'ヘッジファンド', tier: 'prismatic', category: 'economy', imgName: 'richgetricher3',
-      desc: '25ゴールドを獲得する。利子の最大額が10まで増加する。',
+      desc: '22ゴールドを獲得する。利子の最大額が10まで増加する。',
       icon: '💰',
       effect: (state, rng, helpers) => {
-        helpers.addGold(25);
+        helpers.addGold(22);
         helpers.setMaxInterest(10);
       }
     },
     {
       id: 'prism_ticket', name: 'プリズムチケット', tier: 'prismatic', category: 'economy', imgName: 'goldenticket3',
-      desc: 'ショップをリロールするたびに、50%の確率で無料リロール1回分を獲得する。',
+      desc: 'ショップをリロールするたびに、45%の確率で無料リロール1回分を獲得する。',
       icon: '🎟️',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'prism_ticket' });
@@ -1078,39 +1078,39 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'sacrifice', name: '代償', tier: 'prismatic', category: 'economy', imgName: 'atwhatcost_iii',
-      desc: '直ちにレベル6になり、12 XPの経験値を獲得する。今後、オーグメントは選択できない。',
+      desc: '直ちにレベル6になり、8 XPの経験値を獲得する。今後、オーグメントは選択できない。',
       icon: '⚖️',
       effect: (state, rng, helpers) => {
         helpers.setLevel(6);
-        helpers.addXp(12);
+        helpers.addXp(8);
         helpers.setNoMoreAugments(true);
       }
     },
     {
       id: 'make_friends', name: '仲間を作ろう', tier: 'prismatic', category: 'economy', imgName: 'constructacompanion_iii',
-      desc: 'ランダムな★3のコスト1チャンピオンを1体獲得する。8ゴールドを獲得する。',
+      desc: 'ランダムな★3のコスト1チャンピオンを1体獲得する。10ゴールドを獲得する。',
       icon: '🌟',
       effect: (state, rng, helpers) => {
-        helpers.addGold(8);
+        helpers.addGold(10);
         const pool = CHAMPS.filter(c => c.cost === 1);
         const chosen = pool[Math.floor(rng() * pool.length)];
         const unitData = { ...chosen, star: 3, uid: rng(), items: [] };
         helpers.addPendingUnits([unitData]);
-        helpers.showMsg(`★★★${chosen.jaName} と 8G を獲得！`);
+        helpers.showMsg(`★★★${chosen.jaName} と 10G を獲得！`);
       }
     },
     {
       id: 'level_up', name: 'レベルアップ！', tier: 'prismatic', category: 'economy', imgName: 'levelup3',
-      desc: '経験値を購入する際、追加で経験値を2 XP獲得する。即座に経験値を8 XP獲得する。',
+      desc: '経験値を購入する際、追加で経験値を2 XP獲得する。即座に経験値を6 XP獲得する。',
       icon: '📈',
       effect: (state, rng, helpers) => {
-        helpers.addXp(8);
+        helpers.addXp(6);
         helpers.addPassiveBuff({ type: 'level_up_aug' });
       }
     },
     {
       id: 'thieves_guild2', name: '盗賊団 II', tier: 'prismatic', category: 'item', imgName: 'bandthieves3',
-      desc: '「盗賊のグローブ」2個を獲得。対人戦を8回行ったあとに、もう1個獲得する。',
+      desc: '「盗賊のグローブ」2個を獲得。対人戦を6回行ったあとに、もう1個獲得する。',
       icon: '🧤',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'thieves_guild2' });
@@ -1118,7 +1118,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'scarier_cap', name: 'もっと怖いキャップ', tier: 'prismatic', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/_deadliercaps.avif?v=1',
-      desc: '「ラバドン デスキャップ」を1個獲得する。装備者がキルまたはアシストを獲得するたび、「ラバドン デスキャップ」の魔力が恒久的に1%増加する。',
+      desc: '「ラバドン デスキャップ」を1個獲得する。「ラバドン デスキャップ」がマナ自動回復を付与するようになる。装備者がキルまたはアシストを獲得するたび、「ラバドン デスキャップ」の魔力が恒久的に1%増加する。',
       icon: '🎩',
       effect: (state, rng, helpers) => {
         helpers.addItem({...ITEM_RECIPES['rod_rod'], type:'completed'});
@@ -1171,7 +1171,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'last_stand', name: '逆転劇', tier: 'prismatic', category: 'combat', imgName: 'comebackstory_iii',
-      desc: 'プレイヤーの体力が減少するごとに、味方チームの体力が5、攻撃速度が0.4%増加する。',
+      desc: 'プレイヤーの体力が減少するごとに、味方チームの体力が4、攻撃速度が0.4%増加する。',
       icon: '🔁',
       effect: (state, rng, helpers) => {
         helpers.addPassiveBuff({ type: 'last_stand' });
@@ -1260,32 +1260,33 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'lucky_gloves', name: 'ラッキーグローブ', tier: 'prismatic', category: 'item', imgName: 'lucky-gloves-iii',
-      desc: '「盗賊のグローブ」が毎回、そのチャンピオンにとって理想的なアイテムを付与するようになる。「スパーリング グローブ」を2個獲得する。',
+      desc: '「盗賊のグローブ」が毎回、そのチャンピオンにとって理想的なアイテムを付与するようになる。「スパーリング グローブ」を2個と4ゴールドを獲得する。',
       icon: '🧤',
       effect: (state, rng, helpers) => {
         const glove = ITEMS.find(i => i.id === 'glove');
         if (glove) { helpers.addItem({ ...glove }); helpers.addItem({ ...glove }); }
+        helpers.addGold(4);
         helpers.addPassiveBuff({ type: 'lucky_gloves' });
-        helpers.showMsg('🧤 ラッキーグローブ: スパーリンググローブを2個獲得しました！');
+        helpers.showMsg('🧤 ラッキーグローブ: スパーリンググローブ2個と4Gを獲得しました！');
       }
     },
     {
       id: 'wise_spending', name: '賢い買い物', tier: 'prismatic', category: 'economy', imgName: 'wisespending3',
-      desc: 'XPを購入できなくなる。ショップをリロールしてゴールドを消費するたびに、2XPを獲得する。即座に3ゴールドを獲得する。',
+      desc: 'XPを購入できなくなる。ショップをリロールしてゴールドを消費するたびに、2XPを獲得する。即座に1ゴールドを獲得する。',
       icon: '🛒',
       effect: (state, rng, helpers) => {
-        helpers.addGold(3);
+        helpers.addGold(1);
         helpers.addPassiveBuff({ type: 'wise_spending' });
-        helpers.showMsg('🛒 賢い買い物: 3Gを獲得！リロールでXPを獲得できるようになります。');
+        helpers.showMsg('🛒 賢い買い物: 1Gを獲得！リロールでXPを獲得できるようになります。');
       }
     },
     {
       id: 'speculative_buying', name: '思惑買い', tier: 'prismatic', category: 'economy', imgName: 'going-long-iii',
-      desc: '利子を獲得しなくなる。13ゴールドを即座に獲得する。ラウンド開始時: 4 XPの経験値を獲得する。',
+      desc: '利子を獲得しなくなる。16ゴールドを即座に獲得する。ラウンド開始時: 4 XPの経験値を獲得する。',
       icon: '💸',
       effect: (state, rng, helpers) => {
-        helpers.addGold(13);
-        helpers.showMsg('💸 思惑買い: 13Gを獲得しました！');
+        helpers.addGold(16);
+        helpers.showMsg('💸 思惑買い: 16Gを獲得しました！');
       }
     },
     {
@@ -1366,7 +1367,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'living_forge', name: '歩く鍛冶場', tier: 'prismatic', category: 'item', imgName: 'living-forge-iii',
-      desc: '「アーティファクトの金床」を即座に1個獲得し、その後は対人戦ラウンドを8回終えるたびに1個獲得する。',
+      desc: '「アーティファクトの金床」を即座に1個獲得し、その後は対人戦ラウンドを9回終えるたびに1個獲得する。',
       icon: '🔨',
       effect: (state, rng, helpers) => {
         helpers.addAnvilToBench('artifact', 1);
@@ -1375,7 +1376,7 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'shimmerscale_essence', name: 'シマースケールのエッセンス', tier: 'prismatic', category: 'item', imgName: 'shimmerscaleessence_iii',
-      desc: '「モーグル メイル」を1個獲得する。6ラウンド後に、「ギャンブラーの剣」を1個獲得する。',
+      desc: '「モーグル メイル」を1個獲得する。7ラウンド後に、「ギャンブラーの剣」を1個獲得する。',
       icon: '🪙',
       effect: (state, rng, helpers) => {
         helpers.addItem({ ...ARTIFACTS.find(i => i.id === 'mogulsmail') });
@@ -1384,17 +1385,17 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'golden_gamble', name: '黄金の博打', tier: 'prismatic', category: 'item', imgName: 'goldengamble_iii',
-      desc: '1ゴールドを獲得してコインを投げる。表が出た場合、「レディアント 幸運のアイテムチェスト」を1個獲得する。裏が出た場合、「完成アイテムの金床」を2個獲得する。',
+      desc: '2ゴールドを獲得してコインを投げる。表が出た場合、「レディアント 幸運のアイテムチェスト」を1個獲得する。裏が出た場合、「完成アイテムの金床」を2個獲得する。',
       icon: '🪙',
       effect: (state, rng, helpers) => {
-        helpers.addGold(1);
+        helpers.addGold(2);
         const isHeads = rng() < 0.5;
         if (isHeads) {
           helpers.addAnvilToBench('radiant', 1);
-          helpers.showMsg('🪙 黄金の博打: 表！1Gとレディアント金床を獲得しました！');
+          helpers.showMsg('🪙 黄金の博打: 表！2Gとレディアント金床を獲得しました！');
         } else {
           helpers.addAnvilToBench('completed', 2);
-          helpers.showMsg('🪙 黄金の博打: 裏！1Gと完成品の金床を2個獲得しました！');
+          helpers.showMsg('🪙 黄金の博打: 裏！2Gと完成品の金床を2個獲得しました！');
         }
       }
     },

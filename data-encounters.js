@@ -16,13 +16,22 @@ const ENCOUNTERS = [
   { id:'viktor', champ:'ビクター', jaName:'アップグレード済みのチャンピオン', prob:7.3,
     desc:'ランダムなコスト1の★2チャンピオンを1体所持して試合を開始する。',
     icon:'⚙️', color:'#7fd0ff',
-    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===1); const c=pool[Math.floor(rng()*pool.length)];
-      if(h.addChampToBoardDirect) { h.addChampToBoardDirect({...c, star:2, uid:rng(), items:[]}); } else { h.addChampToBenchDirect({...c, star:2, uid:rng(), items:[]}); } h.showMsg(`⚙️ ビクター: ★★${c.jaName} を獲得！`); } },
+    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===1);
+      const natural=pool[Math.floor(rng()*pool.length)];
+      const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
+      const c=pin||natural;
+      const unit={...c, star:2, uid:rng(), items:[]};
+      if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg(`⚙️ ビクター: ★★${c.jaName} を獲得！`); } },
 
   { id:'miipsy', champ:'ミィプシー', jaName:'コスト2スタート', prob:7.3,
     desc:'ランダムなコスト2のチャンピオンを1体所持して試合を開始する。',
     icon:'⭐', color:'#44cc66',
-    effect:(s,rng,h)=>{ if(h.addChampToBoard) { h.addChampToBoard(2,1,rng); } else { h.addChampToBench(2,1,rng); } h.showMsg('⭐ ミィプシー: 2コストを1体獲得！'); } },
+    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===2);
+      const natural=pool[Math.floor(rng()*pool.length)];
+      const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
+      const c=pin||natural;
+      const unit={...c, star:1, uid:rng(), items:[]};
+      if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg('⭐ ミィプシー: 2コストを1体獲得！'); } },
 
   { id:'lissandra', champ:'リサンドラ', jaName:'ハウリングアビス', prob:7.3,
     desc:'ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。',
@@ -34,7 +43,10 @@ const ENCOUNTERS = [
       for (let i = 0; i < 5; i++) {
         if (tempPool.length === 0) break;
         const idx = Math.floor(rng() * tempPool.length);
-        chosen.push({ ...tempPool.splice(idx, 1)[0], star: 1, uid: rng(), items: [] });
+        const natural = tempPool.splice(idx, 1)[0];
+        const pin = (s.encChamps && s.encChamps[i]) ? pool.find(c => c.id === s.encChamps[i]) : null;
+        const base = pin || natural;
+        chosen.push({ ...base, star: 1, uid: rng(), items: [] });
       }
       if (h.addChampToBoardDirect) {
         h.addChampToBoardDirect(chosen[0]);
@@ -42,7 +54,7 @@ const ENCOUNTERS = [
       } else {
         chosen.forEach(c => h.addChampToBenchDirect(c));
       }
-      h.showMsg('🌉 リサンドラ: 異なる1コストを5体獲得！'); 
+      h.showMsg('🌉 リサンドラ: 1コストを5体獲得！'); 
     } 
   },
 
@@ -59,7 +71,12 @@ const ENCOUNTERS = [
   { id:'missfortune', champ:'ミスフォーチュン', jaName:'コスト3スタート', prob:6.1,
     desc:'ランダムなコスト3のチャンピオンを1体所持して試合を開始する。',
     icon:'🌟', color:'#3399ff',
-    effect:(s,rng,h)=>{ if(h.addChampToBoard) { h.addChampToBoard(3,1,rng); } else { h.addChampToBench(3,1,rng); } h.showMsg('🌟 ミスフォーチュン: 3コストを1体獲得！'); } },
+    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===3);
+      const natural=pool[Math.floor(rng()*pool.length)];
+      const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
+      const c=pin||natural;
+      const unit={...c, star:1, uid:rng(), items:[]};
+      if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg('🌟 ミスフォーチュン: 3コストを1体獲得！'); } },
 
   { id:'fiora', champ:'フィオラ', jaName:'Silver Scrapes', prob:4.9,
     desc:'最後に生存している2人のプレイヤーが70ゴールドを獲得し、壮大な最後の対決が始まる。',

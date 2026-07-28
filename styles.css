@@ -264,3 +264,19 @@ html, body, #root {
   overflow: hidden;
   background: var(--bg0);
 }
+
+/* ═══ 🌗 ダークテーマ（body.dark でCSS変数を一括反転） ═══ */
+body.dark {
+  --bg0: #0b1320;
+  --bg1: #101c33;
+  --bg2: #1c2a44;
+  --bg3: #24365a;
+  --border: #2a3a55;
+  --text: #e2e8f0;
+  --textdim: #7d8aa5;
+  --bg-panel: rgba(16, 28, 51, 0.95);
+  --bg-sidebar: rgba(11, 19, 32, 0.85);
+  --bg-hex: rgba(28, 42, 68, 0.6);
+  --text-main: #e2e8f0;
+  --text-inv: #0b1320;
+}
