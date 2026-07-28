@@ -253,7 +253,10 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 //     set が無ければ sim-config.js の値を、それも無ければ 'set18' を既定にする。
 const CURRENT_SET = (window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
 const setPrefix = set => `tft${String(set || CURRENT_SET).replace(/[^0-9]/g, '') || '18'}_`;
-const champIcon = (img, set) => img ? `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/champions/${setPrefix(set)}${img.toLowerCase()}.png` : '';
+// metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
+const metaImg = (path, name, opts = 'width=64,format=auto') => `https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
+const champIcon   = (img, set) => img ? metaImg('champions',        setPrefix(set) + img.toLowerCase()) : '';
+const champSplash = (img, set) => img ? metaImg('championsplashes', setPrefix(set) + img.toLowerCase(), 'width=64,height=38,fit=cover,format=auto') : '';
 
 /* ═══════ 📊 記録データ ═══════ */
 const FB_CFG_KEY = 'sim_editor_fb_cfg';
@@ -493,7 +496,7 @@ function renderChamps() {
   visBtn.style.background = allHidden ? '' : '#5e1616';
   visBtn.style.borderColor = allHidden ? '' : 'var(--red)';
   document.getElementById('champ-body').innerHTML = champs.map((c, i) => c.set !== activeChampSet ? '' : `<tr style="${c.hidden ? 'opacity:.5' : ''}">
-    <td><img class="champ-img" src="${c.img ? `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/champions/${setPrefix(c.set)}${esc(c.img.toLowerCase())}.png` : ''}" onerror="this.style.opacity=.15"></td>
+    <td><img class="champ-img" src="${champIcon(c.img, c.set)}" onerror="if(!this.dataset.fb&&'${champSplash(c.img, c.set)}'){this.dataset.fb='1';this.src='${champSplash(c.img, c.set)}'}else{this.style.opacity=.15}"></td>
     <td><input type="text" value="${esc(c.id)}" style="width:90px;font-family:Rajdhani" oninput="champs[${i}].id=this.value"></td>
     <td><input type="text" value="${esc(c.name)}" style="width:110px" oninput="champs[${i}].name=this.value"></td>
     <td><input type="text" value="${esc(c.jaName)}" style="width:130px" oninput="champs[${i}].jaName=this.value"></td>
@@ -786,7 +789,7 @@ const itemIconUrl = (it) => {
   const n = it.name || '';
   if (n.includes('Emblem')) {
     const t = n.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${setPrefix()}item_${t}emblemitem.png`;
+    return metaImg('items', `${setPrefix()}item_${t}emblemitem`);
   }
   const f = n.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
   return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${f}.png`;
