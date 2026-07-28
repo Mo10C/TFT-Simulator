@@ -526,8 +526,11 @@ const getJaName = (name) => {
   return ITEM_JA[name] || name;
 };
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
-const champIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=256,format=webp/file/metatft/championsplashes/tft17_${img.toLowerCase()}.png`;
-const boardIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=96,format=webp/file/metatft/champions/tft17_${img.toLowerCase()}.png`;
+// 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
+const CURRENT_SET = (window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
+const SET_PREFIX = `tft${String(CURRENT_SET).replace(/[^0-9]/g,'') || '18'}_`;
+const champIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=256,format=webp/file/metatft/championsplashes/${SET_PREFIX}${img.toLowerCase()}.png`;
+const boardIcon=(img)=>`https://cdn.metatft.com/cdn-cgi/image/width=96,format=webp/file/metatft/champions/${SET_PREFIX}${img.toLowerCase()}.png`;
 const getTraitIconUrl = (name) => `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
 
 /* 🌟 神ポートレート用：rgpub(本来の絵) → blitz-cdn(チャンピオン四角) → CSS絵文字 の3段フォールバック。
@@ -591,7 +594,7 @@ const getMetaTFTItemUrl = (item) => {
   // 1.5 紋章専用のURLフォーマット
   if (nameInput.includes('Emblem')) {
     const traitName = nameInput.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft17_item_${traitName}emblemitem.png`;
+    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${SET_PREFIX}item_${traitName}emblemitem.png`;
   }
 
   // 2. 特殊消費アイテム
