@@ -66,8 +66,10 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="tab active" data-page="records">📊 記録データ</div>
   <div class="tab" data-page="users">👥 ユーザー</div>
   <div class="tab" data-page="champs">🦸 チャンピオン</div>
+  <div class="tab" data-page="traits">🔰 特性</div>
   <div class="tab" data-page="augs">✨ オーグメント</div>
   <div class="tab" data-page="items">🗡️ アイテム</div>
+  <div class="tab" data-page="encounters">🎲 遭遇</div>
 </div>
 
 <!-- ══════════ 📊 記録データ ══════════ -->
@@ -138,6 +140,24 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   </div>
 </div>
 
+<!-- ══════════ 🔰 特性 ══════════ -->
+<div class="page" id="page-traits">
+  <div class="card">
+    <h2>🔰 特性編集（日本語名・発動しきい値・アイコン・効果説明／新規追加）</h2>
+    <div class="row">
+      <span class="note" id="trait-status">「🦸 チャンピオン」タブで data-champions.js を読み込むと自動で反映されます</span>
+      <input type="text" id="trait-search" placeholder="検索（英名/日本語）" style="width:150px" oninput="renderTraits()">
+      <button onclick="addTrait()" id="trait-add" disabled>＋ 新規特性追加</button>
+      <button class="gold" onclick="downloadChamps()" id="trait-dl" disabled>⬇ data-champions.js をダウンロード</button>
+    </div>
+    <div class="note">特性データ（TRAIT_JA / TRAIT_DESCS / TRAIT_TIERS_DATA / TRAIT_ICONS）はチャンピオンと同じ data-champions.js 内。ダウンロードでこの4つと CHAMPS をまとめて再生成します。<br>しきい値はカンマ区切り（例: <b>2,4,6</b>）。アイコン名は空欄なら英名から自動。<b>英名(キー)</b>はチャンピオンの「特性」欄と一致させること（変更すると紐付けが切れます）。効果はゲーム内表示テキストです（このシムは戦闘計算をしないため表示のみ）。</div>
+  </div>
+  <div class="card" style="overflow-x:auto">
+    <table><thead><tr><th></th><th>英名(キー)</th><th>日本語名</th><th>しきい値</th><th>アイコン名(空=自動)</th><th>効果説明</th><th></th></tr></thead>
+    <tbody id="trait-body"><tr><td colspan="7" class="note">チャンピオンタブで読み込み待ち…</td></tr></tbody></table>
+  </div>
+</div>
+
 <!-- ══════════ ✨ オーグメント ══════════ -->
 <div class="page" id="page-augs">
   <div class="card">
@@ -195,6 +215,26 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="card" style="overflow-x:auto">
     <table><thead><tr><th></th><th>ID</th><th>名前</th><th>種類</th><th>SETタグ</th><th>表示</th></tr></thead>
     <tbody id="item-body"><tr><td colspan="6" class="note">読み込み中…</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- ══════════ 🎲 遭遇 ══════════ -->
+<div class="page" id="page-encounters">
+  <div class="card">
+    <h2>🎲 遭遇（神/wisp）編集 ― メタ情報（名前・確率・説明・アイコン・色）</h2>
+    <div class="row">
+      <span class="note" id="enc-status">同じフォルダの data-encounters.js を自動で読み込みます…</span>
+      <input type="file" id="enc-file" accept=".js" style="display:none">
+      <button onclick="document.getElementById('enc-file').click()">📂 手動でファイルを選ぶ</button>
+      <input type="text" id="enc-search" placeholder="検索" style="width:150px" oninput="renderEncounters()">
+      <button onclick="addEncounter()" id="enc-add" disabled>＋ 新規遭遇追加</button>
+      <button class="gold" onclick="downloadEncounters()" id="enc-dl" disabled>⬇ data-encounters.js をダウンロード</button>
+    </div>
+    <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。</div>
+  </div>
+  <div class="card" style="overflow-x:auto">
+    <table><thead><tr><th></th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
+    <tbody id="enc-body"><tr><td colspan="9" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -443,7 +483,7 @@ function buildManagedBlock(kind, state) {
 }
 
 /* ═══════ 🦸 チャンピオン（フル編集：CHAMPS配列を丸ごと再生成） ═══════ */
-let champText = null, champs = [], activeChampSet = 'set17';
+let champText = null, champs = [], activeChampSet = 'set17', traitRows = [];
 function champSets() {
   const found = [...new Set(champs.map(c => c.set))];
   return [...new Set(['set17', 'set18', 'set19', ...found])];
@@ -451,15 +491,22 @@ function champSets() {
 function loadChampText(text) {
   champText = text;
   try {
-    const got = new Function(text + ';\nreturn { CHAMPS: (typeof CHAMPS !== "undefined" ? CHAMPS : []) };')();
+    const got = new Function(text + ';\nreturn { CHAMPS:(typeof CHAMPS!=="undefined"?CHAMPS:[]), TRAIT_JA:(typeof TRAIT_JA!=="undefined"?TRAIT_JA:{}), TRAIT_DESCS:(typeof TRAIT_DESCS!=="undefined"?TRAIT_DESCS:{}), TRAIT_TIERS_DATA:(typeof TRAIT_TIERS_DATA!=="undefined"?TRAIT_TIERS_DATA:{}), TRAIT_ICONS:(typeof TRAIT_ICONS!=="undefined"?TRAIT_ICONS:{}) };')();
     champs = (got.CHAMPS || []).map(c => ({ id: c.id || '', name: c.name || '', jaName: c.jaName || '', cost: c.cost || 1,
       traits: (c.traits || []).join(', '), img: c.img || '', set: c.set || 'set17', hidden: !!c.hidden,
       role: c.role || '', idealItems: Array.isArray(c.idealItems) ? c.idealItems.slice(0, 8) : [] }));
+    const ja = got.TRAIT_JA || {}, desc = got.TRAIT_DESCS || {}, tiers = got.TRAIT_TIERS_DATA || {}, icons = got.TRAIT_ICONS || {};
+    const tk = [...new Set([...Object.keys(ja), ...Object.keys(desc), ...Object.keys(tiers), ...Object.keys(icons)])];
+    traitRows = tk.map(k => ({ key: k, ja: ja[k] || k, desc: desc[k] || '', tiers: (Array.isArray(tiers[k]) ? tiers[k] : []).join(','), icon: icons[k] || '' }));
   } catch (err) { showMsg('data-champions.js の解析に失敗: ' + err.message, true); return; }
   document.getElementById('champ-dl').disabled = false;
   document.getElementById('champ-add').disabled = false;
+  document.getElementById('trait-dl').disabled = false;
+  document.getElementById('trait-add').disabled = false;
+  document.getElementById('trait-status').textContent = `📂 特性 ${traitRows.length} 件を読み込みました`;
   if (!champSets().includes(activeChampSet)) activeChampSet = champSets()[0];
   renderChamps();
+  renderTraits();
 }
 function addChampSet() {
   const name = prompt('新しいセット名（例: set20）');
@@ -581,28 +628,168 @@ function addChamp() {
   const rows = document.querySelectorAll('#champ-body tr');
   if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth' });
 }
+// 配列ブロック（const X=[ … \n]; ）を差し替え
+function replArrBlock(text, startMark, body) {
+  const si = text.indexOf(startMark); if (si === -1) return null;
+  const ei = text.indexOf('\n];', si); if (ei === -1) return null;
+  return text.slice(0, si) + startMark + '\n' + body + text.slice(ei);
+}
+// オブジェクトブロック（const X = { … \n}; ）を差し替え。無ければ insertAfter ブロックの直後に挿入
+function replObjBlock(text, startMark, body, insertAfter) {
+  const si = text.indexOf(startMark);
+  if (si !== -1) { const ei = text.indexOf('\n};', si); if (ei !== -1) return text.slice(0, si) + startMark + '\n' + body + text.slice(ei); }
+  if (insertAfter) { const ai = text.indexOf(insertAfter); if (ai !== -1) { const ce = text.indexOf('\n};', ai); if (ce !== -1) { const p = ce + 3; return text.slice(0, p) + '\n\n' + startMark + '\n' + body + '\n};' + text.slice(p); } } }
+  return null;
+}
+function buildTraitBodies() {
+  const rows = traitRows.filter(r => r.key && r.key.trim());
+  const ja = rows.map(r => `  ${JSON.stringify(r.key)}: ${JSON.stringify(r.ja || r.key)},`).join('\n');
+  const desc = rows.filter(r => r.desc).map(r => `  ${JSON.stringify(r.key)}: ${JSON.stringify(r.desc)},`).join('\n');
+  const tiers = rows.filter(r => String(r.tiers).trim()).map(r => `  ${JSON.stringify(r.key)}: [${String(r.tiers).split(',').map(x => Number(x.trim())).filter(n => !isNaN(n)).join(',')}],`).join('\n');
+  const icons = rows.filter(r => r.icon && r.icon.trim()).map(r => `  ${JSON.stringify(r.key)}: ${JSON.stringify(r.icon.trim())},`).join('\n');
+  return { ja, desc, tiers, icons };
+}
 function downloadChamps() {
-  if (champText == null) return;
-  const bad = champs.filter(c => !c.id || !c.jaName);
-  if (bad.length) return showMsg('IDと日本語名が未入力の行があります', true);
+  if (champText == null) return showMsg('先に既存の data-champions.js を「📂 読み込み」してください（CHAMPS配列を差し替える方式なので元ファイルが必要です）', true);
+  // id か jaName が未入力の行を「どのセットの誰か」まで特定。別タブに残った空行が原因のことが多いので、その行のあるタブへ自動で切り替える。
+  const bad = champs.map((c, i) => ({ c, i })).filter(x => !x.c.id || !x.c.jaName);
+  if (bad.length) {
+    const first = bad[0].c;
+    if (first.set && first.set !== activeChampSet) { activeChampSet = first.set; renderChamps(); }
+    const where = bad.slice(0, 6).map(x => `${x.c.set || 'set17'}:${x.c.jaName || x.c.id || '(無名)'}`).join(' / ');
+    return showMsg(`ID・日本語名が未入力の行が${bad.length}件あります → ${where}${bad.length > 6 ? ' …' : ''}（別セットのタブに空行が残っていないか確認）`, true);
+  }
   const ids = champs.map(c => c.id);
-  if (new Set(ids).size !== ids.length) return showMsg('IDが重複しています', true);
+  const dup = [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
+  if (dup.length) return showMsg(`IDが重複しています: ${dup.join(', ')}`, true);
+  // 特性キーの検証
+  const tkeys = traitRows.map(r => (r.key || '').trim());
+  if (traitRows.some(r => !(r.key || '').trim())) { const tb = document.querySelector('.tab[data-page="traits"]'); if (tb) tb.click(); return showMsg('英名(キー)が空の特性行があります（特性タブを確認）', true); }
+  const dupTk = [...new Set(tkeys.filter((k, i) => tkeys.indexOf(k) !== i))];
+  if (dupTk.length) { const tb = document.querySelector('.tab[data-page="traits"]'); if (tb) tb.click(); return showMsg(`特性の英名(キー)が重複: ${dupTk.join(', ')}`, true); }
+
   const lines = champs.map(c => {
     const traits = c.traits.split(',').map(t => t.trim()).filter(Boolean);
     const roleStr = c.role ? `, role:${JSON.stringify(c.role)}` : '';
     const idealStr = (c.idealItems && c.idealItems.length) ? `, idealItems:${JSON.stringify(c.idealItems.slice(0, 8))}` : '';
     return `  {id:${JSON.stringify(c.id)}, name:${JSON.stringify(c.name)}, jaName:${JSON.stringify(c.jaName)}, cost:${c.cost}, traits:${JSON.stringify(traits)}, img:${JSON.stringify(c.img)}, set:${JSON.stringify(c.set || 'set17')}${roleStr}${idealStr}${c.hidden ? ', hidden:true' : ''}},`;
   });
-  const startMark = 'const CHAMPS=[';
-  const si = champText.indexOf(startMark);
-  if (si === -1) return showMsg('const CHAMPS=[ が見つかりません', true);
-  const ei = champText.indexOf('\n];', si);
-  const out = champText.slice(0, si) + startMark + '\n' + lines.join('\n') + champText.slice(ei);
+  let out = replArrBlock(champText, 'const CHAMPS=[', lines.join('\n'));
+  if (out == null) return showMsg('const CHAMPS=[ が見つからない/閉じ（改行 + ]; ）が不正です。元ファイルの形式を確認してください', true);
+  const tb = buildTraitBodies();
+  out = replObjBlock(out, 'const TRAIT_JA = {', tb.ja, null) || out;
+  out = replObjBlock(out, 'const TRAIT_DESCS = {', tb.desc, null) || out;
+  out = replObjBlock(out, 'const TRAIT_TIERS_DATA = {', tb.tiers, 'const TRAIT_DESCS = {') || out;
+  out = replObjBlock(out, 'const TRAIT_ICONS = {', tb.icons, 'const TRAIT_DESCS = {') || out;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
   a.download = 'data-champions.js'; a.click();
-  showMsg(`data-champions.js（${champs.length}体）をダウンロードしました`);
+  showMsg(`data-champions.js を再生成（チャンピオン${champs.length}体 / 特性${traitRows.length}件）`);
 }
+
+/* ═══════ 🔰 特性（日本語名・しきい値・アイコン・効果説明） ═══════ */
+function traitIconUrl(icon, key) {
+  const raw = (icon && icon.trim()) ? icon.trim() : (key || '');
+  return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
+}
+function renderTraits() {
+  const el = document.getElementById('trait-body'); if (!el) return;
+  if (!traitRows.length) { el.innerHTML = '<tr><td colspan="7" class="note">チャンピオンタブで読み込み待ち…</td></tr>'; return; }
+  const q = (document.getElementById('trait-search').value || '').toLowerCase().trim();
+  const rows = traitRows.map((r, i) => ({ r, i })).filter(x => !q || (x.r.key || '').toLowerCase().includes(q) || (x.r.ja || '').toLowerCase().includes(q));
+  el.innerHTML = rows.map(({ r, i }) => `<tr>
+    <td><img class="champ-img" src="${traitIconUrl(r.icon, r.key)}" onerror="this.style.opacity=.15"></td>
+    <td><input type="text" value="${esc(r.key)}" style="width:120px;font-family:Rajdhani" oninput="traitRows[${i}].key=this.value" onchange="renderTraits()"></td>
+    <td><input type="text" value="${esc(r.ja)}" style="width:130px" oninput="traitRows[${i}].ja=this.value"></td>
+    <td><input type="text" value="${esc(r.tiers)}" style="width:90px" placeholder="2,4,6" oninput="traitRows[${i}].tiers=this.value"></td>
+    <td><input type="text" value="${esc(r.icon)}" style="width:120px" placeholder="(自動)" oninput="traitRows[${i}].icon=this.value" onchange="renderTraits()"></td>
+    <td><textarea style="width:340px;height:52px;font-size:11px" oninput="traitRows[${i}].desc=this.value">${esc(r.desc)}</textarea></td>
+    <td><button style="color:var(--red)" onclick="deleteTrait(${i})">🗑</button></td>
+  </tr>`).join('');
+}
+function addTrait() {
+  if (champText == null) return showMsg('先にチャンピオンタブで data-champions.js を読み込んでください', true);
+  traitRows.push({ key: '', ja: '', desc: '', tiers: '', icon: '' });
+  document.getElementById('trait-search').value = '';
+  renderTraits();
+  const rows = document.querySelectorAll('#trait-body tr'); if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth' });
+}
+function deleteTrait(i) {
+  if (!confirm(`特性「${traitRows[i].ja || traitRows[i].key || ''}」をデータから削除します。よろしいですか？（チャンピオンがこの特性を参照している場合は英名がそのまま表示されます）`)) return;
+  traitRows.splice(i, 1); renderTraits();
+}
+
+/* ═══════ 🎲 遭遇（メタ情報編集：effect関数・フラグは原文のまま保持） ═══════ */
+let encText = null, encObjs = [];
+function loadEncText(text) {
+  encText = text;
+  try { encObjs = new Function(text + '\n; return (typeof ENCOUNTERS!=="undefined"?ENCOUNTERS:[]);')() || []; }
+  catch (err) { showMsg('data-encounters.js の解析に失敗: ' + err.message, true); return; }
+  document.getElementById('enc-dl').disabled = false;
+  document.getElementById('enc-add').disabled = false;
+  renderEncounters();
+}
+function encFlagSummary(e) {
+  const f = [];
+  if (typeof e.effect === 'function') f.push('effect()');
+  if (e.augmentForceTier) f.push('force:' + e.augmentForceTier);
+  if (e.augmentRerollBonus) f.push('reroll+' + e.augmentRerollBonus);
+  if (e.freeRerollsAt21) f.push('free×' + e.freeRerollsAt21);
+  if (e.displayOnly) f.push('displayOnly');
+  return f.join(' ') || '—';
+}
+function renderEncounters() {
+  const el = document.getElementById('enc-body'); if (!el) return;
+  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="9" class="note">読み込み待ち…</td></tr>'; return; }
+  const q = (document.getElementById('enc-search').value || '').toLowerCase().trim();
+  const total = encObjs.reduce((s, e) => s + (Number(e.prob) || 0), 0);
+  document.getElementById('enc-status').textContent = `遭遇 ${encObjs.length} 件（確率合計 ${total.toFixed(1)}%）`;
+  const rows = encObjs.map((e, i) => ({ e, i })).filter(x => !q || (x.e.id || '').toLowerCase().includes(q) || (x.e.jaName || '').toLowerCase().includes(q) || (x.e.champ || '').toLowerCase().includes(q));
+  el.innerHTML = rows.map(({ e, i }) => `<tr>
+    <td><input type="text" value="${esc(e.icon || '')}" style="width:34px;font-size:18px;text-align:center" title="絵文字アイコン" oninput="encObjs[${i}].icon=this.value"></td>
+    <td><input type="text" value="${esc(e.id || '')}" style="width:90px;font-family:Rajdhani" oninput="encObjs[${i}].id=this.value"></td>
+    <td><input type="text" value="${esc(e.champ || '')}" style="width:100px" oninput="encObjs[${i}].champ=this.value"></td>
+    <td><input type="text" value="${esc(e.jaName || '')}" style="width:160px" oninput="encObjs[${i}].jaName=this.value"></td>
+    <td><input type="number" step="0.1" value="${Number(e.prob) || 0}" style="width:62px" oninput="encObjs[${i}].prob=Number(this.value)||0" onchange="renderEncounters()"></td>
+    <td><input type="text" value="${esc(e.color || '')}" style="width:78px" oninput="encObjs[${i}].color=this.value" onchange="renderEncounters()"><span style="display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-left:3px;border:1px solid var(--border);background:${esc(e.color || 'transparent')}"></span></td>
+    <td style="font-size:10px;color:var(--textdim);white-space:nowrap">${esc(encFlagSummary(e))}</td>
+    <td><textarea style="width:300px;height:44px;font-size:11px" oninput="encObjs[${i}].desc=this.value">${esc(e.desc || '')}</textarea></td>
+    <td><button style="color:var(--red)" onclick="deleteEncounter(${i})">🗑</button></td>
+  </tr>`).join('');
+}
+function addEncounter() {
+  if (encText == null) return showMsg('先に data-encounters.js を読み込んでください', true);
+  encObjs.push({ id: '', champ: '', jaName: '', prob: 0, desc: '', icon: '✨', color: '#7fd0ff', displayOnly: true });
+  document.getElementById('enc-search').value = '';
+  renderEncounters();
+  const rows = document.querySelectorAll('#enc-body tr'); if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth' });
+}
+function deleteEncounter(i) {
+  if (!confirm(`遭遇「${encObjs[i].jaName || encObjs[i].id || ''}」を削除します。よろしいですか？`)) return;
+  encObjs.splice(i, 1); renderEncounters();
+}
+function downloadEncounters() {
+  if (encText == null) return showMsg('先に data-encounters.js を読み込んでください', true);
+  if (encObjs.some(e => !(e.id + '').trim())) return showMsg('id が空の遭遇があります', true);
+  const serialize = (e) => '  { ' + Object.keys(e).map(k =>
+    (k === 'effect' && typeof e[k] === 'function') ? ('effect:' + e[k].toString()) : (k + ':' + JSON.stringify(e[k]))
+  ).join(', ') + ' },';
+  const body = encObjs.map(serialize).join('\n');
+  const startMark = 'const ENCOUNTERS = [';
+  const si = encText.indexOf(startMark);
+  if (si === -1) return showMsg('const ENCOUNTERS = [ が見つかりません', true);
+  const ei = encText.indexOf('\n];', si);
+  if (ei === -1) return showMsg('ENCOUNTERS の閉じ（改行 + ]; ）が見つかりません', true);
+  const out = encText.slice(0, si) + startMark + '\n' + body + encText.slice(ei);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
+  a.download = 'data-encounters.js'; a.click();
+  const total = encObjs.reduce((s, e) => s + (Number(e.prob) || 0), 0);
+  showMsg(`data-encounters.js（${encObjs.length}件 / 確率合計 ${total.toFixed(1)}%）をダウンロードしました`);
+}
+document.getElementById('enc-file').addEventListener('change', async ev => {
+  const f = ev.target.files[0]; if (f) { loadEncText(await f.text()); document.getElementById('enc-status').textContent = `📂 ${f.name} を読み込みました`; }
+});
 
 /* ═══════ ✨ オーグメント（名前・説明・ティア編集＋タグ・非表示・新規追加） ═══════ */
 let augText = null, augEntries = [], augMB = { hidden: [], tags: {}, added: [] };
@@ -1026,6 +1213,7 @@ window.addEventListener('load', () => {
     autoLoadDataFile('data-champions.js', 'champ-status', loadChampText);
     autoLoadDataFile('data-augments.js', 'aug-status', loadAugText);
     autoLoadDataFile('data-items.js', 'item-status', loadItemText);
+    autoLoadDataFile('data-encounters.js', 'enc-status', loadEncText);
     const c = fbCfg();
     if (c.apiKey && c.projectId) { loadShared(); loadUsers(); }   // 共有設定があれば全部読む
     else { loadLocal(); }                                          // なければローカル記録だけ

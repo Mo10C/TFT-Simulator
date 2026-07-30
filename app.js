@@ -533,7 +533,7 @@ const SET_PREFIX = `tft${String(CURRENT_SET).replace(/[^0-9]/g,'') || '18'}_`;
 const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
 const champIcon=(img)=>metaImg('championsplashes',`${SET_PREFIX}${img.toLowerCase()}`,'width=256,format=auto');
 const boardIcon=(img)=>metaImg('champions',`${SET_PREFIX}${img.toLowerCase()}`,'width=96,format=auto');
-const getTraitIconUrl = (name) => `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${name.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
+const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`; };
 
 /* 🌟 神ポートレート用：rgpub(本来の絵) → blitz-cdn(チャンピオン四角) → CSS絵文字 の3段フォールバック。
    Riot CMS(cmsassets.rgpub.io)はローカル(file://)やホットリンクで弾かれて黒丸になりやすいため、
@@ -5757,7 +5757,7 @@ const handleAugmentPick = (aug, historyContext) => {
     }
   }, [traitCounts['Psionic']]);
 
-  const TRAIT_TIERS = {
+  const TRAIT_TIERS = (typeof TRAIT_TIERS_DATA !== 'undefined') ? TRAIT_TIERS_DATA : {
     'Anima':[3,6],'Arbiter':[2,3],'Dark Star':[2,4,6,9],'Mecha':[3,4,6],'Meeple':[3,5,7,10],
     'N.O.V.A.':[2,5],'Primordian':[2,3],'Psionic':[2,4],'Space Groove':[1,3,5,7,10],
     'Stargazer':[3,4,5,6,7],'Timebreaker':[2,3,4],'Bastion':[2,4,6],'Brawler':[2,4,6],

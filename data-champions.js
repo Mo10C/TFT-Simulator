@@ -116,6 +116,22 @@ const TRAIT_DESCS = {
   'Stargazer': '試合ごとに異なる星座の効果を持つ。',
 };
 
+/* ── 特性（トレイト）発動しきい値 ── エディタの「特性」タブで再生成される ── */
+const TRAIT_TIERS_DATA = {
+  'Anima':[3,6],'Arbiter':[2,3],'Dark Star':[2,4,6,9],'Mecha':[3,4,6],'Meeple':[3,5,7,10],
+  'N.O.V.A.':[2,5],'Primordian':[2,3],'Psionic':[2,4],'Space Groove':[1,3,5,7,10],
+  'Stargazer':[3,4,5,6,7],'Timebreaker':[2,3,4],'Bastion':[2,4,6],'Brawler':[2,4,6],
+  'Challenger':[2,3,4,5],'Channeler':[2,3,4,5],'Fateweaver':[2,4],'Marauder':[2,4,6],
+  'Replicator':[2,4],'Rogue':[2,3,4,5],'Shepherd':[3,5,7],'Sniper':[2,3,4,5],
+  'Vanguard':[2,4,6],'Voyager':[2,3,4,5,6],'Redeemer':[1],'missfortuneuniquetrait':[1],
+  'DarkEmpress':[1],'Doomer':[1],'Factory':[1],'Galaxy':[1],'PartyTime':[1],
+  'Bulwark':[1],'Eradicator':[1],'Commander':[1],'SacredDuelist':[1],'Oracle':[1]
+};
+
+/* ── 特性アイコンの上書き（英名 → metatftの画像名。未指定なら英名から自動生成） ── */
+const TRAIT_ICONS = {
+};
+
 /* ── 星の観測者（Stargazer）バリエーション ── */
 const stargazerVariants = [
   '星の観測者たちは、試合ごとに異なる星座を描き出す。この試合: イノシシ\n\n勝利時にゴールドを獲得する。強化マスにいる味方は体力、攻撃力、魔力が8%増加する。「星の観測者」は獲得量が増加する。\n\n(3) 1ゴールド、2%、16%\n(4) 2ゴールド、7%、24%\n(5) 3ゴールド、12%、32%\n(6) 5ゴールド、17%、37%',
