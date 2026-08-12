@@ -20,6 +20,7 @@ if (typeof document !== 'undefined') document.title = `TFT Set ${SET_NO} - 1 Sta
 /* 🧊 3D盤面：チャンピオンID → .glb パス。設定した駒だけ3Dモデル、それ以外はポートレート立て看板。
    例: const CHAMP_MODELS3D = { akali:'models/akali.glb', sett:'models/sett.glb' }; */
 const CHAMP_MODELS3D = {
+   akali: 'models/akali.glb',
 };
 const KEYBIND_STORAGE_KEY = `tft_${SET_ID}_keybindings_v1`;
 
