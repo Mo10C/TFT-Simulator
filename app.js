@@ -950,7 +950,10 @@ function b3dSync(S, board, boardIcon, champModels){
             if (gltf.animations && gltf.animations.length > 0) {
                const mixer = new THREE.AnimationMixer(m);
                // 通常、待機アニメーション（Idle）は最初の要素（index 0）に入っていることが多いです
-               const action = mixer.clipAction(gltf.animations[0]); 
+               const clip = gltf.animations.find(c => c.name.toLowerCase().includes('idle1'))
+                  || gltf.animations.find(c => c.name.toLowerCase().includes('idle'))
+                  || gltf.animations[0];
+               const action = mixer.clipAction(clip);
                action.play();
         
                // ミキサーを保持（駒が削除されたときにクリーンアップできるようにする）
