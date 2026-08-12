@@ -945,7 +945,7 @@ function b3dSync(S, board, boardIcon, champModels){
   });
 }
 
-function Board3D({ board, boardIcon, champModels, onHexClick }) {
+function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
   const mountRef = useRef(null);
   const S = useRef(null);
   const cbRef = useRef(onHexClick);
@@ -996,6 +996,12 @@ function Board3D({ board, boardIcon, champModels, onHexClick }) {
       const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
       boardGroup.position.set(-ctr.x,0,-ctr.z);
 
+      // 選択中マスのハイライト枠
+      const selMarker=new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.CylinderGeometry(B3D.R*1.04,B3D.R*1.04,B3D.TH*1.35,6)),
+        new THREE.LineBasicMaterial({color:0xf0d074}));
+      selMarker.rotation.y=Math.PI/6; selMarker.visible=false; boardGroup.add(selMarker);
+
       const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hovered=null; let down=null;
       const onDown=(e)=>{ down=[e.clientX,e.clientY]; };
       const onUp=(e)=>{ if(!down) return; const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]); down=null; if(moved>6) return;
@@ -1014,7 +1020,7 @@ function Board3D({ board, boardIcon, champModels, onHexClick }) {
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); }); ro.observe(mount);
 
-      s={ scene, camera, renderer, controls, boardGroup, hexes, pieces:new Map(), raf, ro, onDown, onUp, onMove };
+      s={ scene, camera, renderer, controls, boardGroup, hexes, selMarker, pieces:new Map(), raf, ro, onDown, onUp, onMove };
       S.current=s;
     } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
 
@@ -1026,6 +1032,12 @@ function Board3D({ board, boardIcon, champModels, onHexClick }) {
   }, []);
 
   useEffect(()=>{ if(S.current) b3dSync(S.current, board, boardIcon, champModels); }, [board, champModels]);
+
+  useEffect(()=>{ const s=S.current; if(!s||!s.selMarker) return;
+    const hex = (selectedIdx==null) ? null : s.hexes.find(h=>h.userData.idx===selectedIdx);
+    if(!hex){ s.selMarker.visible=false; return; }
+    s.selMarker.position.set(hex.userData.x, hex.position.y, hex.userData.z); s.selMarker.visible=true;
+  }, [selectedIdx]);
 
   if (failed) return (
     <div style={{ padding:20, textAlign:'center', color:'var(--textdim)', fontSize:13, maxWidth:360 }}>
@@ -4235,6 +4247,19 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
+  const [sel3D, setSel3D] = useState(null);     // 🧊 3D盤面で選択中の盤面index
+
+  // 🧊 3D盤面：クリックで持ち上げ→別マスをクリックで移動（占有マスは入替）。2Dと同じ hDrop を再利用。
+  const handleHex3DClick = (idx) => {
+    if (sel3D == null) {
+      if (board[idx]) { setDragSrc({ type:'board', idx }); setSel3D(idx); }
+      return;
+    }
+    if (idx === sel3D) { setSel3D(null); setDragSrc(null); return; }
+    const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+    if (hDropRef.current) hDropRef.current('board', idx)(syntheticE);
+    setSel3D(null);
+  };
   const [mfTargetUid, setMfTargetUid] = useState(null);
   const [anvilOptions, setAnvilOptions] = useState(null);
 
@@ -6301,7 +6326,7 @@ const handleAugmentPick = (aug, historyContext) => {
             {use3D ? '3D' : '2D'}
           </button>
           {use3D ? (
-            <Board3D board={board} boardIcon={boardIcon} champModels={CHAMP_MODELS3D} />
+            <Board3D board={board} boardIcon={boardIcon} champModels={CHAMP_MODELS3D} onHexClick={handleHex3DClick} selectedIdx={sel3D} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
