@@ -553,6 +553,15 @@ const getMetaTFTItemUrl = (item) => {
 
   // 引数がオブジェクトで imgName がある場合は、直接URLを生成して返す
   if (typeof item === 'object' && item.imgName) {
+    // オーグメントや特殊アイテム（アーティファクトなど）はこちらを通る
+    if (item.type === 'artifact') {
+      return `https://tftips.b-cdn.net/item/artifact_${item.id}.avif?v=1`;
+    }
+    if (item.type === 'radiant') {
+      const baseName = item.id.substring(2);
+      return `https://tftips.b-cdn.net/item/${baseName}_radiant.avif?v=1`;
+    }
+    // それ以外（主にオーグメント）は現状維持
     return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
   }
 
@@ -560,44 +569,44 @@ const getMetaTFTItemUrl = (item) => {
   
   if (!nameInput) return "";
 
-  // 1. サイオニック専用（ファイル名そのものが入っている場合）
-  if (nameInput.startsWith('tft17_item_psyops_')) {
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${nameInput}.png`;
-  }
-
-  // 1.1 サイオニック（装備時は name に日本語名が入るため、記録から復元した場合もここで解決する）
-  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === nameInput || p.name === nameInput);
-    if (psi) return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${psi.name}.png`;
-  }
-  
   // アーティファクトとレディアントを結合して検索（日本語名でも引けるようにする）
   const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput || a.jaName === nameInput);
   if (specialItem) {
-    if (specialItem.imgName) {
-      return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${specialItem.imgName}.png`;
-    }
-    const formatted = specialItem.name.toLowerCase().replace(/['.\s]/g, '').replace('artifact', '');
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
+    const baseName = specialItem.id.startsWith('r_') ? specialItem.id.substring(2) + '_radiant' : 'artifact_' + specialItem.id;
+    return `https://tftips.b-cdn.net/item/${baseName}.avif?v=1`;
   }
 
   // 1.5 紋章専用のURLフォーマット
   if (nameInput.includes('Emblem')) {
-    const traitName = nameInput.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return metaImg('items', `${SET_PREFIX}item_${traitName}emblemitem`, 'width=64,format=auto');
+    const recipe = Object.values(ITEM_RECIPES).find(r => r.name === nameInput);
+    if (recipe && recipe.grantedTrait) {
+      const traitName = recipe.grantedTrait.toLowerCase().replace(/\s+/g, '');
+      return `https://tftips.b-cdn.net/item/${SET_NO}_emblem${traitName}.avif?v=1`;
+    }
   }
 
   // 2. 特殊消費アイテム
-  if (nameInput === 'Tiny Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_i.png";
-  if (nameInput === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_championduplicator_iii.png";
-  if (nameInput === 'Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_neekoshelp.png";
-  if (nameInput === 'Reforger') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemreroller.png";
-  if (nameInput === 'itemremover') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemremover.png";
+  if (nameInput === 'Tiny Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator_lesser.avif?v=1";
+  if (nameInput === 'Lesser Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator_lesser.avif?v=1";
+  if (nameInput === 'Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator.avif?v=1";
+  if (nameInput === 'Reforger') return "https://tftips.b-cdn.net/item/reforger.avif?v=1";
+  if (nameInput === 'itemremover') return "https://tftips.b-cdn.net/item/remover.avif?v=1";
 
-  // 3. 通常の完成アイテム・素材（名前を整形してURL化）
-  // 既に日本語になっている場合でも、整形ロジックを通すとURLが壊れることがあるため注意
-  const formatted = nameInput.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
-  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
+  // 3. 通常の完成アイテム・素材
+  const comp = ITEMS.find(i => i.name === nameInput);
+  if (comp) {
+    const formattedName = nameInput.toLowerCase().replace(/['.\s]/g, '');
+    return `https://tftips.b-cdn.net/item/component_${formattedName}.avif?v=1`;
+  }
+
+  const completed = Object.values(ITEM_RECIPES).find(r => r.name === nameInput);
+  if (completed) {
+    return `https://tftips.b-cdn.net/item/${completed.id}.avif?v=1`;
+  }
+
+  // フォールバック（旧URL形式）
+  const fallbackFormatted = nameInput.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
+  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${fallbackFormatted}.png`;
 };
 
 const getAugmentIconUrl = (aug) => {
