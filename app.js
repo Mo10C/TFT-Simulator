@@ -887,10 +887,7 @@ function b3dStarTexture(star){
   const t=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return t;
 }
 function b3dMakeBase(unit){
-  const R=B3D.R, col=B3D_COST[unit.cost]||0x9aa7b5;
-  const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.6,R*0.66,0.14,28),
-    new THREE.MeshStandardMaterial({color:col,metalness:0.6,roughness:0.3,emissive:col,emissiveIntensity:0.25}));
-  base.position.y=B3D.TOP+0.07; base.castShadow=true; base.receiveShadow=true; return base;
+
 }
 function b3dMakeStandee(unit, boardIcon){
   const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStandeeTexture(unit,boardIcon),transparent:true}));
@@ -908,25 +905,33 @@ function b3dMakeItemPips(items){
   return grp;
 }
 function b3dFitModel(obj){
+  // 1. 位置・回転・スケールを一旦初期化
+  obj.position.set(0, 0, 0);
+  obj.rotation.set(0, 0, 0);
+  obj.scale.set(1, 1, 1);
+
+  // 2. モデル全体のバウンディングボックスを取得
   const box = new THREE.Box3().setFromObject(obj);
   const size = new THREE.Vector3();
   box.getSize(size);
 
-  // 🌟 幅・高さ・奥行きのうち一番大きい寸法を基準にスケール決定（マスに納まる1.3倍サイズ）
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
-  const targetSize = B3D.R * 1.3; 
-  const s = targetSize / maxDim;
+  // 🌟 横幅に惑わされず「高さ（Y軸）」基準でスケール決定（マス目に対して適正な大きさに拡大）
+  const height = size.y || 1;
+  const targetHeight = B3D.R * 2.3; // 好みに応じて 2.0〜2.5 で調整可能
+  const s = targetHeight / height;
   obj.scale.setScalar(s);
 
-  // リサイズ後のモデルの中心と足元位置を再計算
-  const b2 = new THREE.Box3().setFromObject(obj);
-  const c = new THREE.Vector3();
-  b2.getCenter(c);
-  obj.position.x -= c.x;
-  obj.position.z -= c.z;
-  obj.position.y += (B3D.TOP + 0.08) - b2.min.y;
+  // 3. スケール適用後のバウンディングボックスから中心・足元を正確に算出
+  const scaledBox = new THREE.Box3().setFromObject(obj);
+  const scaledCenter = new THREE.Vector3();
+  scaledBox.getCenter(scaledCenter);
 
-  // 🌟 マテリアルの白飛び防止（LoL/TFTモデル特有の金属度・粗さ調整）
+  // X/Zはマスの真ん中、Y(足元)は地面ぴったりに設置
+  obj.position.x -= scaledCenter.x;
+  obj.position.z -= scaledCenter.z;
+  obj.position.y += B3D.TOP - scaledBox.min.y;
+
+  // 4. 白飛び防止 & 影設定
   obj.traverse(n => {
     if(n.isMesh) {
       n.castShadow = true;
