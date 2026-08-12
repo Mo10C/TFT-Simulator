@@ -16,6 +16,11 @@ const ACTION_ORDER = ['buyXp', 'reroll', 'sell'];
 const SET_ID = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
 const SET_NO = String(SET_ID).replace(/[^0-9]/g, '') || '18';
 if (typeof document !== 'undefined') document.title = `TFT Set ${SET_NO} - 1 Stage Simulator`;
+
+/* 🧊 3D盤面：チャンピオンID → .glb パス。設定した駒だけ3Dモデル、それ以外はポートレート立て看板。
+   例: const CHAMP_MODELS3D = { akali:'models/akali.glb', sett:'models/sett.glb' }; */
+const CHAMP_MODELS3D = {
+};
 const KEYBIND_STORAGE_KEY = `tft_${SET_ID}_keybindings_v1`;
 
 function loadKeyBindings() {
@@ -40,8 +45,6 @@ function fmtKey(k) {
 //   null = ランダム（従来通り）。設定すると固定される。localStorage に保存。
 const DEFAULT_OVERRIDES = {
   encounter: null,    // ENCOUNTERS の id
-  stargazer: null,    // stargazerVariants の index
-  psionic: null,      // [name(初手), name(2手目)]
   augmentTier: null,  // 'silver' | 'gold' | 'prismatic'
   dropPlanIndex: null,// DROP_PLANS の index
   // 🌟 ドロップ設定：オーブごとのラウンド指定・内容指定
@@ -501,12 +504,6 @@ const ORB_OUTCOMES = {
   ],
 };
 
-// 星の観測者の星座名（短縮ラベル）を取り出す
-function stargazerShort(v) {
-  if (!v) return '';
-  const m = v.split('この試合: ')[1];
-  return m ? m.split('\n')[0].trim() : '';
-}
 
 // 🌟 遭遇 → チャンピオン画像キー（boardIcon 用）。結果画面と同じ堅牢なルックアップ。無ければ null（絵文字へフォールバック）。
 function encChampImg(enc) {
@@ -850,6 +847,193 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
     </div>
   );
 };
+
+/* ============================================================
+   🧊 3D 盤面（Board3D）
+   ── three.js(グローバルUMD) を index.html で読み込み。未ロード/WebGL不可なら
+      2D にフォールバック表示。board 状態に追従して駒を同期。
+   ── 駒 = コスト色の台座 ＋ (自前.glbモデル or ポートレート立て看板) ＋ ★ ＋ アイテムpip。
+   ── CHAMP_MODELS3D[<champ.id>] に .glb パスを入れるとモデル表示に切替。
+   ============================================================ */
+const B3D = { R:1.0, TH:0.28, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
+const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
+const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
+
+function b3dRoundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+
+function b3dStandeeTexture(unit, boardIcon){
+  const cv=document.createElement('canvas'); cv.width=256; cv.height=320; const g=cv.getContext('2d');
+  const cost=B3D_COST_CSS[unit.cost]||'#9aa7b5';
+  const draw=(imgEl)=>{ g.clearRect(0,0,256,320);
+    g.fillStyle='#0c1626'; b3dRoundRect(g,8,8,240,304,20); g.fill();
+    if(imgEl){ g.save(); b3dRoundRect(g,16,16,224,224,16); g.clip(); g.drawImage(imgEl,16,16,224,224); g.restore(); }
+    else { g.fillStyle=cost+'33'; b3dRoundRect(g,16,16,224,224,16); g.fill();
+      g.fillStyle=cost; g.font='900 96px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText((unit.jaName||unit.name||'?')[0],128,128); }
+    g.lineWidth=6; g.strokeStyle=cost; b3dRoundRect(g,8,8,240,304,20); g.stroke();
+    g.fillStyle='#e6edf7'; g.font='900 30px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+    g.fillText(unit.jaName||unit.name||'',128,276); tex.needsUpdate=true; };
+  const tex=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) tex.colorSpace=THREE.SRGBColorSpace; draw(null);
+  try{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=boardIcon(unit.img); }catch(e){}
+  return tex;
+}
+function b3dStarTexture(star){
+  const cv=document.createElement('canvas'); cv.width=192; cv.height=48; const g=cv.getContext('2d');
+  g.font='900 40px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle=star>=3?'#f4c04a':(star>=2?'#d7dbe2':'#c98b52');
+  g.strokeStyle='rgba(0,0,0,.8)'; g.lineWidth=5;
+  const s='★'.repeat(Math.max(1,Math.min(3,star||1))); g.strokeText(s,96,26); g.fillText(s,96,26);
+  const t=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+function b3dMakeBase(unit){
+  const R=B3D.R, col=B3D_COST[unit.cost]||0x9aa7b5;
+  const base=new THREE.Mesh(new THREE.CylinderGeometry(R*0.6,R*0.66,0.14,28),
+    new THREE.MeshStandardMaterial({color:col,metalness:0.6,roughness:0.3,emissive:col,emissiveIntensity:0.25}));
+  base.position.y=B3D.TOP+0.07; base.castShadow=true; base.receiveShadow=true; return base;
+}
+function b3dMakeStandee(unit, boardIcon){
+  const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStandeeTexture(unit,boardIcon),transparent:true}));
+  spr.scale.set(R*1.35,R*1.35*1.25,1); spr.position.y=B3D.TOP+0.14+R*0.78; spr.userData.b3dSprite=true; return spr;
+}
+function b3dMakeStars(star){
+  const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStarTexture(star),transparent:true}));
+  spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*1.7; return spr;
+}
+function b3dMakeItemPips(items){
+  const list=(items||[]).slice(0,3); if(!list.length) return null; const grp=new THREE.Group(); const R=B3D.R;
+  list.forEach((it,i)=>{ const col=it?.type==='artifact'?0xdc3545:(it?.type==='radiant'?0xf0d074:(it?.type==='completed'?0xd4af37:0x9fb0c8));
+    const m=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.05), new THREE.MeshStandardMaterial({color:col,metalness:0.4,roughness:0.4,emissive:col,emissiveIntensity:0.3}));
+    m.position.set((i-(list.length-1)/2)*0.2, B3D.TOP+0.16, R*0.55); grp.add(m); });
+  return grp;
+}
+function b3dFitModel(obj){
+  const box=new THREE.Box3().setFromObject(obj), size=new THREE.Vector3(); box.getSize(size);
+  const s=(B3D.R*1.7)/(size.y||1); obj.scale.setScalar(s);
+  const b2=new THREE.Box3().setFromObject(obj), c=new THREE.Vector3(); b2.getCenter(c);
+  obj.position.x-=c.x; obj.position.z-=c.z; obj.position.y+=(B3D.TOP+0.14)-b2.min.y;
+  obj.traverse(n=>{ if(n.isMesh) n.castShadow=true; });
+}
+function b3dDispose(g){
+  g.traverse(n=>{ if(n.geometry&&n.geometry.dispose) n.geometry.dispose();
+    if(n.material){ const ms=Array.isArray(n.material)?n.material:[n.material];
+      ms.forEach(mt=>{ if(mt.map&&mt.map.dispose) mt.map.dispose(); if(mt.dispose) mt.dispose(); }); } });
+}
+function b3dSync(S, board, boardIcon, champModels){
+  const { boardGroup, hexes, pieces } = S;
+  hexes.forEach(h=>{
+    const idx=h.userData.idx;
+    const u=(board[idx] && !board[idx].isAnvil) ? board[idx] : null;
+    const sig=u ? `${u.uid||u.id}|${u.star}|${(u.items||[]).length}|${champModels&&champModels[u.id]||''}` : null;
+    const cur=pieces.get(idx);
+    if(cur && cur.userData.sig===sig) return;
+    if(cur){ boardGroup.remove(cur); b3dDispose(cur); pieces.delete(idx); }
+    if(!u) return;
+    const g=new THREE.Group(); g.position.set(h.userData.x,0,h.userData.z); g.userData.sig=sig;
+    g.add(b3dMakeBase(u));
+    const modelUrl=champModels && champModels[u.id];
+    if(modelUrl && THREE.GLTFLoader){
+      g.add(b3dMakeStandee(u,boardIcon));   // ロード完了まで立て看板
+      try{ new THREE.GLTFLoader().load(modelUrl,(gltf)=>{ const m=gltf.scene; b3dFitModel(m);
+        g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c)); g.add(m);
+      }, undefined, ()=>{}); }catch(e){}
+    } else {
+      g.add(b3dMakeStandee(u,boardIcon));
+    }
+    g.add(b3dMakeStars(u.star));
+    const pips=b3dMakeItemPips(u.items); if(pips) g.add(pips);
+    boardGroup.add(g); pieces.set(idx,g);
+  });
+}
+
+function Board3D({ board, boardIcon, champModels, onHexClick }) {
+  const mountRef = useRef(null);
+  const S = useRef(null);
+  const cbRef = useRef(onHexClick);
+  const [failed, setFailed] = useState(false);
+  useEffect(()=>{ cbRef.current = onHexClick; }, [onHexClick]);
+
+  useEffect(() => {
+    if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) { setFailed(true); return; }
+    const mount = mountRef.current; if (!mount) return;
+    let s;
+    try {
+      const W = mount.clientWidth || 640, H = mount.clientHeight || 460;
+      const scene = new THREE.Scene(); scene.background = null;
+      const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 200); camera.position.set(0, 10.5, 12.5);
+      const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+      renderer.shadowMap.enabled = true; if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      mount.appendChild(renderer.domElement);
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true; controls.dampingFactor = 0.08;
+      controls.minDistance = 6; controls.maxDistance = 26; controls.maxPolarAngle = Math.PI*0.49;
+      controls.target.set(0,0,0);
+
+      scene.add(new THREE.HemisphereLight(0x9fc4ff, 0x0a1120, 0.7));
+      const keyL = new THREE.DirectionalLight(0xffffff, 1.8); keyL.position.set(6,14,7);
+      keyL.castShadow = true; keyL.shadow.mapSize.set(1024,1024);
+      keyL.shadow.camera.left=-12; keyL.shadow.camera.right=12; keyL.shadow.camera.top=12; keyL.shadow.camera.bottom=-12;
+      scene.add(keyL);
+      const rimL = new THREE.DirectionalLight(0x1a9fff, 0.5); rimL.position.set(-8,6,-8); scene.add(rimL);
+
+      // 台テーブル
+      const table = new THREE.Mesh(new THREE.CylinderGeometry(11.5,12.5,1.0,64),
+        new THREE.MeshStandardMaterial({color:0x0c1526,metalness:0.3,roughness:0.85}));
+      table.position.y = -0.5 - B3D.TOP; table.receiveShadow = true; scene.add(table);
+
+      const boardGroup = new THREE.Group(); scene.add(boardGroup);
+      const hexGeo = new THREE.CylinderGeometry(B3D.R,B3D.R,B3D.TH,6);
+      const hexMat = new THREE.MeshStandardMaterial({color:0x16233c,metalness:0.35,roughness:0.6,emissive:0x0a1424,emissiveIntensity:0.6});
+      const hexHover = new THREE.MeshStandardMaterial({color:0x274063,metalness:0.4,roughness:0.5,emissive:0x1a9fff,emissiveIntensity:0.5});
+      const hexes=[];
+      for(let r=0;r<4;r++) for(let c=0;c<7;c++){
+        const x=c*B3D.HSP+(r%2?B3D.HSP/2:0), z=r*B3D.VSP;
+        const m=new THREE.Mesh(hexGeo, hexMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,0,z);
+        m.receiveShadow=true; m.userData={idx:r*7+c,x,z}; boardGroup.add(m); hexes.push(m);
+      }
+      const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
+      boardGroup.position.set(-ctr.x,0,-ctr.z);
+
+      const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hovered=null; let down=null;
+      const onDown=(e)=>{ down=[e.clientX,e.clientY]; };
+      const onUp=(e)=>{ if(!down) return; const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]); down=null; if(moved>6) return;
+        const b=renderer.domElement.getBoundingClientRect(); ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1;
+        ray.setFromCamera(ptr,camera); const hit=ray.intersectObjects(hexes,false)[0];
+        if(hit && cbRef.current) cbRef.current(hit.object.userData.idx); };
+      const onMove=(e)=>{ const b=renderer.domElement.getBoundingClientRect(); ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1;
+        ray.setFromCamera(ptr,camera); const hit=ray.intersectObjects(hexes,false)[0];
+        if(hovered && (!hit || hit.object!==hovered)){ hovered.material=hexMat.clone(); hovered=null; }
+        if(hit){ hit.object.material=hexHover; hovered=hit.object; } };
+      renderer.domElement.addEventListener('pointerdown', onDown);
+      renderer.domElement.addEventListener('pointerup', onUp);
+      renderer.domElement.addEventListener('pointermove', onMove);
+
+      let raf; const loop=()=>{ raf=requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); }; loop();
+      const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
+        camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); }); ro.observe(mount);
+
+      s={ scene, camera, renderer, controls, boardGroup, hexes, pieces:new Map(), raf, ro, onDown, onUp, onMove };
+      S.current=s;
+    } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
+
+    return ()=>{ const x=S.current; if(!x) return;
+      cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
+      const el=x.renderer.domElement; el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
+      x.pieces.forEach(g=>b3dDispose(g)); try{ x.renderer.dispose(); }catch(e){}
+      if(el.parentNode) el.parentNode.removeChild(el); S.current=null; };
+  }, []);
+
+  useEffect(()=>{ if(S.current) b3dSync(S.current, board, boardIcon, champModels); }, [board, champModels]);
+
+  if (failed) return (
+    <div style={{ padding:20, textAlign:'center', color:'var(--textdim)', fontSize:13, maxWidth:360 }}>
+      3D盤面を初期化できませんでした。<br/>three.js が読み込めていないか、WebGL 非対応の可能性があります。2Dに戻して続行できます。
+    </div>
+  );
+  return <div ref={mountRef} style={{ width:'100%', height:'60vh', maxWidth:820, minHeight:340, borderRadius:12, overflow:'hidden' }} />;
+}
 
 /* ── 🎬 振り返り（感想戦）ビューア ── */
 function ReplayViewer({ history, seed, onClose }) {
@@ -1466,25 +1650,13 @@ const ChampionTooltip = ({ data }) => {
   );
 };
 
-const TraitTooltip = ({ data, stargazerDesc, psionicItems, arbiterRule }) => {
+const TraitTooltip = ({ data }) => {
   if (!data) return null;
   const { trait, count, x, y } = data;
   const jaName = getTraitJaName(trait);
   
-  let desc = TRAIT_DESCS[trait] || "特性の詳細は現在解析中です...";
+  let desc = (typeof TRAIT_DESCS !== 'undefined' && TRAIT_DESCS[trait]) || "特性の詳細は現在解析中です...";
   
-  if (trait === 'Stargazer') {
-    desc = stargazerDesc;
-  } else if (trait === 'Psionic' && psionicItems) {
-    desc = `任意の味方に装備できる「サイオニック」アイテムを獲得する。\n\n(2) 「${psionicItems[0].jaName}」を獲得する。\n(4) 「${psionicItems[1].jaName}」を獲得する。\n\n「サイオニック」アイテムを装備した「サイオニック」ユニットは追加効果を獲得する`;
-  } else if (trait === 'Arbiter') {
-    // 🌟 アービター専用の書き換え処理
-    if (arbiterRule) {
-      desc = `独自の聖なる掟を定め、所定の条件が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n【現在の掟】\n⚖️ ${arbiterRule.cause.text}、${arbiterRule.effect.text}\n\n(2) 効果を発動\n(3) 効果が強化される`;
-    } else {
-      desc = `独自の聖なる掟を定め、所定の条件が発生した際に「アービター」に適用される効果を選択できるようにする。\n\n(2) 自分の掟の条件と効果を選択する。\n(3) 効果が強化される。`;
-    }
-  }
 
   const members = CHAMPS.filter(c => c.traits.includes(trait));
   return (
@@ -1495,19 +1667,6 @@ const TraitTooltip = ({ data, stargazerDesc, psionicItems, arbiterRule }) => {
         <span style={{ fontSize:12, color:'var(--text-main)', background:'var(--bg2)', padding:'2px 6px', borderRadius:4 }}>{count}</span>
       </div>
 
-      {/* 🌟 サイオニック専用：獲得する2つのアイテムアイコンを並べて表示 */}
-      {trait === 'Psionic' && psionicItems && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          {psionicItems.map(item => (
-            <img 
-              key={item.name} 
-              src={getMetaTFTItemUrl(item.name)} 
-              style={{ width: 32, height: 32, border: '1px solid rgba(255,255,255,0.4)', borderRadius: 4, background: '#1e293b' }} 
-              alt={item.jaName} 
-            />
-          ))}
-        </div>
-      )}
 
       <div style={{ whiteSpace:'pre-wrap', fontSize:11, color:'var(--textdim)', lineHeight:1.6, marginBottom:12 }}>{desc}</div>
       <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10 }}>
@@ -2692,8 +2851,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
 
   // 🌟 ===== ゲーム内設定（オーバーライド） =====
   const encList = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
-  const stars   = (typeof stargazerVariants !== 'undefined' && Array.isArray(stargazerVariants)) ? stargazerVariants : [];
-  const psi     = (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) ? PSIONIC_ITEMS : [];
   const augData = (typeof AUGMENTS_DATA !== 'undefined' && AUGMENTS_DATA) ? AUGMENTS_DATA : { silver:[], gold:[], prismatic:[] };
 
   const TIER_JA = { silver:'シルバー', gold:'ゴールド', prismatic:'プリズム' };
@@ -2702,7 +2859,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
 
   const selEnc = encList.find(e => e.id === ov.encounter) || null;
   const forcedTier = selEnc ? (selEnc.augmentForceTier || null) : null; // 遭遇によるティア固定
-  const psSlots = Array.isArray(ov.psionic) ? ov.psionic : [null, null];
 
   // 遭遇の選択肢：手動でティアを選んでいる時、別ティアを固定する遭遇は選択不可
   const encDisabled = (e) => !!(ov.augmentTier && e.augmentForceTier && e.augmentForceTier !== ov.augmentTier);
@@ -2718,12 +2874,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
     const patch = { augmentTier: tier || null };
     if (tier && selEnc && selEnc.augmentForceTier && selEnc.augmentForceTier !== tier) patch.encounter = null; // 矛盾する遭遇を解除
     setOvKey(patch);
-  };
-  const pickPsionic = (slot, name) => {
-    const cur = [psSlots[0] || null, psSlots[1] || null];
-    cur[slot] = name || null;
-    if (name && cur[1 - slot] === name) cur[1 - slot] = null; // 重複回避
-    setOvKey({ psionic: (cur[0] || cur[1]) ? cur : null });
   };
 
   // 🌟 ===== オーグメント指定（別画面ピッカーで設定） =====
@@ -2931,41 +3081,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
           {!forcedTier && ov.augmentTier && <div style={{ marginTop:6, color:'rgba(255,255,255,0.5)', fontSize:11 }}>※ 別ティアを固定する遭遇は選択できなくなります。</div>}
         </div>
 
-        {/* 星の観測者 */}
-        <div style={{ marginBottom:16 }}>
-          <div style={fLabel}>星の観測者</div>
-          <select style={selStyle} value={ov.stargazer == null ? '' : String(ov.stargazer)} onChange={e => setOvKey({ stargazer: e.target.value === '' ? null : Number(e.target.value) })}>
-            <option value="">ランダム</option>
-            {stars.map((v, i) => (<option key={i} value={i}>星座: {stargazerShort(v)}</option>))}
-          </select>
-        </div>
-
-        {/* サイオニックアイテム 初手 / 2手目（画像クリック） */}
-        <div style={{ marginBottom:16 }}>
-          <div style={fLabel}>サイオニックアイテム</div>
-          {[0,1].map(slot => (
-            <div key={slot} style={{ marginBottom:10 }}>
-              <div style={{ color:'rgba(255,255,255,0.55)', fontSize:11, marginBottom:5 }}>{slot===0?'初手':'2手目'}</div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
-                {/* ランダム */}
-                <div onClick={() => pickPsionic(slot, '')} title="ランダム"
-                  style={{ width:44, height:44, borderRadius:8, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
-                    border:`2px solid ${!psSlots[slot]?'var(--gold2)':'var(--border)'}`, background: !psSlots[slot]?'rgba(212,175,55,0.15)':'rgba(15,23,42,0.6)' }}>🎲</div>
-                {psi.map(p => {
-                  const active = psSlots[slot] === p.name;
-                  const disabled = psSlots[1-slot] === p.name;
-                  return (
-                    <div key={p.name} onClick={() => { if (!disabled) pickPsionic(slot, p.name); }} title={p.jaName}
-                      style={{ position:'relative', width:44, height:44, borderRadius:8, overflow:'hidden', cursor: disabled?'not-allowed':'pointer', opacity: disabled?0.35:1,
-                        border:`2px solid ${active?'var(--gold2)':'var(--border)'}`, boxShadow: active?'0 0 10px var(--gold)':'none', background:'#0b1622', transition:'all 0.12s' }}>
-                      <img src={getMetaTFTItemUrl(p.name)} alt={p.jaName} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e)=>{e.target.style.display='none';}} />
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* 📦 ドロップ設定（別画面ピッカー） */}
         <div style={{ marginBottom:16 }}>
@@ -3244,36 +3359,8 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 12, flexWrap: 'wrap', gap: 10 }}>
                   <div style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--blue)', letterSpacing: 4 }}>TFT SET {SET_NO} — 1 STAGE RESULT</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                    {/* 🆕 上部チップ：星の観測者 / サイオニック / 遭遇 / 神 */}
+                    {/* 🆕 上部チップ：遭遇 */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      {d.stargazerDesc && (() => {
-                        const sgName = (String(d.stargazerDesc).split('この試合: ')[1] || '').split('\n')[0];
-                        return sgName ? (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#c46bff22', border: '2px solid #c46bff', borderRadius: 9, padding: '3px 7px' }}>
-                            <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
-                              <img src={getTraitIconUrl('Stargazer')} style={{ width: 12, height: 12, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display = 'none'} />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: 7.5, color: 'var(--textdim)' }}>星の観測者</div>
-                              <div style={{ fontSize: 9.5, fontWeight: 900, color: '#c46bff', lineHeight: 1.2, whiteSpace: 'nowrap' }}>{sgName}</div>
-                            </div>
-                          </div>
-                        ) : null;
-                      })()}
-                      {(d.psionicNames || []).length >= 2 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#4caf5022', border: '2px solid #4caf50', borderRadius: 9, padding: '3px 7px' }}>
-                          <div style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
-                            <img src={getTraitIconUrl('Psionic')} style={{ width: 12, height: 12, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display = 'none'} />
-                          </div>
-                          <div>
-                            <div style={{ fontSize: 7.5, color: 'var(--textdim)' }}>サイオニック</div>
-                            <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                              <img src={getMetaTFTItemUrl(d.psionicNames[0])} style={{ width: 13, height: 13, borderRadius: 2 }} onError={(e) => e.target.style.display = 'none'} />
-                              <img src={getMetaTFTItemUrl(d.psionicNames[1])} style={{ width: 13, height: 13, borderRadius: 2 }} onError={(e) => e.target.style.display = 'none'} />
-                            </div>
-                          </div>
-                        </div>
-                      )}
                       {d.enc && (() => {
                         const enc = (typeof ENCOUNTERS !== 'undefined' ? ENCOUNTERS : []).find(e => e.id === d.enc);
                         if (!enc) return null;
@@ -3781,36 +3868,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const rngMisc = useMemo(() => createRNG(seed + "_misc"), [seed]);
   const rngEnc  = useMemo(() => createRNG(seed + "_enc"),  [seed]);
 
-  const currentStargazerDesc = useMemo(() => {
-    // Set 18 等で「星の観測者」データが無い場合は空文字（該当UIは自動で非表示）
-    const variants = (typeof stargazerVariants !== 'undefined' && Array.isArray(stargazerVariants)) ? stargazerVariants : [];
-    if (variants.length === 0) return '';
-    const rolled = variants[Math.floor(rngSys() * variants.length)];
-    const i = gameOverrides && gameOverrides.stargazer;
-    if (i != null && variants[i]) return variants[i];   // 🌟 手動指定
-    return rolled;
-  }, [rngSys, gameOverrides]);
 
-  const encounterGods = [];
 
-  // 2. サイオニックアイテムの抽選
-  const currentPsionicItems = useMemo(() => {
-    // 🌟 固定の有無に関わらず毎回同じ回数シャッフルし、結果だけ上書きする
-    const shuffled = shuffleArray(PSIONIC_ITEMS, rngSys);
-    const ov = gameOverrides && gameOverrides.psionic;                    // 🌟 [初手, 2手目]（null可）
-    if (ov && (ov[0] || ov[1])) {
-      let first  = ov[0] ? PSIONIC_ITEMS.find(p => p.name === ov[0]) : null;
-      let second = ov[1] ? PSIONIC_ITEMS.find(p => p.name === ov[1]) : null;
-      const used = new Set([first && first.name, second && second.name].filter(Boolean));
-      // 未指定スロットは「通常抽選の並び」から順に埋める（追加の乱数は引かない）
-      const pool = shuffled.filter(p => !used.has(p.name));
-      let pi = 0;
-      if (!first)  first  = pool[pi++];
-      if (!second) second = pool[pi++];
-      return [first, second];
-    }
-    return [shuffled[0], shuffled[1]];
-  }, [rngSys, gameOverrides]);
 
   // 🌟 遭遇（Opening Encounter）の抽選 ── 専用RNGで出現確率(prob)による加重抽選。
   // data-encounters.js が未読込でも白画面で落ちないよう防御（その場合は遭遇なしで起動）。
@@ -3930,11 +3989,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
           .filter(it => it && it.type !== 'comp' && it.type !== 'consumable').map(it => it.name),
         // アイテム欄（手持ち）
         inventoryNames: inventory.filter(it => it && it.name).map(it => it.name),
-        // 🆕 結果画面と同じ上部チップ（遭遇・神・サイオニック・星の観測者）を履歴でも再現するため保存
+        // 🆕 結果画面と同じ上部チップ（遭遇）を履歴でも再現するため保存
         enc: encounter ? encounter.id : null,
-        gods: encounterGods.map(g => g.id),
-        psionicNames: currentPsionicItems.map(p => p.name),
-        stargazerDesc: currentStargazerDesc,
       },
     };
   };
@@ -4176,13 +4232,9 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     };
   }, [moveTouchDrag, endTouchDrag]);
 
-  // 🌟 アービター関連のState
-  const [arbiterRule, setArbiterRule] = useState(null);
-  const [showArbiterPopup, setShowArbiterPopup] = useState(false);
-  const [arbiterStep, setArbiterStep] = useState('cause');
-  const [tempCause, setTempCause] = useState(null);
 
   const [showMfPopup, setShowMfPopup] = useState(false);
+  const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
   const [mfTargetUid, setMfTargetUid] = useState(null);
   const [anvilOptions, setAnvilOptions] = useState(null);
 
@@ -4198,7 +4250,6 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 横向きスマホ時のヘッダー用コンパクトサイズ
   const hIco      = isLandscapeMobile ? 18 : 28;          // カード内の丸アイコン
   const hImg      = isLandscapeMobile ? 12 : 16;          // 丸アイコン内の特性画像
-  const hItemImg  = isLandscapeMobile ? 11 : 14;          // サイオニックのアイテム画像
   const hCardPad  = isLandscapeMobile ? '2px 5px' : '4px 12px';
   const hCardBd   = isLandscapeMobile ? 2 : 3;            // カード枠線
   const hLabFont  = isLandscapeMobile ? 7 : 8;            // 小ラベル
@@ -4209,22 +4260,6 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const hGroupGap = isLandscapeMobile ? 5 : 8;            // グループ内カード間
 
 
-  // シード値を基準に各カテゴリから1つずつ、指定の順序で抽出
-  const arbiterOptions = useMemo(() => {
-    const causeCategories = ['consistent', 'conditional', 'economy'];
-    const causes = causeCategories.map(cat => {
-      const options = ((typeof ARBITER_CAUSES !== 'undefined' && Array.isArray(ARBITER_CAUSES)) ? ARBITER_CAUSES : []).filter(c => c.category === cat);
-      return shuffleArray(options, rngSys)[0];
-    });
-
-    const effectCategories = ['offence', 'defence', 'economy'];
-    const effects = effectCategories.map(cat => {
-      const options = ((typeof ARBITER_EFFECTS !== 'undefined' && Array.isArray(ARBITER_EFFECTS)) ? ARBITER_EFFECTS : []).filter(e => e.category === cat);
-      return shuffleArray(options, rngSys)[0];
-    });
-
-    return { causes, effects };
-  }, [rngSys]);
 
 // ==========================================
   // 🌟 特性を計算する
@@ -4248,72 +4283,16 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     } 
   });
 
-  // ==========================================
-  // 🌟 修正：特性を計算した「後」に監視ロジックを置く！
-  // ==========================================
-  useEffect(() => {
-    const count = traitCounts['Arbiter'] || 0;
-    // アービターが(2)以上になり、かつまだルールが決まっていない場合にPOPを表示
-    if (count >= 2 && !arbiterRule && !showArbiterPopup) {
-      setShowArbiterPopup(true);
-      setArbiterStep('cause'); // 開くときは必ず「原因」から
-    }
-  }, [traitCounts['Arbiter'], arbiterRule, showArbiterPopup]);
 
 
 
-  // 5. サイオニックアイテムの自動管理（inventoryの更新）
-  useEffect(() => {
-    const count = traitCounts['Psionic'] || 0;
-    setInventory(prev => {
-      const otherItems = prev.filter(it => !it.isPsionic);
-      const equippedNames = [...board, ...bench].filter(u => u?.items).flatMap(u => u.items).filter(it => it.isPsionic).map(it => it.name);
-      let psionicToDisplay = [];
-      if (count >= 2 && !equippedNames.includes(currentPsionicItems[0].jaName)) {
-  psionicToDisplay.push({ 
-    ...currentPsionicItems[0], 
-    name: currentPsionicItems[0].jaName, // 画面表示用（日本語）
-    imgName: currentPsionicItems[0].name, // 画像取得用（tft17_item...）
-    isPsionic: true, 
-    type: 'completed' 
-  });
-}
-if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
-  psionicToDisplay.push({ 
-    ...currentPsionicItems[1], 
-    name: currentPsionicItems[1].jaName, 
-    imgName: currentPsionicItems[1].name, 
-    isPsionic: true, 
-    type: 'completed' 
-  });
-}
-      return [...otherItems, ...psionicToDisplay];
-    });
-  }, [traitCounts['Psionic'], board, bench, currentPsionicItems]);
 
-  // 6. サイオニックアイテムの自動管理（装備の強制削除）
-  useEffect(() => {
-    const count = traitCounts['Psionic'] || 0;
-    const cleanup = (u) => {
-      if (!u || !u.items) return u;
-      const filtered = u.items.filter(it => {
-        if (!it.isPsionic) return true;
-        if (count < 2) return false;
-        if (count < 4 && it.name === currentPsionicItems[1].name) return false;
-        return true;
-      });
-      return filtered.length === u.items.length ? u : { ...u, items: filtered };
-    };
-    setBoard(prev => prev.map(cleanup));
-    setBench(prev => prev.map(cleanup));
-  }, [traitCounts['Psionic'], currentPsionicItems]);
 
   // 🌟 画像保存用のRefとStateを追加
   const resultRef = useRef(null);
   const [isSaving, setIsSaving] = useState(false);
   
   // 🌟 今回遭遇した神（リザルト表示用。ランダムで選ばれた1体目を運命の神とする）
-  const chosenGod = encounterGods[0];
 
   // 🌟 金床（アイテム選択）を展開する処理
   const triggerAnvilChoice = useCallback((anvilType) => {
@@ -5650,28 +5629,6 @@ const handleAugmentPick = (aug, historyContext) => {
   const handleTraitMouseEnter = (e, trait, count) => { const rect = e.currentTarget.getBoundingClientRect(); setTraitTooltipData({ trait, count, x: rect.left, y: rect.top }); };
 
 
-  // 🌟 盤面のユニットが装備しているサイオニックアイテムも監視して削除
-  useEffect(() => {
-    const count = traitCounts['Psionic'] || 0;
-    if (count < 2) {
-      // 全ユニットの装備からサイオニックアイテムを強制除去
-      const removePsionic = (u) => {
-        if (!u || !u.items) return u;
-        return { ...u, items: u.items.filter(it => !it.isPsionic) };
-      };
-      setBoard(prev => prev.map(removePsionic));
-      setBench(prev => prev.map(removePsionic));
-    } else if (count < 4) {
-      // 4未満になったら2個目のアイテム（index 1）だけ除去
-      const secondItemName = currentPsionicItems[1].name;
-      const removeSecond = (u) => {
-        if (!u || !u.items) return u;
-        return { ...u, items: u.items.filter(it => it.name !== secondItemName) };
-      };
-      setBoard(prev => prev.map(removeSecond));
-      setBench(prev => prev.map(removeSecond));
-    }
-  }, [traitCounts['Psionic']]);
 
   const TRAIT_TIERS = (typeof TRAIT_TIERS_DATA !== 'undefined') ? TRAIT_TIERS_DATA : {
     'Anima':[3,6],'Arbiter':[2,3],'Dark Star':[2,4,6,9],'Mecha':[3,4,6],'Meeple':[3,5,7,10],
@@ -5792,32 +5749,7 @@ const handleAugmentPick = (aug, historyContext) => {
               {/* 🌟 2. 遭遇した2体の神を並べて表示（画像ブロック解除済み） */}
               <div style={{display:'flex',gap:10, flexWrap:'wrap', justifyContent:'flex-end'}}>
 
-                {/* 🌟 星の観測者（データが無い場合は非表示） */}
-                {currentStargazerDesc && (
-                <div style={{display:'flex',alignItems:'center',gap:6,background:'#c46bff33',border:'3px solid #c46bff',borderRadius:10,padding:'4px 8px'}}>
-                  <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #c46bff',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#4a148c',flexShrink:0}}>
-                    <img src={getTraitIconUrl('Stargazer')} style={{width:14,height:14,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
-                  </div>
-                  <div>
-                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>星の観測者</div>
-                    <div style={{fontSize:10,fontWeight:900,color:'#c46bff',lineHeight:1.2,whiteSpace:'nowrap'}}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
-                  </div>
-                </div>
-                )}
 
-                {/* 🌟 サイオニック */}
-                <div style={{display:'flex',alignItems:'center',gap:6,background:'#4caf5033',border:'3px solid #4caf50',borderRadius:10,padding:'4px 8px'}}>
-                  <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #4caf50',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#1b5e20',flexShrink:0}}>
-                    <img src={getTraitIconUrl('Psionic')} style={{width:14,height:14,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
-                  </div>
-                  <div>
-                    <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>サイオニック</div>
-                    <div style={{display:'flex',gap:3,alignItems:'center'}}>
-                      <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{width:14,height:14,borderRadius:2}} />
-                      <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{width:14,height:14,borderRadius:2}} />
-                    </div>
-                  </div>
-                </div>
 
                 {/* 🌟 遭遇を同列に追加 */}
                 {encounter && (
@@ -6063,99 +5995,9 @@ const handleAugmentPick = (aug, historyContext) => {
       <ChampionTooltip data={tooltipData} />
 
 
-      {/* 🌟 アービターの掟選択POPアップ */}
-      {showArbiterPopup && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(4,6,14,0.95)', zIndex: 9000, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.3s ease' }}>
-          <h2 style={{ color: 'var(--gold)', fontSize: 28, marginBottom: 40, fontFamily: 'Noto Sans JP', fontWeight: 900, textShadow: '0 0 20px var(--gold)' }}>
-            アービター：掟を定めてください
-          </h2>
-
-          {/* 左右に並べるコンテナ */}
-          <div style={{ display: 'flex', gap: 60, alignItems: 'flex-start' }}>
-            
-            {/* 左カラム：原因 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
-              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【条件】</div>
-              {arbiterOptions.causes.map((opt, i) => {
-                const isSelected = tempCause?.id === opt.id;
-                return (
-                  <div 
-                    key={`cause-${i}`} 
-                    onClick={() => setTempCause(opt)} // 原因をセット
-                    style={{ 
-                      width: 240, height: 80, 
-                      background: isSelected ? 'var(--blue)' : 'rgba(15,23,42,0.6)', 
-                      border: `2px solid ${isSelected ? 'white' : 'var(--gold)'}`, 
-                      borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      cursor: 'pointer', padding: '15px', textAlign: 'center', 
-                      color: 'white', fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
-                      transition: 'all 0.2s', 
-                      boxShadow: isSelected ? '0 0 20px var(--blue)' : '0 0 10px rgba(200,169,110,0.1)',
-                      transform: isSelected ? 'scale(1.05)' : 'scale(1)' // 選ばれたら少し大きく
-                    }} 
-                    onMouseEnter={e => { if(!isSelected) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
-                    onMouseLeave={e => { if(!isSelected) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
-                  >
-                    {opt.text}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 右カラム：結果 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, alignItems: 'center' }}>
-              <div style={{ color: 'var(--textdim)', fontSize: 16, fontWeight: 900, letterSpacing: 2 }}>【効果】</div>
-              {arbiterOptions.effects.map((opt, i) => {
-                const isEnabled = !!tempCause; // 原因が選ばれていれば有効
-                return (
-                  <div 
-                    key={`effect-${i}`} 
-                    onClick={() => {
-                      if (!isEnabled) return; // 有効でなければ何もしない
-                      setArbiterRule({ cause: tempCause, effect: opt }); // 決定！
-                      setShowArbiterPopup(false);
-                      showMsg(
-                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                          <span style={{ fontSize:18 }}>⚖️</span>
-                          <span>掟が決定しました: {tempCause.text} ➔ {opt.text}</span>
-                        </div>
-                      );
-                    }} 
-                    style={{ 
-                      width: 240, height: 80, 
-                      background: 'rgba(15,23,42,0.6)', 
-                      border: `2px solid ${isEnabled ? 'var(--gold)' : 'var(--border)'}`, 
-                      borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      cursor: isEnabled ? 'pointer' : 'not-allowed', 
-                      padding: '15px', textAlign: 'center', 
-                      color: isEnabled ? 'white' : 'var(--textdim)', 
-                      fontWeight: 700, fontSize: '15px', lineHeight: 1.4, 
-                      transition: 'all 0.2s', 
-                      opacity: isEnabled ? 1 : 0.4, // 選べない時は暗くする
-                      boxShadow: isEnabled ? '0 0 10px rgba(200,169,110,0.1)' : 'none'
-                    }} 
-                    onMouseEnter={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.9)'; e.currentTarget.style.transform='translateY(-3px)'; } }} 
-                    onMouseLeave={e => { if(isEnabled) { e.currentTarget.style.background='rgba(15,23,42,0.6)'; e.currentTarget.style.transform='translateY(0)'; } }}
-                  >
-                    {opt.text}
-                  </div>
-                );
-              })}
-            </div>
-
-            {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.95)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:10000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, textAlign:'center', color:'white', boxShadow:'0 4px 20px rgba(0,0,0,0.5)' }}>{dropMsg}</div>}
-
-          </div>
-
-          {/* ユーザーへの操作案内 */}
-          <div style={{ marginTop: 40, color: tempCause ? 'var(--gold)' : 'var(--textdim)', fontSize: 16, fontWeight: 700, animation: 'pulse 2s infinite' }}>
-            {!tempCause ? 'まずは左側の【条件】を選択してください' : '次に右側の【効果】を選択して掟を決定します'}
-          </div>
-        </div>
-      )}
 
 
-      <TraitTooltip data={traitTooltipData} stargazerDesc={currentStargazerDesc} psionicItems={currentPsionicItems} arbiterRule={arbiterRule} />
+      <TraitTooltip data={traitTooltipData} />
       {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || (gameOverrides && gameOverrides.augmentTier) || null} rerollBonus={encounter?.augmentRerollBonus || 0} augmentPicks={gameOverrides && gameOverrides.augmentPicks} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, color:'white', textAlign:'center', maxWidth:'90%', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>{dropMsg}</div>}
       {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
@@ -6315,41 +6157,9 @@ const handleAugmentPick = (aug, historyContext) => {
           whiteSpace: 'nowrap'
         }}>
           
-          {/* 左側: 星の観測者 ＋ サイオニック ＋ 遭遇 */}
+          {/* 左側: 遭遇 */}
           <div style={{ width: hSideW, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: hSidePad, gap: hGroupGap }}>
             
-            {/* 星の観測者（データが無い場合は非表示） */}
-            {currentStargazerDesc && (
-            <div 
-              style={{ display: 'flex', alignItems: 'center', gap: hCardGap, background: '#c46bff33', border: `${hCardBd}px solid #c46bff`, borderRadius: 8, padding: hCardPad, cursor: 'help' }}
-              title={`【星の観測者】\n${currentStargazerDesc}`}
-            >
-              <div style={{ width: hIco, height: hIco, borderRadius: '50%', border: '2px solid #c46bff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#4a148c', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Stargazer')} style={{ width: hImg, height: hImg, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
-              </div>
-              <div>
-                <div style={{ fontSize: hLabFont, color: 'var(--textdim)', marginBottom: 1 }}>星の観測者</div>
-                <div style={{ fontSize: hValFont, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
-              </div>
-            </div>
-            )}
-
-            {/* サイオニック */}
-            <div 
-              style={{ display: 'flex', alignItems: 'center', gap: hCardGap, background: '#4caf5033', border: `${hCardBd}px solid #4caf50`, borderRadius: 8, padding: hCardPad, cursor: 'help' }}
-              title={`【サイオニックアイテム】\n① ${currentPsionicItems[0].jaName}\n② ${currentPsionicItems[1].jaName}`}
-            >
-              <div style={{ width: hIco, height: hIco, borderRadius: '50%', border: '2px solid #4caf50', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: '#1b5e20', flexShrink: 0 }}>
-                <img src={getTraitIconUrl('Psionic')} style={{ width: hImg, height: hImg, filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display='none'} />
-              </div>
-              <div>
-                <div style={{ fontSize: hLabFont, color: 'var(--textdim)', marginBottom: 1 }}>サイオニック</div>
-                <div style={{ display: 'flex', gap: 3, alignItems: 'center' }}>
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[0].name)} style={{ width: hItemImg, height: hItemImg, borderRadius: 2 }} />
-                  <img src={getMetaTFTItemUrl(currentPsionicItems[1].name)} style={{ width: hItemImg, height: hItemImg, borderRadius: 2 }} />
-                </div>
-              </div>
-            </div>
 
             {/* 遭遇 (1-2以降) */}
             {round !== '1-1' && encounter && (
@@ -6482,8 +6292,17 @@ const handleAugmentPick = (aug, historyContext) => {
           onTouchStart={handleBoardTouchStart}
           onTouchMove={handleBoardTouchMove}
           onTouchEnd={handleBoardTouchEnd}
-          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}
+          style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', position:'relative' }}
         >
+          <button onClick={() => setUse3D(v => !v)} title="盤面 2D / 3D 切替"
+            style={{ position:'absolute', top:10, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
+              border:'1px solid var(--border)', background: use3D ? 'var(--gold)' : 'var(--bg2)',
+              color: use3D ? '#1a1400' : 'var(--text)', fontFamily:'Orbitron', fontWeight:900, fontSize:12, cursor:'pointer' }}>
+            {use3D ? '3D' : '2D'}
+          </button>
+          {use3D ? (
+            <Board3D board={board} boardIcon={boardIcon} champModels={CHAMP_MODELS3D} />
+          ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
               {[0,1,2,3].map(row => (
@@ -6511,6 +6330,7 @@ const handleAugmentPick = (aug, historyContext) => {
               ))}
             </div>
           </div>
+          )}
         </div>
 
         {/* 🌟 右サイドバー: 取得済みオーグメント */}

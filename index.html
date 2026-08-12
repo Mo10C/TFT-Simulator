@@ -39,6 +39,11 @@
 <!-- augments は内部に JSX を含むため Babel で変換 -->
 <script type="text/babel" data-presets="jsx-classic" src="data-augments.js"></script>
 
+<!-- 🧊 3D盤面用：three.js（グローバルUMD）＋ OrbitControls / GLTFLoader。app.js より前に読み込む -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/loaders/GLTFLoader.js"></script>
+
 <!-- アプリ本体（JSX を含むため Babel で変換） -->
 <script type="text/babel" data-presets="jsx-classic" src="app.js"></script>
 </body>
