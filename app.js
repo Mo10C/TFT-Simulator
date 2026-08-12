@@ -3782,10 +3782,12 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const rngEnc  = useMemo(() => createRNG(seed + "_enc"),  [seed]);
 
   const currentStargazerDesc = useMemo(() => {
-    // 🌟 固定時も必ず1回引く（引かないと rngSys の位置がズレて神/サイオニックが変わる）
-    const rolled = stargazerVariants[Math.floor(rngSys() * stargazerVariants.length)];
+    // Set 18 等で「星の観測者」データが無い場合は空文字（該当UIは自動で非表示）
+    const variants = (typeof stargazerVariants !== 'undefined' && Array.isArray(stargazerVariants)) ? stargazerVariants : [];
+    if (variants.length === 0) return '';
+    const rolled = variants[Math.floor(rngSys() * variants.length)];
     const i = gameOverrides && gameOverrides.stargazer;
-    if (i != null && stargazerVariants[i]) return stargazerVariants[i];   // 🌟 手動指定
+    if (i != null && variants[i]) return variants[i];   // 🌟 手動指定
     return rolled;
   }, [rngSys, gameOverrides]);
 
@@ -4211,13 +4213,13 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const arbiterOptions = useMemo(() => {
     const causeCategories = ['consistent', 'conditional', 'economy'];
     const causes = causeCategories.map(cat => {
-      const options = ARBITER_CAUSES.filter(c => c.category === cat);
+      const options = ((typeof ARBITER_CAUSES !== 'undefined' && Array.isArray(ARBITER_CAUSES)) ? ARBITER_CAUSES : []).filter(c => c.category === cat);
       return shuffleArray(options, rngSys)[0];
     });
 
     const effectCategories = ['offence', 'defence', 'economy'];
     const effects = effectCategories.map(cat => {
-      const options = ARBITER_EFFECTS.filter(e => e.category === cat);
+      const options = ((typeof ARBITER_EFFECTS !== 'undefined' && Array.isArray(ARBITER_EFFECTS)) ? ARBITER_EFFECTS : []).filter(e => e.category === cat);
       return shuffleArray(options, rngSys)[0];
     });
 
@@ -5790,7 +5792,8 @@ const handleAugmentPick = (aug, historyContext) => {
               {/* 🌟 2. 遭遇した2体の神を並べて表示（画像ブロック解除済み） */}
               <div style={{display:'flex',gap:10, flexWrap:'wrap', justifyContent:'flex-end'}}>
 
-                {/* 🌟 星の観測者 */}
+                {/* 🌟 星の観測者（データが無い場合は非表示） */}
+                {currentStargazerDesc && (
                 <div style={{display:'flex',alignItems:'center',gap:6,background:'#c46bff33',border:'3px solid #c46bff',borderRadius:10,padding:'4px 8px'}}>
                   <div style={{width:28,height:28,borderRadius:'50%',border:'2px solid #c46bff',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',background:'#4a148c',flexShrink:0}}>
                     <img src={getTraitIconUrl('Stargazer')} style={{width:14,height:14,filter:'brightness(0) invert(1)'}} onError={(e)=>e.target.style.display='none'} />
@@ -5800,6 +5803,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     <div style={{fontSize:10,fontWeight:900,color:'#c46bff',lineHeight:1.2,whiteSpace:'nowrap'}}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
                   </div>
                 </div>
+                )}
 
                 {/* 🌟 サイオニック */}
                 <div style={{display:'flex',alignItems:'center',gap:6,background:'#4caf5033',border:'3px solid #4caf50',borderRadius:10,padding:'4px 8px'}}>
@@ -6314,7 +6318,8 @@ const handleAugmentPick = (aug, historyContext) => {
           {/* 左側: 星の観測者 ＋ サイオニック ＋ 遭遇 */}
           <div style={{ width: hSideW, display: 'flex', justifyContent: 'flex-end', alignItems: 'center', paddingRight: hSidePad, gap: hGroupGap }}>
             
-            {/* 星の観測者 */}
+            {/* 星の観測者（データが無い場合は非表示） */}
+            {currentStargazerDesc && (
             <div 
               style={{ display: 'flex', alignItems: 'center', gap: hCardGap, background: '#c46bff33', border: `${hCardBd}px solid #c46bff`, borderRadius: 8, padding: hCardPad, cursor: 'help' }}
               title={`【星の観測者】\n${currentStargazerDesc}`}
@@ -6327,6 +6332,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{ fontSize: hValFont, fontWeight: 900, color: '#c46bff', lineHeight: 1.1 }}>{currentStargazerDesc.split('この試合: ')[1]?.split('\n')[0]}</div>
               </div>
             </div>
+            )}
 
             {/* サイオニック */}
             <div 
