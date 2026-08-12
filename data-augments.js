@@ -259,6 +259,12 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'masterful_crafting' });
       }
     },
+    {
+      id: 'loaded_dice', name: 'イカサマダイス', tier: 'silver', category: 'economy', imgName: 't_augmenticon_loaded_dice',
+      desc: 'ダイスを振ると、出た目の数と同じ量のゴールドを獲得する。その後コインを投げ、表が出ると1ゴールドを獲得する。ダイスは常に6の目を出し、コインは常に表が出る。',
+      icon: '🎲',
+      effect: (state, rng, helpers) => {}
+    },
   ],
 
   //ゴールドオーグメント
