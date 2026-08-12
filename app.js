@@ -1,5 +1,5 @@
 /* ============================================================
-   TFT Set 17 Simulator - アプリ本体（React / JSX）
+   TFT Simulator - アプリ本体（React / JSX）
    データは data-champions.js / data-items.js / data-augments.js
    から読み込まれるグローバル変数を参照しています。
    ============================================================ */
@@ -11,7 +11,12 @@ const {useState,useEffect,useRef,useMemo,useCallback}=React;
 const DEFAULT_KEYBINDINGS = { buyXp: 'f', reroll: 'd', sell: 'e' };
 const ACTION_LABELS = { buyXp: '経験値購入', reroll: 'リロール', sell: '駒の売却' };
 const ACTION_ORDER = ['buyXp', 'reroll', 'sell'];
-const KEYBIND_STORAGE_KEY = 'tft_set17_keybindings_v1';
+// 🏷️ セット識別子（sim-config.js の set が唯一のソース）。
+//    セットを切り替えるときは sim-config.js の set を変えるだけ。ここは触らない。
+const SET_ID = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
+const SET_NO = String(SET_ID).replace(/[^0-9]/g, '') || '18';
+if (typeof document !== 'undefined') document.title = `TFT Set ${SET_NO} - 1 Stage Simulator`;
+const KEYBIND_STORAGE_KEY = `tft_${SET_ID}_keybindings_v1`;
 
 function loadKeyBindings() {
   try {
@@ -34,7 +39,6 @@ function fmtKey(k) {
 // 🌟 ============ ゲーム内設定（手動セットアップのオーバーライド） ============
 //   null = ランダム（従来通り）。設定すると固定される。localStorage に保存。
 const DEFAULT_OVERRIDES = {
-  gods: null,         // [godId, godId]（1体目が発動する神。順序＝選択順）
   encounter: null,    // ENCOUNTERS の id
   stargazer: null,    // stargazerVariants の index
   psionic: null,      // [name(初手), name(2手目)]
@@ -63,7 +67,7 @@ const DEFAULT_OVERRIDES = {
   //   の時はデフォルト配布自体が無いため適用されない。
   startChamp: null
 };
-const OVERRIDE_STORAGE_KEY = 'tft_set17_overrides_v1';
+const OVERRIDE_STORAGE_KEY = `tft_${SET_ID}_overrides_v1`;
 function loadOverrides() {
   try {
     const raw = localStorage.getItem(OVERRIDE_STORAGE_KEY);
@@ -527,39 +531,14 @@ const getJaName = (name) => {
 };
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 // 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
-const CURRENT_SET = (window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
-const SET_PREFIX = `tft${String(CURRENT_SET).replace(/[^0-9]/g,'') || '18'}_`;
+const CURRENT_SET = SET_ID;
+const SET_PREFIX = `tft${SET_NO}_`;
 // metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
 const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
 const champIcon=(img)=>metaImg('championsplashes',`${SET_PREFIX}${img.toLowerCase()}`,'width=256,format=auto');
 const boardIcon=(img)=>metaImg('champions',`${SET_PREFIX}${img.toLowerCase()}`,'width=96,format=auto');
 const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`; };
 
-/* 🌟 神ポートレート用：rgpub(本来の絵) → blitz-cdn(チャンピオン四角) → CSS絵文字 の3段フォールバック。
-   Riot CMS(cmsassets.rgpub.io)はローカル(file://)やホットリンクで弾かれて黒丸になりやすいため、
-   読み込み失敗時に同じ環境で読めている blitz-cdn へ自動で切り替える。 */
-const GOD_CHAMP_IMG = { soraka:'Soraka', ahri:'Ahri', asol:'AurelionSol', yasuo:'Yasuo', varus:'Varus', evelynn:'Evelynn', thresh:'Thresh', kayle:'Kayle', ekko:'Ekko' };
-const GodImg = ({ god, style = {}, type = 'default' }) => {
-  const [stage, setStage] = useState(0); // 0:rgpub/metatft 1:blitz 2:CSS
-  if (stage >= 2) {
-    const fbSize = typeof style.width === 'number' ? style.width * 0.5 : 40;
-    return (
-      <div style={{ ...style, display:'flex', alignItems:'center', justifyContent:'center', background:`${god.color}33` }}>
-        <span style={{ fontSize: fbSize, lineHeight: 1 }}>⚡</span>
-      </div>
-    );
-  }
-  
-  let src;
-  if (type === 'icon') {
-    const metaTftName = (GOD_CHAMP_IMG[god.id] || god.id).toLowerCase();
-    src = stage === 0 ? `https://cdn.metatft.com/file/metatft/gods/tft17_god_${metaTftName}.png` : boardIcon(GOD_CHAMP_IMG[god.id] || god.id);
-  } else {
-    src = stage === 0 ? god.imgUrl : boardIcon(GOD_CHAMP_IMG[god.id] || god.id);
-  }
-
-  return <img src={src} style={style} onError={() => setStage(s => s + 1)} />;
-};
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
 
@@ -1704,11 +1683,11 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
       const encoded = params.get('tierlist');
       if (encoded) {
         const parsed = JSON.parse(decodeURIComponent(atob(encoded)));
-        localStorage.setItem('tft_set17_tierlist', JSON.stringify(parsed));
+        localStorage.setItem(`tft_${SET_ID}_tierlist`, JSON.stringify(parsed));
         return parsed;
       }
       
-      const saved = localStorage.getItem('tft_set17_tierlist');
+      const saved = localStorage.getItem(`tft_${SET_ID}_tierlist`);
       if (saved) {
         return JSON.parse(saved);
       }
@@ -1724,7 +1703,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('tft_set17_tierlist', JSON.stringify(tiers));
+    localStorage.setItem(`tft_${SET_ID}_tierlist`, JSON.stringify(tiers));
   }, [tiers]);
   const [importCode, setImportCode] = useState("");
   const [isCopied, setIsCopied] = useState(false);
@@ -2713,7 +2692,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
 
   // 🌟 ===== ゲーム内設定（オーバーライド） =====
   const encList = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
-  const gods    = (typeof GOD_DATA !== 'undefined' && Array.isArray(GOD_DATA)) ? GOD_DATA : [];
   const stars   = (typeof stargazerVariants !== 'undefined' && Array.isArray(stargazerVariants)) ? stargazerVariants : [];
   const psi     = (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) ? PSIONIC_ITEMS : [];
   const augData = (typeof AUGMENTS_DATA !== 'undefined' && AUGMENTS_DATA) ? AUGMENTS_DATA : { silver:[], gold:[], prismatic:[] };
@@ -2724,7 +2702,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
 
   const selEnc = encList.find(e => e.id === ov.encounter) || null;
   const forcedTier = selEnc ? (selEnc.augmentForceTier || null) : null; // 遭遇によるティア固定
-  const godSel = Array.isArray(ov.gods) ? ov.gods : [];
   const psSlots = Array.isArray(ov.psionic) ? ov.psionic : [null, null];
 
   // 遭遇の選択肢：手動でティアを選んでいる時、別ティアを固定する遭遇は選択不可
@@ -2741,13 +2718,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
     const patch = { augmentTier: tier || null };
     if (tier && selEnc && selEnc.augmentForceTier && selEnc.augmentForceTier !== tier) patch.encounter = null; // 矛盾する遭遇を解除
     setOvKey(patch);
-  };
-  const toggleGod = (id) => {
-    const cur = [...godSel];
-    const i = cur.indexOf(id);
-    if (i >= 0) cur.splice(i, 1);
-    else { if (cur.length >= 2) return; cur.push(id); }
-    setOvKey({ gods: cur.length ? cur : null });
   };
   const pickPsionic = (slot, name) => {
     const cur = [psSlots[0] || null, psSlots[1] || null];
@@ -2868,34 +2838,6 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
         <div style={secTitle}>🎮 ゲーム内設定（手動セットアップ）</div>
         <div style={{ color:'rgba(255,255,255,0.6)', fontSize:11.5, marginBottom:14, lineHeight:1.5 }}>
           各項目を「ランダム」のままにすると従来通りランダムです。設定するとその試合で固定されます。
-        </div>
-
-        {/* 神を2体選択（画像クリック） */}
-        <div style={{ marginBottom:18 }}>
-          <div style={fLabel}>神を2体選択 <span style={{ color:'rgba(255,255,255,0.45)', fontWeight:400 }}>（1体目が発動）</span></div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(82px, 1fr))', gap:8 }}>
-            {gods.map(g => {
-              const order = godSel.indexOf(g.id);
-              const active = order >= 0;
-              const disabled = !active && godSel.length >= 2;
-              return (
-                <div key={g.id} onClick={() => { if (!disabled) toggleGod(g.id); }}
-                  style={{ cursor: disabled?'not-allowed':'pointer', opacity: disabled?0.4:1, textAlign:'center' }}>
-                  <div style={{ position:'relative', width:'100%', aspectRatio:'1', borderRadius:10, overflow:'hidden',
-                    border:`2px solid ${active?'var(--gold2)':'var(--border)'}`, boxShadow: active?'0 0 12px var(--gold)':'none', background:'#0b1622', transition:'all 0.12s' }}>
-                    <img src={g.imgUrl} alt={g.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e)=>{e.target.style.display='none';}} />
-                    {active && (
-                      <div style={{ position:'absolute', top:3, left:3, width:20, height:20, borderRadius:'50%', background:'var(--gold2)', color:'#08101a', fontWeight:900, fontSize:12, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 1px 4px rgba(0,0,0,0.6)' }}>{order+1}</div>
-                    )}
-                  </div>
-                  <div style={{ marginTop:4, fontSize:10, fontWeight:700, color: active?'var(--gold2)':'rgba(255,255,255,0.8)', lineHeight:1.15 }}>{g.name.replace(/\n/g,' ')}</div>
-                </div>
-              );
-            })}
-          </div>
-          {godSel.length > 0 && (
-            <button onClick={() => setOvKey({ gods:null })} style={{ marginTop:10, ...chip(false,false), fontSize:11 }}>↺ ランダムに戻す</button>
-          )}
         </div>
 
         {/* 遭遇を選択（画像＋遭遇名） */}
@@ -3300,7 +3242,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
               <div style={{ background: 'var(--bg0)', borderRadius: 16, border: '1px solid var(--border)', padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
                 {/* ヘッダー */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-                  <div style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--blue)', letterSpacing: 4 }}>TFT SET 17 — 1 STAGE RESULT</div>
+                  <div style={{ fontFamily: 'Orbitron', fontSize: 10, color: 'var(--blue)', letterSpacing: 4 }}>TFT SET {SET_NO} — 1 STAGE RESULT</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                     {/* 🆕 上部チップ：星の観測者 / サイオニック / 遭遇 / 神 */}
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -3350,19 +3292,6 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                           </div>
                         );
                       })()}
-                      {(d.gods || []).map(gid => {
-                        const god = (typeof GOD_DATA !== 'undefined' ? GOD_DATA : []).find(g => g.id === gid);
-                        if (!god) return null;
-                        return (
-                          <div key={gid} style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${god.color}22`, border: `2px solid ${god.color}`, borderRadius: 9, padding: '3px 7px' }}>
-                            <GodImg god={god} type="icon" style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${god.color}`, objectFit: 'cover', background: 'white', flexShrink: 0 }} />
-                            <div>
-                              <div style={{ fontSize: 7.5, color: 'var(--textdim)' }}>遭遇した神</div>
-                              <div style={{ fontSize: String(god.name).replace('\n', ' ').length > 8 ? 8.5 : 9.5, fontWeight: 900, color: god.color, lineHeight: 1.2, whiteSpace: 'nowrap' }}>{String(god.name).replace('\n', ' ')}</div>
-                            </div>
-                          </div>
-                        );
-                      })}
                     </div>
                     {/* 設定 / 取得元 / SEED */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'Orbitron' }}>
@@ -3696,7 +3625,7 @@ function Main() {
   opacity:0.95,
   lineHeight: 1.2 // 行間が広すぎないように調整
 }}>
-  TFT SET 17<br />
+  TFT SET {SET_NO}<br />
   <span style={{ fontSize: '0.7em', letterSpacing: 8 }}>1stage Simulator</span> 
 </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -3860,22 +3789,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     return rolled;
   }, [rngSys, gameOverrides]);
 
-  // 1. 神の抽選
-  const encounterGods = useMemo(() => {
-    // 🌟 固定の有無に関わらず毎回同じ回数シャッフルし、結果だけ上書きする
-    const shuffled = shuffleArray(GOD_DATA, rngSys);
-    const ov = gameOverrides && gameOverrides.gods;                       // 🌟 手動指定（1体目が発動）
-    if (ov && ov.length) {
-      const chosen = ov.map(id => GOD_DATA.find(g => g.id === id)).filter(Boolean);
-      if (chosen.length >= 2) return [chosen[0], chosen[1]];
-      if (chosen.length === 1) {
-        // 2体目は「通常抽選の並び」から1体目と被らない先頭を採用（追加の乱数は引かない）
-        const second = shuffled.find(g => g.id !== chosen[0].id);
-        return [chosen[0], second];
-      }
-    }
-    return [shuffled[0], shuffled[1]];
-  }, [rngSys, gameOverrides]);
+  const encounterGods = [];
 
   // 2. サイオニックアイテムの抽選
   const currentPsionicItems = useMemo(() => {
@@ -3896,7 +3810,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     return [shuffled[0], shuffled[1]];
   }, [rngSys, gameOverrides]);
 
-  // 🌟 遭遇（Opening Encounter）の抽選 ── 神(GOD_DATA)とは別枠。専用RNGで出現確率(prob)による加重抽選。
+  // 🌟 遭遇（Opening Encounter）の抽選 ── 専用RNGで出現確率(prob)による加重抽選。
   // data-encounters.js が未読込でも白画面で落ちないよう防御（その場合は遭遇なしで起動）。
   const encounter = useMemo(() => {
     const list = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
@@ -4498,7 +4412,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
       const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.href = image;
-      link.download = `TFT_Set17_Result_${seed}.png`;
+      link.download = `TFT_Set${SET_NO}_Result_${seed}.png`;
       link.click();
       showMsg('画像を保存しました！');
     } catch (err) {
@@ -4530,7 +4444,7 @@ if (count >= 4 && !equippedNames.includes(currentPsionicItems[1].jaName)) {
         const image = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = image;
-        link.download = `TFT_Set17_Result_${seed}.png`;
+        link.download = `TFT_Set${SET_NO}_Result_${seed}.png`;
         link.click();
         showMsg('お使いの環境はコピー非対応のため画像を保存しました');
       }
@@ -5868,7 +5782,7 @@ const handleAugmentPick = (aug, historyContext) => {
           {/* ヘッダー */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16, flexWrap:'wrap', gap:10}}>
             <div>
-              <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET 17 — 1 STAGE RESULT</div>
+              <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET {SET_NO} — 1 STAGE RESULT</div>
 
             </div>
             
@@ -5924,18 +5838,6 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 )}
 
-                {/* 🌟 遭遇した神 */}
-                {encounterGods.map((god) => (
-                  <div key={god.id} style={{display:'flex',alignItems:'center',gap:6,background:`${god.color}33`,border:`3px solid ${god.color}`,borderRadius:10,padding:'4px 8px'}}>
-                    {/* 🌟 GodImg: rgpub→blitz→絵文字の自動フォールバック */}
-                    <GodImg god={god} type="icon" style={{width:28,height:28,borderRadius:'50%',border:`2px solid ${god.color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
-                    <div>
-                      <div style={{fontSize:8,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      {/* リザルト画面でレイアウト崩れを防ぐため、名前の改行をスペースに変換して表示 */}
-                      <div style={{fontSize:god.name.replace('\n', ' ').length > 8 ? 9 : 10,fontWeight:900,color:god.color,lineHeight:1.2,whiteSpace:'nowrap'}}>{god.name.replace('\n', ' ')}</div>
-                    </div>
-                  </div>
-                ))}
               </div>
               
               <div style={{fontFamily:'Orbitron',fontSize:11,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
@@ -6119,7 +6021,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
           {/* フッター */}
           <div style={{borderTop:'1px solid var(--border)',paddingTop:12,display:'flex',justifyContent:'center'}}>
-            <div style={{fontFamily:'Orbitron',fontSize:9,color:'var(--textdim)',letterSpacing:3}}>TFT SET 17 SIMULATOR</div>
+            <div style={{fontFamily:'Orbitron',fontSize:9,color:'var(--textdim)',letterSpacing:3}}>TFT SET {SET_NO} SIMULATOR</div>
           </div>
         </div>
 
@@ -6292,14 +6194,8 @@ const handleAugmentPick = (aug, historyContext) => {
         }
 
         return (
-          <div 
-            onClick={() => {
-              if (encounter && introStep === 0) {
-                setIntroStep(1);
-              } else {
-                handleNextRound();
-              }
-            }} 
+          <div
+            onClick={() => handleNextRound()}
             style={{
               position: 'fixed',
               inset: 0,
@@ -6314,93 +6210,50 @@ const handleAugmentPick = (aug, historyContext) => {
               cursor: 'pointer',
             }}
           >
-            {introStep === 0 ? (
-              <>
-                {/* タイトル */}
-                <div style={{ textAlign: 'center', marginBottom: 45, pointerEvents: 'none' }}>
-                  <div style={{ fontFamily: 'Orbitron', fontSize: '12px', color: 'var(--gold2)', letterSpacing: '8px', marginBottom: 15 }}>GOD ENCOUNTER</div>
-                  <h1 style={{ fontFamily: 'Noto Sans JP', fontSize: '36px', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--gold)', letterSpacing: '3px' }}>神々の世界</h1>
-                  <p style={{ color: 'var(--textdim)', marginTop: 15, fontSize: '12px', letterSpacing: '1px' }}>
-                    画面をクリックして運命を受け入れる
-                  </p>
-                </div>
-
-                {/* 神のカード */}
-                <div style={{ display: 'flex', gap: 45, pointerEvents: 'none' }}>
-                  {encounterGods.map((god) => (
-                    <div 
-                      key={god.id}
-                      style={{
-                        width: 240, height: 360,
-                        background: 'rgba(8,13,26,0.9)',
-                        border: `2px solid ${god.color}44`, 
-                        borderRadius: 18, 
-                        position: 'relative',
-                        overflow: 'hidden',
-                        display: 'flex', flexDirection: 'column',
-                        boxShadow: `0 15px 30px rgba(0,0,0,0.6), 0 0 15px ${god.color}11`,
-                        animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
-                      }}
-                    >
-                      <div style={{ position: 'absolute', top: -75, left: -75, width: 225, height: 225, background: god.color, filter: 'blur(75px)', opacity: 0.15 }}></div>
-                      <div style={{ width: '100%', height: '240px', position: 'relative', overflow: 'hidden', background: '#04060e' }}>
-                        <GodImg god={god} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(8,13,26,1) 0%, transparent 40%)' }}></div>
-                      </div>
-                      <div style={{ padding: '0 18px 22px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
-                        <h2 style={{ fontSize: 18, color: 'white', fontWeight: 900, marginBottom: 8, fontFamily: 'Noto Sans JP', whiteSpace: 'pre-wrap' }}>{god.name}</h2>
-                        <p style={{ fontSize: 11, color: 'var(--silver)', lineHeight: 1.6, opacity: 0.8, whiteSpace: 'pre-wrap' }}>{god.desc}</p>
-                      </div>
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, transparent, ${god.color}, transparent)` }}></div>
-                    </div>
-                  ))}
-                </div>
-                
-                <div style={{ marginTop: 45, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
-                  — CLICK TO CONTINUE —
-                </div>
-              </>
-            ) : (
-              <>
-                {/* 🌟 遭遇（神とは別枠の Opening Encounter） */}
-                {encounter && (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', animation: 'fadeIn 0.6s ease' }}>
-                    <div style={{ fontFamily: 'Orbitron', fontSize: 16, color: encounter.color, letterSpacing: 8, marginBottom: 20 }}>ENCOUNTER</div>
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 24, maxWidth: 550,
-                      background: 'rgba(8,13,26,0.9)',
-                      border: `2px solid ${encounter.color}55`,
-                      borderRadius: 16, padding: '24px 32px',
-                      boxShadow: `0 15px 40px rgba(0,0,0,0.6), 0 0 20px ${encounter.color}33`,
-                      animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
-                    }}>
-                      <div style={{
-                        width: 80, height: 80, borderRadius: '50%', flexShrink: 0, fontSize: 40,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                        background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
-                      }}>
-                        {encChamp ? (
-                          <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        ) : (
-                          <span>{encounter.icon}</span>
-                        )}
-                      </div>
-                      <div style={{ textAlign: 'left', flex: 1 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 4 }}>{encounter.champ}</div>
-                        <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 8 }}>{encounter.jaName}</div>
-                        <div style={{ fontSize: 14, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
-                        <div style={{ fontSize: 10, color: 'var(--textdim)', marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
-                          <span>出現確率 {encounter.prob}%</span>
-                          {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
-                        </div>
-                      </div>
+            {encounter ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', animation: 'fadeIn 0.6s ease' }}>
+                <div style={{ fontFamily: 'Orbitron', fontSize: 16, color: encounter.color, letterSpacing: 8, marginBottom: 20 }}>ENCOUNTER</div>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 24, maxWidth: 550,
+                  background: 'rgba(8,13,26,0.9)',
+                  border: `2px solid ${encounter.color}55`,
+                  borderRadius: 16, padding: '24px 32px',
+                  boxShadow: `0 15px 40px rgba(0,0,0,0.6), 0 0 20px ${encounter.color}33`,
+                  animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
+                }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: '50%', flexShrink: 0, fontSize: 40,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                    background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
+                  }}>
+                    {encChamp ? (
+                      <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span>{encounter.icon}</span>
+                    )}
+                  </div>
+                  <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 4 }}>{encounter.champ}</div>
+                    <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 8 }}>{encounter.jaName}</div>
+                    <div style={{ fontSize: 14, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
+                    <div style={{ fontSize: 10, color: 'var(--textdim)', marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <span>出現確率 {encounter.prob}%</span>
+                      {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
                     </div>
                   </div>
-                )}
-                <div style={{ marginTop: 50, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite', pointerEvents: 'none' }}>
+                </div>
+                <div style={{ marginTop: 50, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite' }}>
                   — CLICK ANYWHERE TO BEGIN —
                 </div>
-              </>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', pointerEvents: 'none' }}>
+                <div style={{ fontFamily: 'Orbitron', fontSize: '12px', color: 'var(--blue)', letterSpacing: '8px', marginBottom: 15 }}>1 STAGE SIMULATOR</div>
+                <h1 style={{ fontFamily: 'Noto Sans JP', fontSize: '32px', fontWeight: 900, color: 'white', textShadow: '0 0 20px var(--blue)', letterSpacing: '3px' }}>ゲームスタート</h1>
+                <div style={{ marginTop: 30, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite' }}>
+                  — CLICK TO BEGIN —
+                </div>
+              </div>
             )}
           </div>
         );
@@ -6447,7 +6300,7 @@ const handleAugmentPick = (aug, historyContext) => {
           </div>
         </div>
 
-        {/* 🌟 中央：遭遇 ＋ ステージ番号 ＋ 神様1 ＋ 神様2 */}
+        {/* 🌟 中央：遭遇 ＋ ステージ番号 */}
         <div style={{ 
           position: 'absolute',
           left: '50%',
@@ -6538,30 +6391,8 @@ const handleAugmentPick = (aug, historyContext) => {
             )}
           </div>
 
-          {/* 右側: 神1 & 神2 (1-2以降) */}
+          {/* 右側: スペーサー（レイアウト対称用） */}
           <div style={{ width: hSideW, display: 'flex', justifyContent: 'flex-start', paddingLeft: hSidePad, gap: hGroupGap }}>
-            {round !== '1-1' && (
-              <>
-                {encounterGods[0] && (
-                  <div style={{display:'flex',alignItems:'center',gap:hCardGap,background:`${encounterGods[0].color}33`,border:`${hCardBd}px solid ${encounterGods[0].color}`,borderRadius:8,padding:hCardPad}}>
-                    <GodImg god={encounterGods[0]} type="icon" style={{width:hIco,height:hIco,borderRadius:'50%',border:`2px solid ${encounterGods[0].color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
-                    <div>
-                      <div style={{fontSize:hLabFont,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      <div style={{fontSize:hValFont,fontWeight:900,color:encounterGods[0].color,lineHeight:1.1}}>{encounterGods[0].name.replace('\n', ' ')}</div>
-                    </div>
-                  </div>
-                )}
-                {encounterGods[1] && (
-                  <div style={{display:'flex',alignItems:'center',gap:hCardGap,background:`${encounterGods[1].color}33`,border:`${hCardBd}px solid ${encounterGods[1].color}`,borderRadius:8,padding:hCardPad}}>
-                    <GodImg god={encounterGods[1]} type="icon" style={{width:hIco,height:hIco,borderRadius:'50%',border:`2px solid ${encounterGods[1].color}`,objectFit:'cover', background: 'white', flexShrink:0}} />
-                    <div>
-                      <div style={{fontSize:hLabFont,color:'var(--textdim)',marginBottom:1}}>遭遇した神</div>
-                      <div style={{fontSize:hValFont,fontWeight:900,color:encounterGods[1].color,lineHeight:1.1}}>{encounterGods[1].name.replace('\n', ' ')}</div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </div>
 
         </div>
