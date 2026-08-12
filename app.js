@@ -437,29 +437,6 @@ const getAugmentMetaByName = (name) => {
   }
   return null;
 };
-// 🇯🇵 アイテム英名→日本語名（ITEM_JAの大文字小文字ゆれ・紋章の欠落に対応）
-const resolveItemJa = (name) => {
-  if (!name) return '';
-  // サイオニックは装備時点で日本語名（記録にも日本語名で保存される）
-  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === name || p.name === name);
-    if (psi) return psi.jaName;
-  }
-  const direct = getJaName(name);
-  if (direct && direct !== name) return direct;
-  // 大文字小文字を無視して ITEM_JA を検索
-  if (typeof ITEM_JA !== 'undefined') {
-    const k = Object.keys(ITEM_JA).find(x => x.toLowerCase() === name.toLowerCase());
-    if (k) return ITEM_JA[k];
-  }
-  // 「○○ Emblem」→ TRAIT_JA から「○○の紋章」を生成
-  if (/emblem$/i.test(name) && typeof TRAIT_JA !== 'undefined') {
-    const trait = name.replace(/\s*emblem$/i, '').trim();
-    const tk = Object.keys(TRAIT_JA).find(x => x.toLowerCase() === trait.toLowerCase());
-    if (tk) return `${TRAIT_JA[tk]}の紋章`;
-  }
-  return name;
-};
 
 // 🏷️ エディタで非表示（旧セット等）にしたチャンピオンをシム全体から除外
 //    ショップ・ドロップ・指定リストなど全ての CHAMPS 参照に一括で効く
@@ -531,13 +508,6 @@ const COST_COLORS={1:'#8a9aaa',2:'#44cc66',3:'#3399ff',4:'#cc44ff',5:'#ffcc44'};
 const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
-/* ── ヘルパー関数 ── */
-const getJaName = (name) => {
-  if (!name) return "";
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name);
-  if (specialItem && specialItem.jaName) return specialItem.jaName;
-  return ITEM_JA[name] || name;
-};
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 // 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
 const CURRENT_SET = SET_ID;
