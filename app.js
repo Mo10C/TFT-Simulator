@@ -927,15 +927,37 @@ function b3dSync(S, board, boardIcon, champModels){
     const sig=u ? `${u.uid||u.id}|${u.star}|${(u.items||[]).length}|${champModels&&champModels[u.id]||''}` : null;
     const cur=pieces.get(idx);
     if(cur && cur.userData.sig===sig) return;
-    if(cur){ boardGroup.remove(cur); b3dDispose(cur); pieces.delete(idx); }
+    if(cur){ 
+       boardGroup.remove(cur); 
+       b3dDispose(cur); 
+       pieces.delete(idx); 
+       if (S.mixers.has(idx)) {
+          S.mixers.get(idx).stopAllAction();
+          S.mixers.delete(idx); // 🌟 ミキサーを削除
+       }
+    }
     if(!u) return;
     const g=new THREE.Group(); g.position.set(h.userData.x,0,h.userData.z); g.userData.sig=sig;
     g.add(b3dMakeBase(u));
     const modelUrl=champModels && champModels[u.id];
     if(modelUrl && THREE.GLTFLoader){
       g.add(b3dMakeStandee(u,boardIcon));   // ロード完了まで立て看板
-      try{ new THREE.GLTFLoader().load(modelUrl,(gltf)=>{ const m=gltf.scene; b3dFitModel(m);
-        g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c)); g.add(m);
+      try{ 
+         new THREE.GLTFLoader().load(modelUrl,(gltf)=>{ 
+            const m=gltf.scene; 
+            b3dFitModel(m);
+            //  アニメーションが存在する場合は再生する
+            if (gltf.animations && gltf.animations.length > 0) {
+               const mixer = new THREE.AnimationMixer(m);
+               // 通常、待機アニメーション（Idle）は最初の要素（index 0）に入っていることが多いです
+               const action = mixer.clipAction(gltf.animations[0]); 
+               action.play();
+        
+               // ミキサーを保持（駒が削除されたときにクリーンアップできるようにする）
+               S.mixers.set(idx, mixer);
+            }
+            g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c)); 
+            g.add(m);
       }, undefined, ()=>{}); }catch(e){}
     } else {
       g.add(b3dMakeStandee(u,boardIcon));
@@ -1017,11 +1039,25 @@ function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
       renderer.domElement.addEventListener('pointerup', onUp);
       renderer.domElement.addEventListener('pointermove', onMove);
 
-      let raf; const loop=()=>{ raf=requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); }; loop();
+      let raf; const loop=()=>{ 
+         raf=requestAnimationFrame(loop); 
+         const delta = S.current.clock ? S.current.clock.getDelta() : 0.016;
+         // 🌟 追加: すべてのモデルのアニメーションを進める
+         if (S.current.mixers) {
+            S.current.mixers.forEach(mixer => mixer.update(delta));
+         }
+         controls.update(); 
+         renderer.render(scene,camera);
+      }; loop();
+       
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); }); ro.observe(mount);
 
-      s={ scene, camera, renderer, controls, boardGroup, hexes, selMarker, pieces:new Map(), raf, ro, onDown, onUp, onMove };
+      s={ scene, camera, renderer, controls, boardGroup, hexes, selMarker, 
+         pieces:new Map(), 
+         mixers: new Map(), // 駒ごとのAnimationMixerを保持
+         clock: new THREE.Clock(), // 経過時間計算用
+         raf, ro, onDown, onUp, onMove };
       S.current=s;
     } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
 
