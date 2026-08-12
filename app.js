@@ -856,7 +856,7 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
    ── 駒 = コスト色の台座 ＋ (自前.glbモデル or ポートレート立て看板) ＋ ★ ＋ アイテムpip。
    ── CHAMP_MODELS3D[<champ.id>] に .glb パスを入れるとモデル表示に切替。
    ============================================================ */
-const B3D = { R:1.0, TH:0.28, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
+const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
 const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
 
@@ -908,11 +908,34 @@ function b3dMakeItemPips(items){
   return grp;
 }
 function b3dFitModel(obj){
-  const box=new THREE.Box3().setFromObject(obj), size=new THREE.Vector3(); box.getSize(size);
-  const s=(B3D.R*1.7)/(size.y||1); obj.scale.setScalar(s);
-  const b2=new THREE.Box3().setFromObject(obj), c=new THREE.Vector3(); b2.getCenter(c);
-  obj.position.x-=c.x; obj.position.z-=c.z; obj.position.y+=(B3D.TOP+0.14)-b2.min.y;
-  obj.traverse(n=>{ if(n.isMesh) n.castShadow=true; });
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  // 🌟 幅・高さ・奥行きのうち一番大きい寸法を基準にスケール決定（マスに納まる1.3倍サイズ）
+  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+  const targetSize = B3D.R * 1.3; 
+  const s = targetSize / maxDim;
+  obj.scale.setScalar(s);
+
+  // リサイズ後のモデルの中心と足元位置を再計算
+  const b2 = new THREE.Box3().setFromObject(obj);
+  const c = new THREE.Vector3();
+  b2.getCenter(c);
+  obj.position.x -= c.x;
+  obj.position.z -= c.z;
+  obj.position.y += (B3D.TOP + 0.08) - b2.min.y;
+
+  // 🌟 マテリアルの白飛び防止（LoL/TFTモデル特有の金属度・粗さ調整）
+  obj.traverse(n => {
+    if(n.isMesh) {
+      n.castShadow = true;
+      if(n.material) {
+        if(n.material.metalness !== undefined) n.material.metalness = 0.0;
+        if(n.material.roughness !== undefined) n.material.roughness = 0.8;
+      }
+    }
+  });
 }
 function b3dDispose(g){
   g.traverse(n=>{ if(n.geometry&&n.geometry.dispose) n.geometry.dispose();
@@ -1004,10 +1027,6 @@ function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
       scene.add(keyL);
       const rimL = new THREE.DirectionalLight(0x1a9fff, 0.5); rimL.position.set(-8,6,-8); scene.add(rimL);
 
-      // 台テーブル
-      const table = new THREE.Mesh(new THREE.CylinderGeometry(11.5,12.5,1.0,64),
-        new THREE.MeshStandardMaterial({color:0x0c1526,metalness:0.3,roughness:0.85}));
-      table.position.y = -0.5 - B3D.TOP; table.receiveShadow = true; scene.add(table);
 
       const boardGroup = new THREE.Group(); scene.add(boardGroup);
       const hexGeo = new THREE.CylinderGeometry(B3D.R,B3D.R,B3D.TH,6);
