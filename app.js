@@ -905,33 +905,39 @@ function b3dMakeItemPips(items){
   return grp;
 }
 function b3dFitModel(obj){
-  // 1. 位置・回転・スケールを一旦初期化
+  // 1. 初期化
   obj.position.set(0, 0, 0);
   obj.rotation.set(0, 0, 0);
   obj.scale.set(1, 1, 1);
 
-  // 2. モデル全体のバウンディングボックスを取得
+  // 2. スケーリング（現在のサイズ感を維持）
   const box = new THREE.Box3().setFromObject(obj);
   const size = new THREE.Vector3();
   box.getSize(size);
 
-  // 🌟 横幅に惑わされず「高さ（Y軸）」基準でスケール決定（マス目に対して適正な大きさに拡大）
   const height = size.y || 1;
-  const targetHeight = B3D.R * 2.3; // 好みに応じて 2.0〜2.5 で調整可能
+  const targetHeight = B3D.R * 2.3; 
   const s = targetHeight / height;
   obj.scale.setScalar(s);
 
-  // 3. スケール適用後のバウンディングボックスから中心・足元を正確に算出
+  // 3. 精密な位置合わせ（底面中央をマス目の中央に配置）
   const scaledBox = new THREE.Box3().setFromObject(obj);
-  const scaledCenter = new THREE.Vector3();
-  scaledBox.getCenter(scaledCenter);
 
-  // X/Zはマスの真ん中、Y(足元)は地面ぴったりに設置
-  obj.position.x -= scaledCenter.x;
-  obj.position.z -= scaledCenter.z;
-  obj.position.y += B3D.TOP - scaledBox.min.y;
+  const centerX = (scaledBox.min.x + scaledBox.max.x) / 2;
+  const centerZ = (scaledBox.min.z + scaledBox.max.z) / 2;
+  const minY = scaledBox.min.y;
 
-  // 4. 白飛び防止 & 影設定
+  obj.position.x = -centerX;
+  obj.position.z = -centerZ;
+  obj.position.y = B3D.TOP - minY;
+
+  // 💡 モデルごとに向きや微調整を行いたい場合は、以下の値を変更できます
+  // obj.rotation.y = Math.PI; // 正面に向かせる（180度回転）
+  // obj.position.x += 0.0;    // 左右の微調整
+  // obj.position.z += 0.0;    // 前後の微調整
+  // obj.position.y += 0.0;    // 上下の微調整
+
+  // 4. マテリアル・影設定
   obj.traverse(n => {
     if(n.isMesh) {
       n.castShadow = true;
