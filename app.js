@@ -500,7 +500,7 @@ function encChampImg(enc) {
   let c = CHAMPS.find(x => x.id === enc.id);
   if (!c) { const map = { miipsy:'meepsie', velkoz:'belveth', rastt:'rhaast' }; if (map[enc.id]) c = CHAMPS.find(x => x.id === map[enc.id]); }
   if (!c) c = CHAMPS.find(x => x.jaName && enc.champ && x.jaName.replace(/[・=]/g,'') === enc.champ.replace(/[・=]/g,''));
-  return c ? c.img : null;
+  return c ? c.id : null;
 }
 
 
@@ -514,9 +514,9 @@ const CURRENT_SET = SET_ID;
 const SET_PREFIX = `tft${SET_NO}_`;
 // metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
 const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`; // Fallback for old assets
-const champIcon=(img)=>`https://tftips.b-cdn.net/champions/set${SET_NO}/${img.toLowerCase()}.png`; // New CDN for champions
-const boardIcon=(img)=>`https://tftips.b-cdn.net/champions/set${SET_NO}/${img.toLowerCase()}.png`; // New CDN for champions
-const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; }; // New CDN for traits
+const champIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
 
 // 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
 const resolveItemJa = (name) => {
@@ -853,10 +853,10 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
           onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)}
           onMouseLeave={onMouseLeave}
           className="hex-capture"
-          data-img={champ.isAnvil ? champ.img : boardIcon(champ.img)}
+      data-img={champ.isAnvil ? champ.img : boardIcon(champ.id)}
           style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}
         >
-          <img className="hex-capture-img" src={champ.isAnvil ? champ.img : boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
+      <img className="hex-capture-img" src={champ.isAnvil ? champ.img : boardIcon(champ.id)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: itemSize > 15 ? 8 : 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: itemSize > 15 ? 1 : 2 }}>
             {(champ.items || []).map((it, idx) => (
               <img key={idx} src={getMetaTFTItemUrl(it)} style={{ width: itemSize, height: itemSize, border: `1px solid ${it?.type==='artifact' ? 'var(--red)' : (it?.type==='radiant' ? 'var(--gold2)' : 'rgba(255,255,255,0.5)')}`, borderRadius: itemSize > 15 ? 3 : 2, background: 'black' }} />
@@ -896,7 +896,7 @@ function b3dStandeeTexture(unit, boardIcon){
     g.fillStyle='#e6edf7'; g.font='900 30px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
     g.fillText(unit.jaName||unit.name||'',128,276); tex.needsUpdate=true; };
   const tex=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) tex.colorSpace=THREE.SRGBColorSpace; draw(null);
-  try{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=boardIcon(unit.img); }catch(e){}
+  try{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=boardIcon(unit.id); }catch(e){}
   return tex;
 }
 function b3dStarTexture(star){
@@ -1630,7 +1630,7 @@ function SeedStatsDrawer({ seed, open, onClose }) {
                                     const u = (r.data.board || []).find(x => x.pos === row * 7 + col);
                                     const c = u ? champById(u.id) : null;
                                     const champ = c ? { ...c, star: u.star, items: (u.itemNames || []).map(hydrateItemByName) } : null;
-                                    return <HexCell key={col} champ={champ} size={48} />;
+                                    return <HexCell key={col} champ={champ} size={48} itemSize={12} />;
                                   })}
                                 </div>
                               ))}
@@ -1642,9 +1642,9 @@ function SeedStatsDrawer({ seed, open, onClose }) {
                                 <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
                                   {r.data.bench.map((u, k) => {
                                     const c = champById(u.id);
-                                    return (
-                                      <div key={k} style={{ width: 30, height: 30, borderRadius: 5, overflow: 'hidden', position: 'relative', border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, background: '#0b1622', flexShrink: 0 }} title={u.jaName}>
-                                        {c && <img src={boardIcon(c.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                    return c && (
+                                      <div key={k} style={{ width: 30, height: 30, borderRadius: 5, overflow: 'hidden', position: 'relative', border: `1px solid ${COST_COLORS[c.cost]}`, background: '#0b1622', flexShrink: 0 }} title={u.jaName}>
+                                        <img src={boardIcon(c.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         <div style={{ position: 'absolute', bottom: -1, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.5)', transformOrigin: 'bottom' }}><Stars star={u.star} /></div>
                                       </div>
                                     );
@@ -1691,9 +1691,8 @@ function SeedStatsDrawer({ seed, open, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {agg.board.length === 0 ? <span style={{ fontSize: 11, color: C.dim }}>データなし</span> :
                 agg.board.map(u => {
-                  const c = champById(u.id);
-                  return barRow('b_' + u.id + '_' + u.star,
-                    <img src={c ? boardIcon(c.img) : ''} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
+                  const c = champById(u.id); return c && barRow('b_' + u.id + '_' + u.star,
+                    <img src={boardIcon(c.id)} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${COST_COLORS[c.cost]}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
                     <span>{u.jaName} <span style={{ color: STAR_COLORS[u.star] || '#fff' }}>{starsTxt(u.star)}</span></span>,
                     u.count);
                 })}
@@ -1703,9 +1702,8 @@ function SeedStatsDrawer({ seed, open, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {agg.bench.length === 0 ? <span style={{ fontSize: 11, color: C.dim }}>データなし</span> :
                 agg.bench.map(u => {
-                  const c = champById(u.id);
-                  return barRow('be_' + u.id + '_' + u.star,
-                    <img src={c ? boardIcon(c.img) : ''} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
+                  const c = champById(u.id); return c && barRow('be_' + u.id + '_' + u.star,
+                    <img src={boardIcon(c.id)} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${COST_COLORS[c.cost]}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
                     <span>{u.jaName} <span style={{ color: STAR_COLORS[u.star] || '#fff' }}>{starsTxt(u.star)}</span></span>,
                     u.count);
                 })}
@@ -1734,7 +1732,7 @@ const ChampionTooltip = ({ data }) => {
   return (
     <div style={{ position:'fixed', top:isBottom?'auto':Math.max(10,y-20), bottom:isBottom?Math.max(10,window.innerHeight-y-70):'auto', left:isRight?'auto':x+80, right:isRight?window.innerWidth-x+10:'auto', zIndex:5000, width:260, background:'var(--bg1)', color:'var(--text-main)', border:`3px solid ${COST_COLORS[champ.cost]}`, borderRadius:4, overflow:'hidden', fontFamily:'Noto Sans JP', fontSize:12, boxShadow:'0 8px 24px rgba(0,0,0,0.3)', pointerEvents:'none', animation:'fadeIn 0.2s ease' }}>
       <div style={{ position:'relative', height:140 }}>
-        <img src={champIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} />
+        <img src={champIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} />
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 80%)' }} />
         <div style={{ position:'absolute', top:10, left:10 }}><div style={{ color:'var(--text-inv)', fontSize:18, fontWeight:900, textShadow:'1px 1px 2px #000' }}>{champ.jaName}</div></div>
@@ -1778,7 +1776,7 @@ const TraitTooltip = ({ data }) => {
       <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10 }}>
         <div style={{ fontSize:10, color:'var(--textdim)', marginBottom:6 }}>対象チャンピオン:</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-          {members.map(m => (<div key={m.id}><img src={boardIcon(m.img)} alt={m.name} style={{ width:30, height:30, borderRadius:4, border:`1px solid ${COST_COLORS[m.cost]}` }} /></div>))}
+          {members.map(m => (<div key={m.id}><img src={boardIcon(m.id)} alt={m.name} style={{ width:30, height:30, borderRadius:4, border:`1px solid ${COST_COLORS[m.cost]}` }} /></div>))}
         </div>
       </div>
     </div>
@@ -1827,7 +1825,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
       onDragStart={() => setDragSrc({ type: 'drawer_champ', champ: c })}
       onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_champ', champ: c })}
     >
-      <img src={boardIcon(c.img)} crossOrigin="anonymous" alt={c.jaName} />
+      <img src={boardIcon(c.id)} crossOrigin="anonymous" alt={c.jaName} />
     </div>
   );
 
@@ -2141,7 +2139,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
     let borderColor = "var(--border)";
 
     if (isChamp) {
-      imgUrl = boardIcon(item.img);
+      imgUrl = boardIcon(item.id);
       title = item.jaName;
       borderColor = COST_COLORS[item.cost] || 'var(--border)';
     } else if (isAug) {
@@ -2790,7 +2788,7 @@ function ShopPickerScreen({ ov, setOvKey, onBack }) {
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(11,22,34,0.7)', border: `1px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, borderRadius: 9, padding: '7px 8px' }}>
                         <div style={{ width: 34, height: 34, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#1e293b', border: `2px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {selChamp
-                            ? <img src={boardIcon(selChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={boardIcon(selChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>{i + 1}</span>}
                         </div>
                         <select style={{ ...selStyle, flex: 1, minWidth: 0 }} value={selId || ''} onChange={e => setSlot(r, i, e.target.value || null)}>
@@ -2888,7 +2886,7 @@ function EncChampPickerScreen({ ov, setOvKey, onBack }) {
                     <div style={{ width: 40, height: 40, borderRadius: 7, overflow: 'hidden', flexShrink: 0, background: '#1e293b', border: `2px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       {selChamp
                         ? <React.Fragment>
-                            <img src={boardIcon(selChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={boardIcon(selChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             {spec.star > 1 && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={spec.star} /></div>}
                           </React.Fragment>
                         : <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>{i + 1}</span>}
@@ -3117,7 +3115,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
                     border:`2px solid ${active?'var(--gold2)':'var(--border)'}`, background: active?'rgba(212,175,55,0.12)':'rgba(15,23,42,0.5)', boxShadow: active?'0 0 10px var(--gold)':'none', transition:'all 0.12s' }}>
                   <div style={{ position:'relative', width:40, height:40, borderRadius:8, flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, background: (e.color||'#0b1622')+'33', border:`1px solid ${e.color||'var(--border)'}` }}>
                     <span>{e.icon}</span>
-                    {imgKey && <img src={boardIcon(imgKey)} alt={e.champ} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} onError={(ev)=>{ev.target.style.display='none';}} />}
+                        {imgKey && <img src={boardIcon(imgKey)} alt={e.champ} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(ev) => { ev.target.style.display = 'none'; }} />}
                   </div>
                   <div style={{ minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:900, color: active?'var(--gold2)':'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{e.champ}</div>
@@ -3476,7 +3474,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${enc.color}22`, border: `2px solid ${enc.color}`, borderRadius: 9, padding: '3px 7px' }}>
                             <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${enc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: `${enc.color}22`, flexShrink: 0 }}>
-                              {encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 13 }}>{enc.icon}</span>}
+                              {encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 13 }}>{enc.icon}</span>}
                             </div>
                             <div>
                               <div style={{ fontSize: 7.5, color: 'var(--textdim)' }}>遭遇</div>
@@ -3519,7 +3517,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           {d.augments.map((a, ai) => (
                             <div key={ai} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.3)', padding: '10px 8px', borderRadius: 8, border: `1px solid ${(TIER_COLORS[a.tier] || 'var(--border)')}44` }}>
-                              {a.history ? (
+                        {a.history && a.history.finalChoices ? (
                                 <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between' }}>
                                   {[0, 1, 2].map(slotIdx => {
                                     const initAug = a.history.initialChoices?.[slotIdx];
@@ -3527,7 +3525,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                                     const isRerolled = a.history.rerolledSlots?.[slotIdx];
                                     const isPicked = finalAug?.id === a.id;
                                     if (!finalAug) return null;
-                                    return (
+          return finalAug && (
                                       <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
                                         {isRerolled && initAug && (
                                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
@@ -3585,7 +3583,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                               const u = (d.board || []).find(x => x.pos === row * 7 + col);
                               const c = u ? champById(u.id) : null;
                               const champ = c ? { ...c, star: u.star, items: (u.itemNames || []).map(hydrateItemByName) } : null;
-                              return <HexCell key={col} champ={champ} size={58} itemSize={16} />;
+                              return <HexCell key={col} champ={champ} size={58} itemSize={16} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />;
                             })}
                           </div>
                         ))}
@@ -3599,8 +3597,8 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                           {d.bench.map((u, k) => {
                             const c = champById(u.id);
                             return (
-                              <div key={k} style={{ width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)', border: `1px solid ${c ? COST_COLORS[c.cost] : 'rgba(30,45,74,.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} title={u.jaName}>
-                                {c && <img src={boardIcon(c.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                              <div key={k} style={{ width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)', border: `1px solid ${c ? COST_COLORS[c.cost] : 'rgba(30,45,74,.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} title={c ? c.jaName : ''}>
+                                {c && <img src={boardIcon(c.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                                 <div style={{ position: 'absolute', bottom: -1, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.5)', transformOrigin: 'bottom' }}><Stars star={u.star} /></div>
                               </div>
                             );
@@ -5883,7 +5881,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         if (!encChamp) {
                           encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                         }
-                        return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
+                      return encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
                       })()}
                     </div>
                     <div>
@@ -5935,7 +5933,7 @@ const handleAugmentPick = (aug, historyContext) => {
                             const isPicked = finalAug?.id === a.id;
 
                             if (!finalAug) return null;
-
+                      
                             return (
                               <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
                                 
@@ -6293,7 +6291,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     if (!encChamp) {
                       encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                     }
-                    return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: hImg }}>{encounter.icon}</span>;
+                    return encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: hImg }}>{encounter.icon}</span>;
                   })()}
                 </div>
                 <div>
@@ -6588,7 +6586,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 ) : (
                   <>
-                    <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+                    <img src={boardIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
                     <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
                       {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius:2, background:'black' }} />))}
                     </div>
@@ -6753,7 +6751,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       onClick={() => {
                         const unit = shop[i]; if (!unit || gold < unit.cost) return;
                         const slot = bench.findIndex(x => !x); if (slot === -1) return;
-                        let nb = [...bench], ns = [...shop];
+                        const nb = [...bench], ns = [...shop];
                         nb[slot] = { ...unit, star:1, uid:rngMisc(), items:[] }; ns[i] = null;
                         setGold(g => g - unit.cost); setShop(ns);
                         setBench(nb);
@@ -6761,7 +6759,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       style={{ ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }), borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
-                          <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
+                          <img src={champIcon(champ.id)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(15,23,42,0.95) 0%, transparent 45%, rgba(15,23,42,0.7) 100%)' }}></div>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
 <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
