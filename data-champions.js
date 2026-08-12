@@ -6,7 +6,7 @@
 
 /* ── チャンピオン一覧 (65体) ── */
 const CHAMPS=[
-  {id:"akali", name:"Akali", jaName:"アカリ", cost:1, traits:["Inferno","Adaptor","Ravager"], img:"Akali", set:"set18"},
+  {id:"akali", name:"Akali", jaName:"アカリ", cost:1, traits:["Inferno","Adaptor","Ravager"], img:"Akali", set:"set18",model:'models/akali.glb' },
   {id:"camille", name:"Camille", jaName:"カミール", cost:1, traits:["Coven","Ravager"], img:"Camille", set:"set18"},
   {id:"cinderling", name:"Cinderling", jaName:"シンダーリング", cost:1, traits:["Riftbeast","Hunter"], img:"Cinderling", set:"set18"},
   {id:"karma", name:"Karma", jaName:"カルマ", cost:1, traits:["Blossom","Spellweaver"], img:"Karma", set:"set18"},
