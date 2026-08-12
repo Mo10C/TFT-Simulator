@@ -543,11 +543,40 @@ const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 const CURRENT_SET = SET_ID;
 const SET_PREFIX = `tft${SET_NO}_`;
 // metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
-const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
-const champIcon=(img)=>metaImg('championsplashes',`${SET_PREFIX}${img.toLowerCase()}`,'width=256,format=auto');
-const boardIcon=(img)=>metaImg('champions',`${SET_PREFIX}${img.toLowerCase()}`,'width=96,format=auto');
-const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`; };
+const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`; // Fallback for old assets
+const champIcon=(img)=>`https://tftips.b-cdn.net/champions/set${SET_NO}/${img.toLowerCase()}.png`; // New CDN for champions
+const boardIcon=(img)=>`https://tftips.b-cdn.net/champions/set${SET_NO}/${img.toLowerCase()}.png`; // New CDN for champions
+const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; }; // New CDN for traits
 
+// 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
+const resolveItemJa = (name) => {
+  if (!name) return "";
+  // サイオニックは装備時点で日本語名（記録にも日本語名で保存される）
+  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
+    const psi = PSIONIC_ITEMS.find(p => p.jaName === name || p.name === name);
+    if (psi) return psi.jaName;
+  }
+
+  // ITEMS (素材アイテム) から検索
+  const component = ITEMS.find(i => i.name === name || i.id === name);
+  if (component && component.jaName) return component.jaName;
+
+  // ITEM_RECIPES (完成アイテム、紋章) から検索
+  const completed = Object.values(ITEM_RECIPES).find(r => r.name === name || r.id === name);
+  if (completed && completed.jaName) return completed.jaName;
+
+  // CONSUMABLES (消費アイテム) から検索
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === name || c.id === name);
+  if (consumable && consumable.jaName) return consumable.jaName;
+
+  // ARTIFACTS, RADIANT_ITEMS から検索
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name || a.imgName === name);
+  if (specialItem && specialItem.jaName) return specialItem.jaName;
+
+  // 見つからなければそのまま返す
+  return name;
+};
+const getJaName = (name) => resolveItemJa(name); // getJaName は resolveItemJa のラッパーとして機能
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
 
@@ -565,48 +594,47 @@ const getMetaTFTItemUrl = (item) => {
     return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
   }
 
-  const nameInput = typeof item === 'string' ? item : item.name;
-  
-  if (!nameInput) return "";
+  const itemObj = typeof item === 'string' ? { name: item, id: item } : item;
+  const nameInput = itemObj.name;
+  const idInput = itemObj.id;
+
+  if (!nameInput && !idInput) return "";
 
   // アーティファクトとレディアントを結合して検索（日本語名でも引けるようにする）
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput || a.jaName === nameInput);
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === idInput || a.imgName === nameInput || a.jaName === nameInput);
   if (specialItem) {
     const baseName = specialItem.id.startsWith('r_') ? specialItem.id.substring(2) + '_radiant' : 'artifact_' + specialItem.id;
     return `https://tftips.b-cdn.net/item/${baseName}.avif?v=1`;
   }
 
   // 1.5 紋章専用のURLフォーマット
-  if (nameInput.includes('Emblem')) {
-    const recipe = Object.values(ITEM_RECIPES).find(r => r.name === nameInput);
+  if (nameInput.includes('Emblem') || idInput.startsWith('emblem_')) {
+    const recipe = Object.values(ITEM_RECIPES).find(r => r.name === nameInput || r.id === idInput);
     if (recipe && recipe.grantedTrait) {
       const traitName = recipe.grantedTrait.toLowerCase().replace(/\s+/g, '');
       return `https://tftips.b-cdn.net/item/${SET_NO}_emblem${traitName}.avif?v=1`;
     }
   }
 
-  // 2. 特殊消費アイテム
-  if (nameInput === 'Tiny Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator_lesser.avif?v=1";
-  if (nameInput === 'Lesser Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator_lesser.avif?v=1";
-  if (nameInput === 'Champion Duplicator') return "https://tftips.b-cdn.net/item/championduplicator.avif?v=1";
-  if (nameInput === 'Reforger') return "https://tftips.b-cdn.net/item/reforger.avif?v=1";
-  if (nameInput === 'itemremover') return "https://tftips.b-cdn.net/item/remover.avif?v=1";
+  // 2. 消費アイテム
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === nameInput || c.id === idInput);
+  if (consumable) {
+    return `https://tftips.b-cdn.net/item/${consumable.id}.avif?v=1`;
+  }
 
   // 3. 通常の完成アイテム・素材
-  const comp = ITEMS.find(i => i.name === nameInput);
+  const comp = ITEMS.find(i => i.name === nameInput || i.id === idInput);
   if (comp) {
-    const formattedName = nameInput.toLowerCase().replace(/['.\s]/g, '');
+    const formattedName = comp.id.toLowerCase().replace(/['.\s]/g, ''); // Use id for component URL
     return `https://tftips.b-cdn.net/item/component_${formattedName}.avif?v=1`;
   }
 
-  const completed = Object.values(ITEM_RECIPES).find(r => r.name === nameInput);
+  const completed = Object.values(ITEM_RECIPES).find(r => r.name === nameInput || r.id === idInput);
   if (completed) {
     return `https://tftips.b-cdn.net/item/${completed.id}.avif?v=1`;
   }
 
-  // フォールバック（旧URL形式）
-  const fallbackFormatted = nameInput.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
-  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${fallbackFormatted}.png`;
+  return ""; // Fallback to empty string if not found
 };
 
 const getAugmentIconUrl = (aug) => {
@@ -622,7 +650,7 @@ const getAugmentIconUrl = (aug) => {
 // 📛 記録に保存されたアイテム名（文字列）から表示用オブジェクトを復元する。
 //    記録には名前しか保存されないため、そのまま {name} で表示すると
 //    ・サイオニック（日本語名で保存）→ 画像URLが引けずアイコンが出ない
-//    ・アーティファクト/レディアント → type が失われ枠色（赤/金）が出ない
+//    ・アーティファクト/レディアント/消費アイテム → type が失われ枠色（赤/金）が出ない
 //    という問題が起きる。ここで imgName / type を補完してから HexCell に渡す。
 const hydrateItemByName = (n) => {
   if (!n) return { name: '' };
@@ -630,6 +658,9 @@ const hydrateItemByName = (n) => {
     const psi = PSIONIC_ITEMS.find(p => p.jaName === n || p.name === n);
     if (psi) return { name: psi.jaName, imgName: psi.name, isPsionic: true, type: 'completed' };
   }
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === n || c.jaName === n);
+  if (consumable) return { ...consumable, type: 'consumable' };
+
   const sp = [
     ...(typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []),
     ...(typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []),
