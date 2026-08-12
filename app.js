@@ -1044,6 +1044,7 @@ function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
 
       let raf; const loop=()=>{ 
          raf=requestAnimationFrame(loop); 
+         if (!S.current) return;
          const delta = S.current.clock ? S.current.clock.getDelta() : 0.016;
          // 🌟 追加: すべてのモデルのアニメーションを進める
          if (S.current.mixers) {
@@ -1064,7 +1065,9 @@ function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
       S.current=s;
     } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
 
-    return ()=>{ const x=S.current; if(!x) return;
+    return ()=>{ 
+      const x=S.current; if(!x) return;
+      cancelAnimationFrame(x.raf);
       cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
       const el=x.renderer.domElement; el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
       x.pieces.forEach(g=>b3dDispose(g)); try{ x.renderer.dispose(); }catch(e){}
