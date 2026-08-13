@@ -501,6 +501,12 @@ const SET_PREFIX = `tft${SET_NO}_`;
 const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`; // Fallback for old assets
 const champIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
 const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+/* 🛒 ショップ専用：チャンピオンのスプラッシュアート（metaTFT）。
+   ── ショップだけ参照元が違うので他とは分けている。id から自動生成されるので個別指定は不要。
+   ── 例) aphelios → .../championsplashes/tft18_aphelios.png
+   ── サイズを変えたい場合は opts の width / height を調整する。 */
+const shopIcon=(id, opts='width=256,height=256,fit=cover,format=auto')=>
+  `https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/championsplashes/tft${SET_NO}_${String(id).toLowerCase()}.png`;
 const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
 
 // 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
@@ -1464,7 +1470,7 @@ const ChampionTooltip = ({ data }) => {
         <div style={{ position:'absolute', top:10, left:10 }}><div style={{ color:'var(--text-inv)', fontSize:18, fontWeight:900, textShadow:'1px 1px 2px #000' }}>{champ.jaName}</div></div>
 <div style={{ position:'absolute', bottom:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
     {(() => {
-      let displayTraits = [...champ.traits];<img src={champIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} onError={(e) => e.target.style.display='none'} />
+      let displayTraits = [...champ.traits];
       if (champ.traits.includes('missfortuneuniquetrait')) displayTraits.push(champ.selectedMode || 'unselected');
       return displayTraits.map(t => (
         <div key={t} style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -1551,7 +1557,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
       onDragStart={() => setDragSrc({ type: 'drawer_champ', champ: c })}
       onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_champ', champ: c })}
     >
-      <img src={boardIcon(c.id)} crossOrigin="anonymous" alt={c.jaName} onError={(e) => e.target.style.display='none'} />
+      <img src={boardIcon(c.id)} alt={c.jaName} />
     </div>
   );
 
@@ -6508,7 +6514,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       style={{ ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }), borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
-                          <img src={champIcon(champ.id)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
+                          <img src={shopIcon(champ.id)} onError={(e)=>{ if(!e.target.dataset.fb){ e.target.dataset.fb='1'; e.target.src=champIcon(champ.id); } }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(15,23,42,0.95) 0%, transparent 45%, rgba(15,23,42,0.7) 100%)' }}></div>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
 <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
