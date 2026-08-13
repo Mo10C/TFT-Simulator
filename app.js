@@ -4151,6 +4151,57 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     setDragSrc({ type: kind, idx });
     setSel3D({ kind, idx });
   }, [board, bench]);
+  // 🧊 3D: オーバーレイ（左右パネル・ショップ）に隠れない範囲を測って盤面の中央合わせに使う
+  const [insets3D, setInsets3D] = useState({ left:0, right:0, top:0, bottom:0 });
+  useEffect(() => {
+    if (!use3D) return;
+    const measure = () => {
+      const area = boardContainerRef.current; if (!area) return;
+      const a = area.getBoundingClientRect();
+      const r = (sel) => { const el = document.querySelector(sel); return el ? el.getBoundingClientRect() : null; };
+      const left = r('.sp-left-side'), right = r('.sp-right-aug'), shop = r('.sp-shop-area');
+      setInsets3D({
+        left:  left  ? Math.max(0, left.right - a.left + 8) : 0,
+        right: right ? Math.max(0, a.right - right.left + 8) : 0,
+        top:   0,
+        bottom: shop ? Math.max(0, a.bottom - shop.top + 8) : 0,
+      });
+    };
+    measure();
+    const t = setTimeout(measure, 120);           // レイアウト確定後にもう一度
+    window.addEventListener('resize', measure);
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure); };
+  }, [use3D]);   // 画面サイズ変更は window の resize で拾う
+
+  // 🧊 3D: 盤外に離した時は、その位置にある2DのドロップUI（ショップ＝売却など）へ渡す
+  const handle3DDropOutside = (clientX, clientY) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    const t = el && el.closest && el.closest('[data-drop-type]');
+    if (t && hDropRef.current) {
+      const type = t.getAttribute('data-drop-type');
+      const idx = parseInt(t.getAttribute('data-drop-idx') || '-1');
+      const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+      hDropRef.current(type, idx)(syntheticE);
+      setSel3D(null);
+      return;
+    }
+    // ショップ欄に落とした場合は売却（2Dと同じ hDrop('shop',-1) を使う）
+    if (el && el.closest && el.closest('.sp-shop-area') && hDropRef.current) {
+      const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+      hDropRef.current('shop', -1)(syntheticE);
+      setSel3D(null);
+      return;
+    }
+    handle3DCancel();
+  };
+
+  // 🧊 3D: カーソル下の駒を記録して、売却キーを2Dと同じように使えるようにする
+  const handle3DHoverSlot = (kind, idx) => {
+    if (kind == null) { hoveredUnitRef.current = null; return; }
+    const arr = kind === 'bench' ? bench : board;
+    hoveredUnitRef.current = arr[idx] ? { type: kind, idx } : null;
+  };
+
   // ドラッグ終了（ドロップ先が確定）
   const handle3DDrop = (kind, idx) => drop3D(kind, idx);
   const handle3DCancel = () => { setSel3D(null); setDragSrc(null); };
@@ -6149,6 +6200,40 @@ const handleAugmentPick = (aug, historyContext) => {
             </div>
           )}
 
+          {/* 🧊 3D関連（ティアリストの左に配置。盤面上に置くとオーバーレイに埋もれるため） */}
+          <button onClick={() => setUse3D(v => !v)} title="盤面 2D / 3D 切替"
+            style={{ background: use3D ? 'var(--gold)' : 'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4,
+              padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color: use3D ? '#1a1400' : 'var(--text-main)',
+              fontFamily:'Orbitron', fontWeight:900, cursor:'pointer' }}>
+            {use3D ? '3D' : '2D'}
+          </button>
+          {use3D && (
+            <button onClick={() => setFreeView(v => !v)} title="ON=カメラを自由に動かせる / OFF=既定の視点に固定"
+              style={{ background: freeView ? 'var(--blue)' : 'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4,
+                padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color: freeView ? '#fff' : 'var(--text-main)',
+                fontFamily:'Orbitron', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
+              {isLandscapeMobile ? '👁' : `VIEW ${freeView ? 'ON' : 'OFF'}`}
+            </button>
+          )}
+          {use3D && is3DAdmin && freeView && (
+            <React.Fragment>
+              <button onClick={() => view3DApi.current && view3DApi.current.nudge(0.5)} title="盤面を上げる"
+                style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 7px', fontSize:12, color:'var(--text-main)', fontWeight:900, cursor:'pointer' }}>▲</button>
+              <button onClick={() => view3DApi.current && view3DApi.current.nudge(-0.5)} title="盤面を下げる"
+                style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 7px', fontSize:12, color:'var(--text-main)', fontWeight:900, cursor:'pointer' }}>▼</button>
+              <button onClick={saveView3D} title="今の視点を既定として保存"
+                style={{ background:'rgba(94,74,22,0.9)', border:'1px solid var(--gold)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'#ffd76e', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
+                {isLandscapeMobile ? '📌' : '📌 既定に'}
+              </button>
+            </React.Fragment>
+          )}
+          {use3D && is3DAdmin && !freeView && savedView3D && (
+            <button onClick={clearView3D} title="既定のアングルを解除"
+              style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--textdim)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
+              {isLandscapeMobile ? '↩️' : '↩️ 既定解除'}
+            </button>
+          )}
+
           <button 
             onClick={() => setShowTierList(true)}
             style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:700, cursor:'pointer' }}
@@ -6222,41 +6307,12 @@ const handleAugmentPick = (aug, historyContext) => {
           onTouchEnd={handleBoardTouchEnd}
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', position:'relative' }}
         >
-          <button onClick={() => setUse3D(v => !v)} title="盤面 2D / 3D 切替"
-            style={{ position:'absolute', top:10, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
-              border:'1px solid var(--border)', background: use3D ? 'var(--gold)' : 'var(--bg2)',
-              color: use3D ? '#1a1400' : 'var(--text)', fontFamily:'Orbitron', fontWeight:900, fontSize:12, cursor:'pointer' }}>
-            {use3D ? '3D' : '2D'}
-          </button>
-          {use3D && (
-            <button onClick={() => setFreeView(v => !v)} title="ON=カメラを自由に動かせる / OFF=既定の視点に戻して固定"
-              style={{ position:'absolute', top:46, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
-                border:'1px solid var(--border)', background: freeView ? 'var(--blue)' : 'var(--bg2)',
-                color: freeView ? '#fff' : 'var(--text)', fontFamily:'Orbitron', fontWeight:900, fontSize:12, cursor:'pointer' }}>
-              VIEW {freeView ? 'ON' : 'OFF'}
-            </button>
-          )}
-          {use3D && is3DAdmin && freeView && (
-            <button onClick={saveView3D} title="今のカメラ位置を既定のアングルとして保存する"
-              style={{ position:'absolute', top:82, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
-                border:'1px solid var(--gold)', background:'rgba(94,74,22,0.9)', color:'#ffd76e',
-                fontFamily:'Noto Sans JP', fontWeight:900, fontSize:11, cursor:'pointer', whiteSpace:'nowrap' }}>
-              📌 この視点を既定に
-            </button>
-          )}
-          {use3D && is3DAdmin && !freeView && savedView3D && (
-            <button onClick={clearView3D} title="既定のアングルを解除して自動フィットに戻す"
-              style={{ position:'absolute', top:82, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
-                border:'1px solid var(--border)', background:'var(--bg2)', color:'var(--textdim)',
-                fontFamily:'Noto Sans JP', fontWeight:900, fontSize:11, cursor:'pointer', whiteSpace:'nowrap' }}>
-              ↩️ 既定を解除
-            </button>
-          )}
           {use3D ? (
             <Board3D board={board} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
               onCancel={handle3DCancel} selected={sel3D} freeView={freeView}
-              savedView={savedView3D} viewApi={view3DApi} />
+              savedView={savedView3D} viewApi={view3DApi} insets={insets3D}
+              onDropOutside={handle3DDropOutside} onHoverSlot={handle3DHoverSlot} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>

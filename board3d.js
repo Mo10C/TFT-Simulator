@@ -333,6 +333,14 @@ function b3dAttachModel(S, g, key, gltf, champId){
    画面サイズやアスペクト比が変わっても余白が最小になるよう、距離を二分探索で詰める。 */
 function b3dFitCamera(S){
   const { camera, controls, boardGroup } = S;
+  // オーバーレイ（左パネル・右パネル・ショップ）に隠れない範囲を「見える枠」として扱う。
+  // これをしないと、パネルの下に盤面が潜り込んで位置がずれて見える。
+  const ins = S.insets || { left:0, right:0, top:0, bottom:0 };
+  const W = (S.viewSize && S.viewSize.w) || 1, H = (S.viewSize && S.viewSize.h) || 1;
+  const ndcL = -1 + (ins.left / W) * 2,  ndcR = 1 - (ins.right / W) * 2;
+  const ndcB = -1 + (ins.bottom / H) * 2, ndcT = 1 - (ins.top / H) * 2;
+  const cxWant = (ndcL + ndcR) / 2, cyWant = (ndcB + ndcT) / 2;
+  const halfWNdc = Math.max(0.15, (ndcR - ndcL) / 2), halfHNdc = Math.max(0.15, (ndcT - ndcB) / 2);
   const box = new THREE.Box3().setFromObject(boardGroup);
   if(box.isEmpty()) return;
   box.max.y += 2.3;                       // 駒の高さ分の余白を確保
@@ -356,7 +364,7 @@ function b3dFitCamera(S){
   // 画面内に収まっているか（余白 3%）
   const fits = (d) => { place(d);
     return corners.every(c => { const p=c.clone().applyMatrix4(m);
-      return Math.abs(p.x)<=0.97 && Math.abs(p.y)<=0.97 && p.z<1; }); };
+      return Math.abs(p.x - cxWant) <= halfWNdc*0.97 && Math.abs(p.y - cyWant) <= halfHNdc*0.97 && p.z<1; }); };
   // 投影後の見た目の中心（NDC）
   const projCenter = () => {
     let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
@@ -373,13 +381,14 @@ function b3dFitCamera(S){
     for(let i=0;i<40;i++){ const mid=(lo+hi)/2; if(fits(mid)) hi=mid; else lo=mid; }
     d = hi; place(d);
     const c = projCenter();
-    if(Math.abs(c.x)<0.002 && Math.abs(c.y)<0.002) break;
+    const dx = c.x - cxWant, dy = c.y - cyWant;
+    if(Math.abs(dx)<0.002 && Math.abs(dy)<0.002) break;
     // NDC のズレをワールド座標の移動量に変換して注視点を補正
     const halfH = d * Math.tan((camera.fov*Math.PI/180)/2);
     const halfW = halfH * camera.aspect;
     const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
     const up    = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
-    target.addScaledVector(right, c.x * halfW).addScaledVector(up, c.y * halfH);
+    target.addScaledVector(right, dx * halfW).addScaledVector(up, dy * halfH);
   }
   place(d);
   controls.target.copy(target);
@@ -442,6 +451,17 @@ function b3dReadView(S){
   const r = (v)=>Math.round(v*100)/100;
   return { pos:[r(S.camera.position.x), r(S.camera.position.y), r(S.camera.position.z)],
            target:[r(S.controls.target.x), r(S.controls.target.y), r(S.controls.target.z)] };
+}
+
+/* ⬆⬇ 盤面の高さを微調整する（カメラと注視点を一緒に上下させる） */
+function b3dNudgeView(S, dy){
+  if(!S || !S.camera || !S.controls) return false;
+  S.camera.position.y += dy;
+  S.controls.target.y += dy;
+  S.camera.lookAt(S.controls.target);
+  S.camera.updateMatrixWorld(true); S.camera.updateProjectionMatrix(); S.controls.update();
+  S.defaultCam = { pos:S.camera.position.clone(), target:S.controls.target.clone() };
+  return true;
 }
 
 function b3dDispose(g){
@@ -546,7 +566,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
   });
 }
 
-function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi }) {
+function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi, insets, onDropOutside, onHoverSlot }) {
   const mountRef = useRef3D(null);
   const S = useRef3D(null);
   const cbRef = useRef3D(onSlotClick);
@@ -554,6 +574,15 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
   const dropRef = useRef3D(onDropSlot);
   const cancelRef = useRef3D(onCancel);
   const savedViewRef = useRef3D(savedView);
+  const insetsRef = useRef3D(insets);
+  const outsideRef = useRef3D(onDropOutside);
+  const hoverRef = useRef3D(onHoverSlot);
+  useEffect3D(()=>{ outsideRef.current=onDropOutside; hoverRef.current=onHoverSlot; }, [onDropOutside, onHoverSlot]);
+  // オーバーレイに隠れない範囲が変わったら、その枠の中央に収め直す
+  useEffect3D(()=>{ insetsRef.current=insets; const s=S.current; if(!s) return;
+    s.insets = insets || {left:0,right:0,top:0,bottom:0};
+    if(!s.freeView && !savedViewRef.current) b3dFitCamera(s);
+  }, [insets && insets.left, insets && insets.right, insets && insets.top, insets && insets.bottom]);
   const [failed, setFailed] = useState3D(false);
   useEffect3D(()=>{ savedViewRef.current = savedView; }, [savedView]);
 
@@ -564,6 +593,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       getView: () => b3dReadView(S.current),
       applyView: (v) => b3dApplySavedView(S.current, v),
       fitToScreen: () => { if(S.current) b3dFitCamera(S.current); },
+      nudge: (dy) => b3dNudgeView(S.current, dy),
     };
     return ()=>{ if(viewApi) viewApi.current = null; };
   }, [viewApi]);
@@ -673,6 +703,8 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
         const slot=pickSlot();
         if(hovered && (!slot || slot!==hovered)) clearHover();
         if(slot){ slot.material=hexHover; hovered=slot; }
+        // 売却キーなど「カーソル下の駒」を使う機能のために、今どのマスを指しているか伝える
+        if(hoverRef.current) hoverRef.current(slot ? slot.userData.kind : null, slot ? slot.userData.idx : null);
       };
 
       const onUp=(e)=>{
@@ -687,6 +719,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
           // 掴んだ駒は元位置へ戻す（実際の反映は board/bench の state 更新で行う）
           d.piece.position.set(d.home.x,d.home.y,d.home.z);
           if(slot && dropRef.current) dropRef.current(slot.userData.kind, slot.userData.idx);
+          else if(outsideRef.current) outsideRef.current(e.clientX, e.clientY);   // 盤外＝ショップ等へのドロップ
           else if(cancelRef.current) cancelRef.current();
           return;
         }
@@ -724,13 +757,15 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
        
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+        if(S.current) S.current.viewSize={w,h};
         // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
         if(S.current && !S.current.freeView){
           if(savedViewRef.current) b3dApplySavedView(S.current, savedViewRef.current);  // 角度は維持、距離だけ再調整
           else b3dFitCamera(S.current);
         } }); ro.observe(mount);
 
-      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, 
+      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false,
+         viewSize:{w:W,h:H}, insets:insetsRef.current||{left:0,right:0,top:0,bottom:0}, 
          pieces:new Map(), 
          spawning:new Set(), // 出現アニメ中の駒
          mixers: new Map(), // 駒ごとのAnimationMixerを保持
