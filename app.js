@@ -17,22 +17,7 @@ const SET_ID = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM
 const SET_NO = String(SET_ID).replace(/[^0-9]/g, '') || '18';
 if (typeof document !== 'undefined') document.title = `TFT Set ${SET_NO} - 1 Stage Simulator`;
 
-/* 🧊 3D盤面：チャンピオンID → .glb パス。設定した駒だけ3Dモデル、それ以外はポートレート立て看板。
-   例: const CHAMP_MODELS3D = { akali:'models/akali.glb', sett:'models/sett.glb' }; */
-const CHAMP_MODELS3D = {
-  varus: 'models/infernal_varus.glb',
-  reksai: "models/elderwood_rek'sai.glb",
-  leona: 'models/solar_eclipse_leona.glb',
-  rakan: 'models/elderwood_rakan.glb',
-  yorick: 'models/spirit_blossom_yorick.glb',
-  veigar: 'models/elderwood_veigar.glb',
-  xayah: 'models/elderwood_xayah.glb',
-  karma: 'models/spirit_blossom_karma.glb',
-  ornn: 'models/elderwood_ornn.glb',
-  camille: 'models/coven_camille.glb',
-  alistar: 'models/elderwood_alistar.glb',
-  akali: 'models/infernal_akali.glb',
-};
+/* 🧊 3D盤面（Board3D / CHAMP_MODELS3D）は board3d.js に分離。index.html で app.js より前に読み込む。 */
 const KEYBIND_STORAGE_KEY = `tft_${SET_ID}_keybindings_v1`;
 
 function loadKeyBindings() {
@@ -437,29 +422,6 @@ const getAugmentMetaByName = (name) => {
   }
   return null;
 };
-// 🇯🇵 アイテム英名→日本語名（ITEM_JAの大文字小文字ゆれ・紋章の欠落に対応）
-const resolveItemJa = (name) => {
-  if (!name) return '';
-  // サイオニックは装備時点で日本語名（記録にも日本語名で保存される）
-  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === name || p.name === name);
-    if (psi) return psi.jaName;
-  }
-  const direct = getJaName(name);
-  if (direct && direct !== name) return direct;
-  // 大文字小文字を無視して ITEM_JA を検索
-  if (typeof ITEM_JA !== 'undefined') {
-    const k = Object.keys(ITEM_JA).find(x => x.toLowerCase() === name.toLowerCase());
-    if (k) return ITEM_JA[k];
-  }
-  // 「○○ Emblem」→ TRAIT_JA から「○○の紋章」を生成
-  if (/emblem$/i.test(name) && typeof TRAIT_JA !== 'undefined') {
-    const trait = name.replace(/\s*emblem$/i, '').trim();
-    const tk = Object.keys(TRAIT_JA).find(x => x.toLowerCase() === trait.toLowerCase());
-    if (tk) return `${TRAIT_JA[tk]}の紋章`;
-  }
-  return name;
-};
 
 // 🏷️ エディタで非表示（旧セット等）にしたチャンピオンをシム全体から除外
 //    ショップ・ドロップ・指定リストなど全ての CHAMPS 参照に一括で効く
@@ -523,7 +485,7 @@ function encChampImg(enc) {
   let c = CHAMPS.find(x => x.id === enc.id);
   if (!c) { const map = { miipsy:'meepsie', velkoz:'belveth', rastt:'rhaast' }; if (map[enc.id]) c = CHAMPS.find(x => x.id === map[enc.id]); }
   if (!c) c = CHAMPS.find(x => x.jaName && enc.champ && x.jaName.replace(/[・=]/g,'') === enc.champ.replace(/[・=]/g,''));
-  return c ? c.img : null;
+  return c ? c.id : null;
 }
 
 
@@ -531,73 +493,103 @@ const COST_COLORS={1:'#8a9aaa',2:'#44cc66',3:'#3399ff',4:'#cc44ff',5:'#ffcc44'};
 const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
-/* ── ヘルパー関数 ── */
-const getJaName = (name) => {
-  if (!name) return "";
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name);
-  if (specialItem && specialItem.jaName) return specialItem.jaName;
-  return ITEM_JA[name] || name;
-};
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
 // 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
 const CURRENT_SET = SET_ID;
 const SET_PREFIX = `tft${SET_NO}_`;
 // metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
-const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
-const champIcon=(img)=>metaImg('championsplashes',`${SET_PREFIX}${img.toLowerCase()}`,'width=256,format=auto');
-const boardIcon=(img)=>metaImg('champions',`${SET_PREFIX}${img.toLowerCase()}`,'width=96,format=auto');
-const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`; };
+const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`; // Fallback for old assets
+const champIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
 
+// 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
+const resolveItemJa = (name) => {
+  if (!name) return "";
+  // サイオニックは装備時点で日本語名（記録にも日本語名で保存される）
+  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
+    const psi = PSIONIC_ITEMS.find(p => p.jaName === name || p.name === name);
+    if (psi) return psi.jaName;
+  }
+
+  // ITEMS (素材アイテム) から検索
+  const component = ITEMS.find(i => i.name === name || i.id === name);
+  if (component && component.jaName) return component.jaName;
+
+  // ITEM_RECIPES (完成アイテム、紋章) から検索
+  const completed = Object.values(ITEM_RECIPES).find(r => r.name === name || r.id === name);
+  if (completed && completed.jaName) return completed.jaName;
+
+  // CONSUMABLES (消費アイテム) から検索
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === name || c.id === name);
+  if (consumable && consumable.jaName) return consumable.jaName;
+
+  // ARTIFACTS, RADIANT_ITEMS から検索
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name || a.imgName === name);
+  if (specialItem && specialItem.jaName) return specialItem.jaName;
+
+  // 見つからなければそのまま返す
+  return name;
+};
+const getJaName = (name) => resolveItemJa(name); // getJaName は resolveItemJa のラッパーとして機能
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
 
   // 引数がオブジェクトで imgName がある場合は、直接URLを生成して返す
   if (typeof item === 'object' && item.imgName) {
+    // オーグメントや特殊アイテム（アーティファクトなど）はこちらを通る
+    if (item.type === 'artifact') {
+      return `https://tftips.b-cdn.net/item/artifact_${item.id}.avif?v=1`;
+    }
+    if (item.type === 'radiant') {
+      const baseName = item.id.substring(2);
+      return `https://tftips.b-cdn.net/item/${baseName}_radiant.avif?v=1`;
+    }
+    // それ以外（主にオーグメント）は現状維持
     return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
   }
 
-  const nameInput = typeof item === 'string' ? item : item.name;
-  
-  if (!nameInput) return "";
+  const itemObj = typeof item === 'string' ? { name: item, id: item } : item;
+  const nameInput = itemObj.name;
+  const idInput = itemObj.id;
 
-  // 1. サイオニック専用（ファイル名そのものが入っている場合）
-  if (nameInput.startsWith('tft17_item_psyops_')) {
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${nameInput}.png`;
-  }
+  if (!nameInput && !idInput) return "";
 
-  // 1.1 サイオニック（装備時は name に日本語名が入るため、記録から復元した場合もここで解決する）
-  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === nameInput || p.name === nameInput);
-    if (psi) return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${psi.name}.png`;
-  }
-  
   // アーティファクトとレディアントを結合して検索（日本語名でも引けるようにする）
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === nameInput || a.imgName === nameInput || a.jaName === nameInput);
+  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === idInput || a.imgName === nameInput || a.jaName === nameInput);
   if (specialItem) {
-    if (specialItem.imgName) {
-      return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${specialItem.imgName}.png`;
-    }
-    const formatted = specialItem.name.toLowerCase().replace(/['.\s]/g, '').replace('artifact', '');
-    return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
+    const baseName = specialItem.id.startsWith('r_') ? specialItem.id.substring(2) + '_radiant' : 'artifact_' + specialItem.id;
+    return `https://tftips.b-cdn.net/item/${baseName}.avif?v=1`;
   }
 
   // 1.5 紋章専用のURLフォーマット
-  if (nameInput.includes('Emblem')) {
-    const traitName = nameInput.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return metaImg('items', `${SET_PREFIX}item_${traitName}emblemitem`, 'width=64,format=auto');
+  if (nameInput.includes('Emblem') || idInput.startsWith('emblem_')) {
+    const recipe = Object.values(ITEM_RECIPES).find(r => r.name === nameInput || r.id === idInput);
+    if (recipe && recipe.grantedTrait) {
+      const traitName = recipe.grantedTrait.toLowerCase().replace(/\s+/g, '');
+      return `https://tftips.b-cdn.net/item/${SET_NO}_emblem${traitName}.avif?v=1`;
+    }
   }
 
-  // 2. 特殊消費アイテム
-  if (nameInput === 'Tiny Champion Duplicator') return "https://cdn.metatft.com/file/metatft/items/tft_consumable_championduplicator_i.png";
-  if (nameInput === 'Lesser Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_championduplicator_iii.png";
-  if (nameInput === 'Champion Duplicator') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_neekoshelp.png";
-  if (nameInput === 'Reforger') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemreroller.png";
-  if (nameInput === 'itemremover') return "https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_consumable_itemremover.png";
+  // 2. 消費アイテム
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === nameInput || c.id === idInput);
+  if (consumable) {
+    return `https://tftips.b-cdn.net/item/${consumable.id}.avif?v=1`;
+  }
 
-  // 3. 通常の完成アイテム・素材（名前を整形してURL化）
-  // 既に日本語になっている場合でも、整形ロジックを通すとURLが壊れることがあるため注意
-  const formatted = nameInput.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
-  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${formatted}.png`;
+  // 3. 通常の完成アイテム・素材
+  const comp = ITEMS.find(i => i.name === nameInput || i.id === idInput);
+  if (comp) {
+    const formattedName = comp.id.toLowerCase().replace(/['.\s]/g, ''); // Use id for component URL
+    return `https://tftips.b-cdn.net/item/component_${formattedName}.avif?v=1`;
+  }
+
+  const completed = Object.values(ITEM_RECIPES).find(r => r.name === nameInput || r.id === idInput);
+  if (completed) {
+    return `https://tftips.b-cdn.net/item/${completed.id}.avif?v=1`;
+  }
+
+  return ""; // Fallback to empty string if not found
 };
 
 const getAugmentIconUrl = (aug) => {
@@ -613,7 +605,7 @@ const getAugmentIconUrl = (aug) => {
 // 📛 記録に保存されたアイテム名（文字列）から表示用オブジェクトを復元する。
 //    記録には名前しか保存されないため、そのまま {name} で表示すると
 //    ・サイオニック（日本語名で保存）→ 画像URLが引けずアイコンが出ない
-//    ・アーティファクト/レディアント → type が失われ枠色（赤/金）が出ない
+//    ・アーティファクト/レディアント/消費アイテム → type が失われ枠色（赤/金）が出ない
 //    という問題が起きる。ここで imgName / type を補完してから HexCell に渡す。
 const hydrateItemByName = (n) => {
   if (!n) return { name: '' };
@@ -621,6 +613,9 @@ const hydrateItemByName = (n) => {
     const psi = PSIONIC_ITEMS.find(p => p.jaName === n || p.name === n);
     if (psi) return { name: psi.jaName, imgName: psi.name, isPsionic: true, type: 'completed' };
   }
+  const consumable = Object.values(CONSUMABLES).find(c => c.name === n || c.jaName === n);
+  if (consumable) return { ...consumable, type: 'consumable' };
+
   const sp = [
     ...(typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []),
     ...(typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []),
@@ -842,11 +837,11 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
           onTouchStart={onTouchStartDrag ? (e) => { if (onMouseLeave) onMouseLeave(); onTouchStartDrag(e); } : undefined}
           onMouseEnter={(e) => onMouseEnter && onMouseEnter(e, champ)}
           onMouseLeave={onMouseLeave}
-          className="hex-capture"
-          data-img={champ.isAnvil ? champ.img : boardIcon(champ.img)}
+          className="hex-capture" onError={(e) => e.target.style.display='none'}
+      data-img={champ.isAnvil ? champ.img : boardIcon(champ.id)}
           style={{ width: '90%', height: '90%', clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)', overflow: 'hidden', position: 'relative', zIndex: 1, cursor: onDragStart ? 'grab' : 'default' }}
         >
-          <img className="hex-capture-img" src={champ.isAnvil ? champ.img : boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
+      <img className="hex-capture-img" src={champ.isAnvil ? champ.img : boardIcon(champ.id)} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', pointerEvents: 'none' }} />
           <div style={{ position: 'absolute', top: itemSize > 15 ? 8 : 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: itemSize > 15 ? 1 : 2 }}>
             {(champ.items || []).map((it, idx) => (
               <img key={idx} src={getMetaTFTItemUrl(it)} style={{ width: itemSize, height: itemSize, border: `1px solid ${it?.type==='artifact' ? 'var(--red)' : (it?.type==='radiant' ? 'var(--gold2)' : 'rgba(255,255,255,0.5)')}`, borderRadius: itemSize > 15 ? 3 : 2, background: 'black' }} />
@@ -860,276 +855,6 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
   );
 };
 
-/* ============================================================
-   🧊 3D 盤面（Board3D）
-   ── three.js(グローバルUMD) を index.html で読み込み。未ロード/WebGL不可なら
-      2D にフォールバック表示。board 状態に追従して駒を同期。
-   ── 駒 = コスト色の台座 ＋ (自前.glbモデル or ポートレート立て看板) ＋ ★ ＋ アイテムpip。
-   ── CHAMP_MODELS3D[<champ.id>] に .glb パスを入れるとモデル表示に切替。
-   ============================================================ */
-const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
-const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
-const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
-
-function b3dRoundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
-
-function b3dStandeeTexture(unit, boardIcon){
-  const cv=document.createElement('canvas'); cv.width=256; cv.height=320; const g=cv.getContext('2d');
-  const cost=B3D_COST_CSS[unit.cost]||'#9aa7b5';
-  const draw=(imgEl)=>{ g.clearRect(0,0,256,320);
-    g.fillStyle='#0c1626'; b3dRoundRect(g,8,8,240,304,20); g.fill();
-    if(imgEl){ g.save(); b3dRoundRect(g,16,16,224,224,16); g.clip(); g.drawImage(imgEl,16,16,224,224); g.restore(); }
-    else { g.fillStyle=cost+'33'; b3dRoundRect(g,16,16,224,224,16); g.fill();
-      g.fillStyle=cost; g.font='900 96px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-      g.fillText((unit.jaName||unit.name||'?')[0],128,128); }
-    g.lineWidth=6; g.strokeStyle=cost; b3dRoundRect(g,8,8,240,304,20); g.stroke();
-    g.fillStyle='#e6edf7'; g.font='900 30px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-    g.fillText(unit.jaName||unit.name||'',128,276); tex.needsUpdate=true; };
-  const tex=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) tex.colorSpace=THREE.SRGBColorSpace; draw(null);
-  try{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=boardIcon(unit.img); }catch(e){}
-  return tex;
-}
-function b3dStarTexture(star){
-  const cv=document.createElement('canvas'); cv.width=192; cv.height=48; const g=cv.getContext('2d');
-  g.font='900 40px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-  g.fillStyle=star>=3?'#f4c04a':(star>=2?'#d7dbe2':'#c98b52');
-  g.strokeStyle='rgba(0,0,0,.8)'; g.lineWidth=5;
-  const s='★'.repeat(Math.max(1,Math.min(3,star||1))); g.strokeText(s,96,26); g.fillText(s,96,26);
-  const t=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return t;
-}
-function b3dMakeBase(unit){
-
-}
-function b3dMakeStandee(unit, boardIcon){
-  const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStandeeTexture(unit,boardIcon),transparent:true}));
-  spr.scale.set(R*1.35,R*1.35*1.25,1); spr.position.y=B3D.TOP+0.14+R*0.78; spr.userData.b3dSprite=true; return spr;
-}
-function b3dMakeStars(star){
-  const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStarTexture(star),transparent:true}));
-  spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*1.7; return spr;
-}
-function b3dMakeItemPips(items){
-  const list=(items||[]).slice(0,3); if(!list.length) return null; const grp=new THREE.Group(); const R=B3D.R;
-  list.forEach((it,i)=>{ const col=it?.type==='artifact'?0xdc3545:(it?.type==='radiant'?0xf0d074:(it?.type==='completed'?0xd4af37:0x9fb0c8));
-    const m=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.05), new THREE.MeshStandardMaterial({color:col,metalness:0.4,roughness:0.4,emissive:col,emissiveIntensity:0.3}));
-    m.position.set((i-(list.length-1)/2)*0.2, B3D.TOP+0.16, R*0.55); grp.add(m); });
-  return grp;
-}
-function b3dFitModel(obj){
-  // 1. 初期化
-  obj.position.set(0, 0, 0);
-  obj.rotation.set(0, 0, 0);
-  obj.scale.set(1, 1, 1);
-
-  // 2. スケーリング（現在のサイズ感を維持）
-  const box = new THREE.Box3().setFromObject(obj);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-
-  const height = size.y || 1;
-  const targetHeight = B3D.R * 2.3; 
-  const s = targetHeight / height;
-  obj.scale.setScalar(s);
-
-  // 3. 精密な位置合わせ（底面中央をマス目の中央に配置）
-  const scaledBox = new THREE.Box3().setFromObject(obj);
-
-  const centerX = (scaledBox.min.x + scaledBox.max.x) / 2;
-  const centerZ = (scaledBox.min.z + scaledBox.max.z) / 2;
-  const minY = scaledBox.min.y;
-
-  obj.position.x = -centerX;
-  obj.position.z = -centerZ;
-  obj.position.y = B3D.TOP - minY;
-
-  // 💡 モデルごとに向きや微調整を行いたい場合は、以下の値を変更できます
-  // obj.rotation.y = Math.PI; // 正面に向かせる（180度回転）
-  // obj.position.x += 0.0;    // 左右の微調整
-  // obj.position.z += 0.0;    // 前後の微調整
-  // obj.position.y += 0.0;    // 上下の微調整
-
-  // 4. マテリアル・影設定
-  obj.traverse(n => {
-    if(n.isMesh) {
-      n.castShadow = true;
-      if(n.material) {
-        if(n.material.metalness !== undefined) n.material.metalness = 0.0;
-        if(n.material.roughness !== undefined) n.material.roughness = 0.8;
-      }
-    }
-  });
-}
-function b3dDispose(g){
-  g.traverse(n=>{ if(n.geometry&&n.geometry.dispose) n.geometry.dispose();
-    if(n.material){ const ms=Array.isArray(n.material)?n.material:[n.material];
-      ms.forEach(mt=>{ if(mt.map&&mt.map.dispose) mt.map.dispose(); if(mt.dispose) mt.dispose(); }); } });
-}
-function b3dSync(S, board, boardIcon, champModels){
-  const { boardGroup, hexes, pieces } = S;
-  hexes.forEach(h=>{
-    const idx=h.userData.idx;
-    const u=(board[idx] && !board[idx].isAnvil) ? board[idx] : null;
-    const sig=u ? `${u.uid||u.id}|${u.star}|${(u.items||[]).length}|${champModels&&champModels[u.id]||''}` : null;
-    const cur=pieces.get(idx);
-    if(cur && cur.userData.sig===sig) return;
-    if(cur){ 
-       boardGroup.remove(cur); 
-       b3dDispose(cur); 
-       pieces.delete(idx); 
-       if (S.mixers.has(idx)) {
-          S.mixers.get(idx).stopAllAction();
-          S.mixers.delete(idx); // 🌟 ミキサーを削除
-       }
-    }
-    if(!u) return;
-    const g=new THREE.Group(); g.position.set(h.userData.x,0,h.userData.z); g.userData.sig=sig;
-    g.add(b3dMakeBase(u));
-    const modelUrl=champModels && champModels[u.id];
-    if(modelUrl && THREE.GLTFLoader){
-      g.add(b3dMakeStandee(u,boardIcon));   // ロード完了まで立て看板
-      try{ 
-         new THREE.GLTFLoader().load(modelUrl,(gltf)=>{ 
-            const m=gltf.scene; 
-            b3dFitModel(m);
-            //  アニメーションが存在する場合は再生する
-            if (gltf.animations && gltf.animations.length > 0) {
-               const mixer = new THREE.AnimationMixer(m);
-               // 通常、待機アニメーション（Idle）は最初の要素（index 0）に入っていることが多いです
-               const clip = gltf.animations.find(c => c.name.toLowerCase().includes('idle1'))
-                  || gltf.animations.find(c => c.name.toLowerCase().includes('idle'))
-                  || gltf.animations[0];
-               const action = mixer.clipAction(clip);
-               action.play();
-        
-               // ミキサーを保持（駒が削除されたときにクリーンアップできるようにする）
-               S.mixers.set(idx, mixer);
-            }
-            g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c)); 
-            g.add(m);
-      }, undefined, ()=>{}); }catch(e){}
-    } else {
-      g.add(b3dMakeStandee(u,boardIcon));
-    }
-    g.add(b3dMakeStars(u.star));
-    const pips=b3dMakeItemPips(u.items); if(pips) g.add(pips);
-    boardGroup.add(g); pieces.set(idx,g);
-  });
-}
-
-function Board3D({ board, boardIcon, champModels, onHexClick, selectedIdx }) {
-  const mountRef = useRef(null);
-  const S = useRef(null);
-  const cbRef = useRef(onHexClick);
-  const [failed, setFailed] = useState(false);
-  useEffect(()=>{ cbRef.current = onHexClick; }, [onHexClick]);
-
-  useEffect(() => {
-    if (typeof THREE === 'undefined' || !THREE.WebGLRenderer) { setFailed(true); return; }
-    const mount = mountRef.current; if (!mount) return;
-    let s;
-    try {
-      const W = mount.clientWidth || 640, H = mount.clientHeight || 460;
-      const scene = new THREE.Scene(); scene.background = null;
-      const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 200); camera.position.set(0, 10.5, 12.5);
-      const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-      renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
-      renderer.shadowMap.enabled = true; if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
-      mount.appendChild(renderer.domElement);
-
-      const controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true; controls.dampingFactor = 0.08;
-      controls.minDistance = 6; controls.maxDistance = 26; controls.maxPolarAngle = Math.PI*0.49;
-      controls.target.set(0,0,0);
-
-      scene.add(new THREE.HemisphereLight(0x9fc4ff, 0x0a1120, 0.7));
-      const keyL = new THREE.DirectionalLight(0xffffff, 1.8); keyL.position.set(6,14,7);
-      keyL.castShadow = true; keyL.shadow.mapSize.set(1024,1024);
-      keyL.shadow.camera.left=-12; keyL.shadow.camera.right=12; keyL.shadow.camera.top=12; keyL.shadow.camera.bottom=-12;
-      scene.add(keyL);
-      const rimL = new THREE.DirectionalLight(0x1a9fff, 0.5); rimL.position.set(-8,6,-8); scene.add(rimL);
-
-
-      const boardGroup = new THREE.Group(); scene.add(boardGroup);
-      const hexGeo = new THREE.CylinderGeometry(B3D.R,B3D.R,B3D.TH,6);
-      const hexMat = new THREE.MeshStandardMaterial({color:0x16233c,metalness:0.35,roughness:0.6,emissive:0x0a1424,emissiveIntensity:0.6});
-      const hexHover = new THREE.MeshStandardMaterial({color:0x274063,metalness:0.4,roughness:0.5,emissive:0x1a9fff,emissiveIntensity:0.5});
-      const hexes=[];
-      for(let r=0;r<4;r++) for(let c=0;c<7;c++){
-        const x=c*B3D.HSP+(r%2?B3D.HSP/2:0), z=r*B3D.VSP;
-        const m=new THREE.Mesh(hexGeo, hexMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,0,z);
-        m.receiveShadow=true; m.userData={idx:r*7+c,x,z}; boardGroup.add(m); hexes.push(m);
-      }
-      const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
-      boardGroup.position.set(-ctr.x,0,-ctr.z);
-
-      // 選択中マスのハイライト枠
-      const selMarker=new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.CylinderGeometry(B3D.R*1.04,B3D.R*1.04,B3D.TH*1.35,6)),
-        new THREE.LineBasicMaterial({color:0xf0d074}));
-      selMarker.rotation.y=Math.PI/6; selMarker.visible=false; boardGroup.add(selMarker);
-
-      const ray=new THREE.Raycaster(), ptr=new THREE.Vector2(); let hovered=null; let down=null;
-      const onDown=(e)=>{ down=[e.clientX,e.clientY]; };
-      const onUp=(e)=>{ if(!down) return; const moved=Math.hypot(e.clientX-down[0],e.clientY-down[1]); down=null; if(moved>6) return;
-        const b=renderer.domElement.getBoundingClientRect(); ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1;
-        ray.setFromCamera(ptr,camera); const hit=ray.intersectObjects(hexes,false)[0];
-        if(hit && cbRef.current) cbRef.current(hit.object.userData.idx); };
-      const onMove=(e)=>{ const b=renderer.domElement.getBoundingClientRect(); ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1;
-        ray.setFromCamera(ptr,camera); const hit=ray.intersectObjects(hexes,false)[0];
-        if(hovered && (!hit || hit.object!==hovered)){ hovered.material=hexMat.clone(); hovered=null; }
-        if(hit){ hit.object.material=hexHover; hovered=hit.object; } };
-      renderer.domElement.addEventListener('pointerdown', onDown);
-      renderer.domElement.addEventListener('pointerup', onUp);
-      renderer.domElement.addEventListener('pointermove', onMove);
-
-      let raf; const loop=()=>{ 
-         raf=requestAnimationFrame(loop); 
-         if (!S.current) return;
-         const delta = S.current.clock ? S.current.clock.getDelta() : 0.016;
-         // 🌟 追加: すべてのモデルのアニメーションを進める
-         if (S.current.mixers) {
-            S.current.mixers.forEach(mixer => mixer.update(delta));
-         }
-         controls.update(); 
-         renderer.render(scene,camera);
-      }; loop();
-       
-      const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
-        camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); }); ro.observe(mount);
-
-      s={ scene, camera, renderer, controls, boardGroup, hexes, selMarker, 
-         pieces:new Map(), 
-         mixers: new Map(), // 駒ごとのAnimationMixerを保持
-         clock: new THREE.Clock(), // 経過時間計算用
-         raf, ro, onDown, onUp, onMove };
-      S.current=s;
-    } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
-
-    return ()=>{ 
-      const x=S.current; if(!x) return;
-      cancelAnimationFrame(x.raf);
-      cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
-      const el=x.renderer.domElement; el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
-      x.pieces.forEach(g=>b3dDispose(g)); try{ x.renderer.dispose(); }catch(e){}
-      if(el.parentNode) el.parentNode.removeChild(el); S.current=null; };
-  }, []);
-
-  useEffect(()=>{ if(S.current) b3dSync(S.current, board, boardIcon, champModels); }, [board, champModels]);
-
-  useEffect(()=>{ const s=S.current; if(!s||!s.selMarker) return;
-    const hex = (selectedIdx==null) ? null : s.hexes.find(h=>h.userData.idx===selectedIdx);
-    if(!hex){ s.selMarker.visible=false; return; }
-    s.selMarker.position.set(hex.userData.x, hex.position.y, hex.userData.z); s.selMarker.visible=true;
-  }, [selectedIdx]);
-
-  if (failed) return (
-    <div style={{ padding:20, textAlign:'center', color:'var(--textdim)', fontSize:13, maxWidth:360 }}>
-      3D盤面を初期化できませんでした。<br/>three.js が読み込めていないか、WebGL 非対応の可能性があります。2Dに戻して続行できます。
-    </div>
-  );
-  return <div ref={mountRef} style={{ width:'100%', height:'60vh', maxWidth:820, minHeight:340, borderRadius:12, overflow:'hidden' }} />;
-}
 
 /* ── 🎬 振り返り（感想戦）ビューア ── */
 function ReplayViewer({ history, seed, onClose }) {
@@ -1175,7 +900,7 @@ function ReplayViewer({ history, seed, onClose }) {
       {champ && (champ.isAnvil
         ? <img src={champ.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         : <React.Fragment>
-            <img src={boardIcon(champ.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img src={boardIcon(champ.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
               {(champ.items || []).map((it, k) => (<img key={k} src={getMetaTFTItemUrl(it)} style={{ width: 7, height: 7, border: '1px solid white', borderRadius: 1 }} />))}
             </div>
@@ -1620,7 +1345,7 @@ function SeedStatsDrawer({ seed, open, onClose }) {
                                     const u = (r.data.board || []).find(x => x.pos === row * 7 + col);
                                     const c = u ? champById(u.id) : null;
                                     const champ = c ? { ...c, star: u.star, items: (u.itemNames || []).map(hydrateItemByName) } : null;
-                                    return <HexCell key={col} champ={champ} size={48} />;
+                                    return <HexCell key={col} champ={champ} size={48} itemSize={12} />;
                                   })}
                                 </div>
                               ))}
@@ -1632,9 +1357,9 @@ function SeedStatsDrawer({ seed, open, onClose }) {
                                 <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
                                   {r.data.bench.map((u, k) => {
                                     const c = champById(u.id);
-                                    return (
-                                      <div key={k} style={{ width: 30, height: 30, borderRadius: 5, overflow: 'hidden', position: 'relative', border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, background: '#0b1622', flexShrink: 0 }} title={u.jaName}>
-                                        {c && <img src={boardIcon(c.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                    return c && (
+                                      <div key={k} style={{ width: 30, height: 30, borderRadius: 5, overflow: 'hidden', position: 'relative', border: `1px solid ${COST_COLORS[c.cost]}`, background: '#0b1622', flexShrink: 0 }} title={u.jaName}>
+                                        <img src={boardIcon(c.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                         <div style={{ position: 'absolute', bottom: -1, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.5)', transformOrigin: 'bottom' }}><Stars star={u.star} /></div>
                                       </div>
                                     );
@@ -1681,9 +1406,8 @@ function SeedStatsDrawer({ seed, open, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {agg.board.length === 0 ? <span style={{ fontSize: 11, color: C.dim }}>データなし</span> :
                 agg.board.map(u => {
-                  const c = champById(u.id);
-                  return barRow('b_' + u.id + '_' + u.star,
-                    <img src={c ? boardIcon(c.img) : ''} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
+                  const c = champById(u.id); return c && barRow('b_' + u.id + '_' + u.star,
+                    <img src={boardIcon(c.id)} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${COST_COLORS[c.cost]}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
                     <span>{u.jaName} <span style={{ color: STAR_COLORS[u.star] || '#fff' }}>{starsTxt(u.star)}</span></span>,
                     u.count);
                 })}
@@ -1693,9 +1417,8 @@ function SeedStatsDrawer({ seed, open, onClose }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {agg.bench.length === 0 ? <span style={{ fontSize: 11, color: C.dim }}>データなし</span> :
                 agg.bench.map(u => {
-                  const c = champById(u.id);
-                  return barRow('be_' + u.id + '_' + u.star,
-                    <img src={c ? boardIcon(c.img) : ''} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${c ? COST_COLORS[c.cost] : 'var(--border)'}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
+                  const c = champById(u.id); return c && barRow('be_' + u.id + '_' + u.star,
+                    <img src={boardIcon(c.id)} style={{ width: 24, height: 24, borderRadius: 5, border: `1px solid ${COST_COLORS[c.cost]}`, objectFit: 'cover', flexShrink: 0, zIndex: 1, background: '#1e293b' }} />,
                     <span>{u.jaName} <span style={{ color: STAR_COLORS[u.star] || '#fff' }}>{starsTxt(u.star)}</span></span>,
                     u.count);
                 })}
@@ -1724,13 +1447,13 @@ const ChampionTooltip = ({ data }) => {
   return (
     <div style={{ position:'fixed', top:isBottom?'auto':Math.max(10,y-20), bottom:isBottom?Math.max(10,window.innerHeight-y-70):'auto', left:isRight?'auto':x+80, right:isRight?window.innerWidth-x+10:'auto', zIndex:5000, width:260, background:'var(--bg1)', color:'var(--text-main)', border:`3px solid ${COST_COLORS[champ.cost]}`, borderRadius:4, overflow:'hidden', fontFamily:'Noto Sans JP', fontSize:12, boxShadow:'0 8px 24px rgba(0,0,0,0.3)', pointerEvents:'none', animation:'fadeIn 0.2s ease' }}>
       <div style={{ position:'relative', height:140 }}>
-        <img src={champIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} />
+        <img src={champIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} />
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to right, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.2) 100%)' }} />
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,1) 0%, transparent 80%)' }} />
         <div style={{ position:'absolute', top:10, left:10 }}><div style={{ color:'var(--text-inv)', fontSize:18, fontWeight:900, textShadow:'1px 1px 2px #000' }}>{champ.jaName}</div></div>
 <div style={{ position:'absolute', bottom:10, left:10, display:'flex', flexDirection:'column', gap:4 }}>
     {(() => {
-      let displayTraits = [...champ.traits];
+      let displayTraits = [...champ.traits];<img src={champIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', objectPosition:'top' }} onError={(e) => e.target.style.display='none'} />
       if (champ.traits.includes('missfortuneuniquetrait')) displayTraits.push(champ.selectedMode || 'unselected');
       return displayTraits.map(t => (
         <div key={t} style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -1768,7 +1491,7 @@ const TraitTooltip = ({ data }) => {
       <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10 }}>
         <div style={{ fontSize:10, color:'var(--textdim)', marginBottom:6 }}>対象チャンピオン:</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-          {members.map(m => (<div key={m.id}><img src={boardIcon(m.img)} alt={m.name} style={{ width:30, height:30, borderRadius:4, border:`1px solid ${COST_COLORS[m.cost]}` }} /></div>))}
+          {members.map(m => (<div key={m.id}><img src={boardIcon(m.id)} alt={m.name} style={{ width:30, height:30, borderRadius:4, border:`1px solid ${COST_COLORS[m.cost]}` }} /></div>))}
         </div>
       </div>
     </div>
@@ -1817,7 +1540,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
       onDragStart={() => setDragSrc({ type: 'drawer_champ', champ: c })}
       onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_champ', champ: c })}
     >
-      <img src={boardIcon(c.img)} crossOrigin="anonymous" alt={c.jaName} />
+      <img src={boardIcon(c.id)} crossOrigin="anonymous" alt={c.jaName} onError={(e) => e.target.style.display='none'} />
     </div>
   );
 
@@ -2131,7 +1854,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
     let borderColor = "var(--border)";
 
     if (isChamp) {
-      imgUrl = boardIcon(item.img);
+      imgUrl = boardIcon(item.id);
       title = item.jaName;
       borderColor = COST_COLORS[item.cost] || 'var(--border)';
     } else if (isAug) {
@@ -2145,7 +1868,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
     return (
       <div
         key={item.id}
-        draggable
+        draggable={true}
         onDragStart={(e) => onDragStart(e, item.id)}
         onTouchStart={(e) => onTouchStart(e, item.id)}
         title={title}
@@ -2161,7 +1884,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
           flexShrink: 0,
           touchAction: 'none'
         }}
-      >
+      ><img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
         <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
       </div>
     );
@@ -2693,7 +2416,7 @@ function DropPickerScreen({ ov, setOvKey, onBack }) {
                           const selChamp = selChampId ? champsByCost(cost).find(c => c.id === selChampId) : null;
                           return (
                             <div key={slot} style={{ display: 'flex', gap: 7, alignItems: 'center', paddingLeft: 14 }}>
-                              <img src={selChamp ? boardIcon(selChamp.img) : DROP_ICONS['c' + cost]}
+                              <img src={selChamp ? boardIcon(selChamp.id) : DROP_ICONS['c' + cost]}
                                 style={{ width: 30, height: 30, borderRadius: 6, border: `2px solid ${selChamp ? COST_COLORS[cost] : 'var(--border)'}`, background: '#1e293b', objectFit: 'cover', flexShrink: 0 }} />
                               <select style={{ ...selStyle, flex: 1, minWidth: 0, padding: '7px 9px', fontSize: 12 }} value={selChampId || ''} onChange={e => setOrbChamp(i, slot, e.target.value || null)}>
                                 <option value="">ランダム（{cost}コス）</option>
@@ -2777,10 +2500,10 @@ function ShopPickerScreen({ ov, setOvKey, onBack }) {
                     const selId = row[i];
                     const selChamp = selId ? allChamps.find(c => c.id === selId) : null;
                     return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(11,22,34,0.7)', border: `1px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, borderRadius: 9, padding: '7px 8px' }}>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(11,22,34,0.7)', border: `1px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, borderRadius: 9, padding: '7px 8px' }}>
                         <div style={{ width: 34, height: 34, borderRadius: 6, overflow: 'hidden', flexShrink: 0, background: '#1e293b', border: `2px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {selChamp
-                            ? <img src={boardIcon(selChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img src={boardIcon(selChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>{i + 1}</span>}
                         </div>
                         <select style={{ ...selStyle, flex: 1, minWidth: 0 }} value={selId || ''} onChange={e => setSlot(r, i, e.target.value || null)}>
@@ -2878,7 +2601,7 @@ function EncChampPickerScreen({ ov, setOvKey, onBack }) {
                     <div style={{ width: 40, height: 40, borderRadius: 7, overflow: 'hidden', flexShrink: 0, background: '#1e293b', border: `2px solid ${selChamp ? COST_COLORS[selChamp.cost] : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                       {selChamp
                         ? <React.Fragment>
-                            <img src={boardIcon(selChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={boardIcon(selChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             {spec.star > 1 && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={spec.star} /></div>}
                           </React.Fragment>
                         : <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>{i + 1}</span>}
@@ -3107,7 +2830,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
                     border:`2px solid ${active?'var(--gold2)':'var(--border)'}`, background: active?'rgba(212,175,55,0.12)':'rgba(15,23,42,0.5)', boxShadow: active?'0 0 10px var(--gold)':'none', transition:'all 0.12s' }}>
                   <div style={{ position:'relative', width:40, height:40, borderRadius:8, flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, background: (e.color||'#0b1622')+'33', border:`1px solid ${e.color||'var(--border)'}` }}>
                     <span>{e.icon}</span>
-                    {imgKey && <img src={boardIcon(imgKey)} alt={e.champ} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} onError={(ev)=>{ev.target.style.display='none';}} />}
+                        {imgKey && <img src={boardIcon(imgKey)} alt={e.champ} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} onError={(ev) => { ev.target.style.display = 'none'; }} />}
                   </div>
                   <div style={{ minWidth:0 }}>
                     <div style={{ fontSize:12, fontWeight:900, color: active?'var(--gold2)':'#fff', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{e.champ}</div>
@@ -3466,7 +3189,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         return (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: `${enc.color}22`, border: `2px solid ${enc.color}`, borderRadius: 9, padding: '3px 7px' }}>
                             <div style={{ width: 24, height: 24, borderRadius: '50%', border: `2px solid ${enc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', background: `${enc.color}22`, flexShrink: 0 }}>
-                              {encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 13 }}>{enc.icon}</span>}
+                              {encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 13 }}>{enc.icon}</span>}
                             </div>
                             <div>
                               <div style={{ fontSize: 7.5, color: 'var(--textdim)' }}>遭遇</div>
@@ -3509,7 +3232,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                           {d.augments.map((a, ai) => (
                             <div key={ai} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.3)', padding: '10px 8px', borderRadius: 8, border: `1px solid ${(TIER_COLORS[a.tier] || 'var(--border)')}44` }}>
-                              {a.history ? (
+                        {a.history && a.history.finalChoices ? (
                                 <div style={{ display: 'flex', gap: 6, justifyContent: 'space-between' }}>
                                   {[0, 1, 2].map(slotIdx => {
                                     const initAug = a.history.initialChoices?.[slotIdx];
@@ -3517,7 +3240,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                                     const isRerolled = a.history.rerolledSlots?.[slotIdx];
                                     const isPicked = finalAug?.id === a.id;
                                     if (!finalAug) return null;
-                                    return (
+          return finalAug && (
                                       <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
                                         {isRerolled && initAug && (
                                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
@@ -3575,7 +3298,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                               const u = (d.board || []).find(x => x.pos === row * 7 + col);
                               const c = u ? champById(u.id) : null;
                               const champ = c ? { ...c, star: u.star, items: (u.itemNames || []).map(hydrateItemByName) } : null;
-                              return <HexCell key={col} champ={champ} size={58} itemSize={16} />;
+                            return <HexCell key={col} champ={champ} size={58} itemSize={16} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onError={(e) => e.target.style.display='none'} />;
                             })}
                           </div>
                         ))}
@@ -3589,8 +3312,8 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                           {d.bench.map((u, k) => {
                             const c = champById(u.id);
                             return (
-                              <div key={k} style={{ width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)', border: `1px solid ${c ? COST_COLORS[c.cost] : 'rgba(30,45,74,.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} title={u.jaName}>
-                                {c && <img src={boardIcon(c.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                              <div key={k} style={{ width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)', border: `1px solid ${c ? COST_COLORS[c.cost] : 'rgba(30,45,74,.4)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }} title={c ? c.jaName : ''}>
+                                {c && <img src={boardIcon(c.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                                 <div style={{ position: 'absolute', bottom: -1, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.5)', transformOrigin: 'bottom' }}><Stars star={u.star} /></div>
                               </div>
                             );
@@ -4331,18 +4054,33 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
-  const [sel3D, setSel3D] = useState(null);     // 🧊 3D盤面で選択中の盤面index
+  const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
 
-  // 🧊 3D盤面：クリックで持ち上げ→別マスをクリックで移動（占有マスは入替）。2Dと同じ hDrop を再利用。
-  const handleHex3DClick = (idx) => {
-    if (sel3D == null) {
-      if (board[idx]) { setDragSrc({ type:'board', idx }); setSel3D(idx); }
+  // 🧊 3D操作は 2D と同じ hDrop / dragSrc を再利用する（ロジック二重化を避けるため）
+  const drop3D = (kind, idx) => {
+    const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+    if (hDropRef.current) hDropRef.current(kind, idx)(syntheticE);
+    setSel3D(null);
+  };
+  // ドラッグ開始（駒を掴んだ瞬間）
+  const handle3DPickup = useCallback((kind, idx) => {
+    const src = kind === 'bench' ? bench : board;
+    if (!src[idx]) return;
+    setDragSrc({ type: kind, idx });
+    setSel3D({ kind, idx });
+  }, [board, bench]);
+  // ドラッグ終了（ドロップ先が確定）
+  const handle3DDrop = (kind, idx) => drop3D(kind, idx);
+  const handle3DCancel = () => { setSel3D(null); setDragSrc(null); };
+  // タップ移動（掴む→置く の2タップ）。ドラッグしづらい環境向けに併存させる
+  const handle3DSlotClick = (kind, idx) => {
+    if (!sel3D) {
+      const src = kind === 'bench' ? bench : board;
+      if (src[idx]) { setDragSrc({ type: kind, idx }); setSel3D({ kind, idx }); }
       return;
     }
-    if (idx === sel3D) { setSel3D(null); setDragSrc(null); return; }
-    const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
-    if (hDropRef.current) hDropRef.current('board', idx)(syntheticE);
-    setSel3D(null);
+    if (sel3D.kind === kind && sel3D.idx === idx) { handle3DCancel(); return; }
+    drop3D(kind, idx);
   };
   const [mfTargetUid, setMfTargetUid] = useState(null);
   const [anvilOptions, setAnvilOptions] = useState(null);
@@ -4959,7 +4697,7 @@ useEffect(() => {
       const pool = CHAMPS.filter(c => c.cost === cost);
       const droppedUnits = [];
       for (let i = 0; i < count; i++) {
-        const natural = pool[Math.floor(rngDrop() * pool.length)];   // 指定時も必ず引く
+          const natural = pool[Math.floor(rngDrop() * pool.length)];   // 指定時も必ず引く<img key={idx} src={boardIcon(u.id)} style={iconStyle(cost)} title={u.jaName} />
         const forced = (champIds && champIds[i]) ? pool.find(c => c.id === champIds[i]) : null;
         const c = forced || natural;
         const unit = { ...c, star: 1, uid: rngMisc(), items: [] };
@@ -4970,7 +4708,7 @@ useEffect(() => {
         <div style={rowStyle}>
           <div style={{ display:'flex', gap:2 }}>
             {droppedUnits.map((u, idx) => (
-              <img key={idx} src={boardIcon(u.img)} style={iconStyle(cost)} title={u.jaName} />
+              <img key={idx} src={boardIcon(u.id)} style={iconStyle(cost)} title={u.jaName} />
             ))}
           </div>
           <span>{droppedUnits.length > 1 ? `${droppedUnits[0].jaName}等` : droppedUnits[0].jaName}</span>
@@ -5036,7 +4774,7 @@ useEffect(() => {
         const c = forced || natural;
         setInventory(p => [...p, CONSUMABLES.CHAMP_DUPE]);
         addChampToBenchDirect({ ...c, star: 1, uid: rngMisc(), items: [] });
-        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Champion Duplicator')} style={iconStyle(1)} /><span>＋</span><img src={boardIcon(c.img)} style={iconStyle(3)} /><span>{c.jaName}</span></div>;
+        return <div style={rowStyle}><img src={getMetaTFTItemUrl('Champion Duplicator')} style={iconStyle(1)} /><span>＋</span><img src={boardIcon(c.id)} style={iconStyle(3)} /><span>{c.jaName}</span></div>;
       }
     }
   };
@@ -5873,7 +5611,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         if (!encChamp) {
                           encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                         }
-                        return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
+                      return encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display='none'} /> : <span style={{ fontSize: 14 }}>{encounter.icon}</span>;
                       })()}
                     </div>
                     <div>
@@ -5925,7 +5663,7 @@ const handleAugmentPick = (aug, historyContext) => {
                             const isPicked = finalAug?.id === a.id;
 
                             if (!finalAug) return null;
-
+                      
                             return (
                               <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
                                 
@@ -6028,7 +5766,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
                       marginRight: 4, opacity: 0.8
                     }}>
-                      <img src={boardIcon(auraTrainingUnit.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={boardIcon(auraTrainingUnit.id)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                         {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
                       </div>
@@ -6048,7 +5786,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           <img src={champ.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={champ.jaName} />
                         ) : (
                           <React.Fragment>
-                            <img src={boardIcon(champ.img)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={boardIcon(champ.id)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
                               {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
                             </div>
@@ -6103,13 +5841,10 @@ const handleAugmentPick = (aug, historyContext) => {
 
       <ChampionTooltip data={tooltipData} />
 
-
-
-
       <TraitTooltip data={traitTooltipData} />
       {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || (gameOverrides && gameOverrides.augmentTier) || null} rerollBonus={encounter?.augmentRerollBonus || 0} augmentPicks={gameOverrides && gameOverrides.augmentPicks} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, color:'white', textAlign:'center', maxWidth:'90%', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>{dropMsg}</div>}
-      {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.img)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
+      {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.id)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
 
       {isTransitioning && (
         <div style={{
@@ -6182,7 +5917,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
                   }}>
                     {encChamp ? (
-                      <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <span>{encounter.icon}</span>
                     )}
@@ -6283,7 +6018,7 @@ const handleAugmentPick = (aug, historyContext) => {
                     if (!encChamp) {
                       encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
                     }
-                    return encChamp ? <img src={boardIcon(encChamp.img)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: hImg }}>{encounter.icon}</span>;
+                    return encChamp ? <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => e.target.style.display='none'} /> : <span style={{ fontSize: hImg }}>{encounter.icon}</span>;
                   })()}
                 </div>
                 <div>
@@ -6410,7 +6145,9 @@ const handleAugmentPick = (aug, historyContext) => {
             {use3D ? '3D' : '2D'}
           </button>
           {use3D ? (
-            <Board3D board={board} boardIcon={boardIcon} champModels={CHAMP_MODELS3D} onHexClick={handleHex3DClick} selectedIdx={sel3D} />
+            <Board3D board={board} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
+              onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
+              onCancel={handle3DCancel} selected={sel3D} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
@@ -6508,8 +6245,8 @@ const handleAugmentPick = (aug, historyContext) => {
 
       </div>
 
-      {/* ベンチ */}
-      <div style={{ background:'var(--bg-panel)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '8px', display:'flex', justifyContent:'center', gap: 4, flexShrink:0 }}>
+      {/* ベンチ ── 3Dモードでは3Dシーン側に並ぶのでこちらは隠す */}
+      <div style={{ display: use3D ? 'none' : 'flex', background:'var(--bg-panel)', borderTop:'1px solid var(--border)', padding: isLandscapeMobile ? '4px' : '8px', justifyContent:'center', gap: 4, flexShrink:0 }}>
         
         {/* 🌟 メイン画面：オーラ育成中 の専用待機枠（左側） */}
         {auraTrainingUnit && (
@@ -6531,7 +6268,7 @@ const handleAugmentPick = (aug, historyContext) => {
             onMouseEnter={(e) => handleMouseEnter(e, auraTrainingUnit)}
             onMouseLeave={handleMouseLeave}
           >
-            <img src={boardIcon(auraTrainingUnit.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+            <img src={boardIcon(auraTrainingUnit.id)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
             <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
               {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius:2, background:'black' }} />))}
             </div>
@@ -6578,7 +6315,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   </div>
                 ) : (
                   <>
-                    <img src={boardIcon(champ.img)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
+                    <img src={boardIcon(champ.id)} style={{ width:'100%', height:'100%', objectFit:'cover', borderRadius:8, pointerEvents:'none' }} />
                     <div style={{ position:'absolute', top:2, left:2, display:'flex', flexDirection:'column', gap:1 }}>
                       {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} style={{ width:12, height:12, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius:2, background:'black' }} />))}
                     </div>
@@ -6743,7 +6480,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       onClick={() => {
                         const unit = shop[i]; if (!unit || gold < unit.cost) return;
                         const slot = bench.findIndex(x => !x); if (slot === -1) return;
-                        let nb = [...bench], ns = [...shop];
+                        const nb = [...bench], ns = [...shop];
                         nb[slot] = { ...unit, star:1, uid:rngMisc(), items:[] }; ns[i] = null;
                         setGold(g => g - unit.cost); setShop(ns);
                         setBench(nb);
@@ -6751,7 +6488,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       style={{ ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }), borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
-                          <img src={champIcon(champ.img)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
+                          <img src={champIcon(champ.id)} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(15,23,42,0.95) 0%, transparent 45%, rgba(15,23,42,0.7) 100%)' }}></div>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
 <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>

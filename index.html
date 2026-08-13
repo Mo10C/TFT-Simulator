@@ -44,6 +44,9 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
+<!-- 🧊 3D盤面モジュール（JSX を含むため Babel で変換。app.js より前に読み込む） -->
+<script type="text/babel" data-presets="jsx-classic" src="board3d.js"></script>
+
 <!-- アプリ本体（JSX を含むため Babel で変換） -->
 <script type="text/babel" data-presets="jsx-classic" src="app.js"></script>
 </body>
