@@ -67,7 +67,7 @@ const CHAMPS=[
   {id:"alune", name:"Alune", jaName:"アルーン", cost:5, traits:["Attuned","Lunar","Spellweaver"], set:"set18"},
   {id:"ashe", name:"Ashe", jaName:"アッシュ", cost:5, traits:["Blossom","Hunter"], set:"set18"},
   {id:"draven", name:"Draven", jaName:"ドレイヴン", cost:5, traits:["Bounty Seeker"], set:"set18"},
-  {id:"elderdragon", name:"Elder Dragon", jaName:"エルダードラゴン", cost:5, traits:["Apex Predator","Riftbeast"], set:"set18"},
+  {id:"elderdragon", name:"elderdragon", jaName:"エルダードラゴン", cost:5, traits:["Apex Predator","Riftbeast"], set:"set18"},
   {id:"gnar", name:"Gnar", jaName:"ナー", cost:5, traits:["Elderwood","Sprykin","Brawler"], set:"set18"},
   {id:"ivern", name:"Ivern", jaName:"アイバーン", cost:5, traits:["Greenfather"], set:"set18"},
   {id:"kennen", name:"Kennen", jaName:"ケネン", cost:5, traits:["Inferno","Executioner"], set:"set18"},
