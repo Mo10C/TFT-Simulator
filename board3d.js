@@ -306,6 +306,28 @@ function b3dFitCamera(S){
   S.defaultCam = { pos: camera.position.clone(), target: target.clone() };
 }
 
+/* 💾 保存済みの視点（管理者が決めた既定アングル）を適用する。
+   savedView = { pos:[x,y,z], target:[x,y,z] } */
+function b3dApplySavedView(S, savedView){
+  if(!S || !savedView || !Array.isArray(savedView.pos) || !Array.isArray(savedView.target)) return false;
+  const { camera, controls } = S;
+  camera.position.set(savedView.pos[0], savedView.pos[1], savedView.pos[2]);
+  controls.target.set(savedView.target[0], savedView.target[1], savedView.target[2]);
+  camera.lookAt(controls.target);
+  camera.updateMatrixWorld(true); camera.updateProjectionMatrix();
+  controls.update();
+  S.defaultCam = { pos: camera.position.clone(), target: controls.target.clone() };
+  return true;
+}
+
+/* 現在の視点を保存できる形（小数2桁）で取り出す */
+function b3dReadView(S){
+  if(!S || !S.camera || !S.controls) return null;
+  const r = (v)=>Math.round(v*100)/100;
+  return { pos:[r(S.camera.position.x), r(S.camera.position.y), r(S.camera.position.z)],
+           target:[r(S.controls.target.x), r(S.controls.target.y), r(S.controls.target.z)] };
+}
+
 function b3dDispose(g){
   g.traverse(n=>{ if(n.geometry&&n.geometry.dispose) n.geometry.dispose();
     if(n.material){ const ms=Array.isArray(n.material)?n.material:[n.material];
@@ -406,14 +428,27 @@ function b3dSync(S, board, bench, boardIcon, champModels){
   });
 }
 
-function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView }) {
+function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi }) {
   const mountRef = useRef3D(null);
   const S = useRef3D(null);
   const cbRef = useRef3D(onSlotClick);
   const pickRef = useRef3D(onPickup);
   const dropRef = useRef3D(onDropSlot);
   const cancelRef = useRef3D(onCancel);
+  const savedViewRef = useRef3D(savedView);
   const [failed, setFailed] = useState3D(false);
+  useEffect3D(()=>{ savedViewRef.current = savedView; }, [savedView]);
+
+  // 親（app.js）から視点を読み書きできるようにする
+  useEffect3D(()=>{
+    if(!viewApi) return;
+    viewApi.current = {
+      getView: () => b3dReadView(S.current),
+      applyView: (v) => b3dApplySavedView(S.current, v),
+      fitToScreen: () => { if(S.current) b3dFitCamera(S.current); },
+    };
+    return ()=>{ if(viewApi) viewApi.current = null; };
+  }, [viewApi]);
   useEffect3D(()=>{ cbRef.current=onSlotClick; pickRef.current=onPickup; dropRef.current=onDropSlot; cancelRef.current=onCancel; },
     [onSlotClick,onPickup,onDropSlot,onCancel]);
 
@@ -572,7 +607,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
         // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
-        if(S.current && !S.current.freeView) b3dFitCamera(S.current); }); ro.observe(mount);
+        if(S.current && !S.current.freeView && !savedViewRef.current) b3dFitCamera(S.current); }); ro.observe(mount);
 
       s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, 
          pieces:new Map(), 
@@ -581,7 +616,8 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
          clock: new THREE.Clock(), // 経過時間計算用
          raf, ro, onDown, onUp, onMove };
       S.current=s;
-      b3dFitCamera(s);          // 画面いっぱいに収まる位置へ
+      b3dFitCamera(s);          // まず画面いっぱいに収まる位置を算出
+      if(savedViewRef.current) b3dApplySavedView(s, savedViewRef.current);  // 保存済みの視点があれば上書き
       controls.enabled=false;   // 既定は固定視点（駒操作でカメラが動かないように）
     } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
 
@@ -596,6 +632,13 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
 
   useEffect3D(()=>{ if(S.current) b3dSync(S.current, board, bench, boardIcon, champModels); }, [board, bench, champModels]);
 
+  // 保存済み視点が更新されたら既定として取り込む
+  useEffect3D(()=>{ const s=S.current; if(!s) return;
+    if(savedView) { if(!freeView) b3dApplySavedView(s, savedView); else s.defaultCam={
+        pos:new THREE.Vector3(savedView.pos[0],savedView.pos[1],savedView.pos[2]),
+        target:new THREE.Vector3(savedView.target[0],savedView.target[1],savedView.target[2]) }; }
+  }, [savedView]);
+
   // 🎥 view: ON=自由に回せる / OFF=既定の視点に戻して固定
   useEffect3D(()=>{ const s=S.current; if(!s||!s.controls) return;
     s.freeView=!!freeView;
@@ -603,6 +646,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
     if(!freeView){
       if(s.defaultCam){ s.camera.position.copy(s.defaultCam.pos); s.controls.target.copy(s.defaultCam.target); }
       else b3dFitCamera(s);
+      s.camera.lookAt(s.controls.target);
       s.camera.updateProjectionMatrix(); s.controls.update();
     }
   }, [freeView]);

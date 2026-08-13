@@ -4073,6 +4073,48 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
   const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
   const [freeView, setFreeView] = useState(false); // 🎥 3D: 自由視点 ON/OFF（OFFで既定の視点に固定）
+  // 📌 3D盤面の既定アングル。優先順: sim-config.js の board3dView > この端末の保存 > 自動フィット
+  const view3DKey = `tft_${SET_ID}_board3d_view`;
+  const [savedView3D, setSavedView3D] = useState(() => {
+    try {
+      if (SIM_CFG.board3dView && Array.isArray(SIM_CFG.board3dView.pos)) return SIM_CFG.board3dView;
+      const raw = localStorage.getItem(view3DKey);
+      const v = raw ? JSON.parse(raw) : null;
+      return (v && Array.isArray(v.pos) && Array.isArray(v.target)) ? v : null;
+    } catch (e) { return null; }
+  });
+  const view3DApi = useRef(null);
+  // 管理者判定（sim-config.js の admins ＋ Firestore の管理者リスト）
+  const [admins3D, setAdmins3D] = useState(null);
+  useEffect(() => { let alive = true;
+    fetchSimMeta().then(m => { if (alive) setAdmins3D(m && m.admins); }).catch(() => {});
+    return () => { alive = false; }; }, []);
+  const is3DAdmin = isAdminAccount(account, admins3D);
+
+  // 現在のカメラ位置を「既定のアングル」として保存する（管理者用）
+  const saveView3D = () => {
+    const api = view3DApi.current; if (!api) return;
+    const v = api.getView(); if (!v) return;
+    try { localStorage.setItem(view3DKey, JSON.stringify(v)); } catch (e) {}
+    setSavedView3D(v);
+    setFreeView(false);   // 固定視点に戻して、その場で結果を確認できるように
+    const snippet = `board3dView: ${JSON.stringify(v)},`;
+    if (navigator.clipboard) navigator.clipboard.writeText(snippet).catch(()=>{});
+    showMsg(<div style={{ lineHeight:1.5 }}>
+      📌 この視点を既定にしました（この端末に保存）<br/>
+      <span style={{ fontSize:10, color:'var(--textdim)' }}>
+        全員に反映するには sim-config.js に貼り付け（クリップボードにコピー済み）:<br/>{snippet}
+      </span>
+    </div>);
+  };
+  // 既定のアングルを消して自動フィットに戻す（管理者用）
+  const clearView3D = () => {
+    try { localStorage.removeItem(view3DKey); } catch (e) {}
+    setSavedView3D(null);
+    if (view3DApi.current) view3DApi.current.fitToScreen();
+    setFreeView(false);
+    showMsg('↩️ 既定のアングルを解除しました（自動フィットに戻ります）');
+  };
 
   // 🧊 3D操作は 2D と同じ hDrop / dragSrc を再利用する（ロジック二重化を避けるため）
   const drop3D = (kind, idx) => {
@@ -6170,10 +6212,27 @@ const handleAugmentPick = (aug, historyContext) => {
               VIEW {freeView ? 'ON' : 'OFF'}
             </button>
           )}
+          {use3D && is3DAdmin && freeView && (
+            <button onClick={saveView3D} title="今のカメラ位置を既定のアングルとして保存する"
+              style={{ position:'absolute', top:82, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
+                border:'1px solid var(--gold)', background:'rgba(94,74,22,0.9)', color:'#ffd76e',
+                fontFamily:'Noto Sans JP', fontWeight:900, fontSize:11, cursor:'pointer', whiteSpace:'nowrap' }}>
+              📌 この視点を既定に
+            </button>
+          )}
+          {use3D && is3DAdmin && !freeView && savedView3D && (
+            <button onClick={clearView3D} title="既定のアングルを解除して自動フィットに戻す"
+              style={{ position:'absolute', top:82, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
+                border:'1px solid var(--border)', background:'var(--bg2)', color:'var(--textdim)',
+                fontFamily:'Noto Sans JP', fontWeight:900, fontSize:11, cursor:'pointer', whiteSpace:'nowrap' }}>
+              ↩️ 既定を解除
+            </button>
+          )}
           {use3D ? (
             <Board3D board={board} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
-              onCancel={handle3DCancel} selected={sel3D} freeView={freeView} />
+              onCancel={handle3DCancel} selected={sel3D} freeView={freeView}
+              savedView={savedView3D} viewApi={view3DApi} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
