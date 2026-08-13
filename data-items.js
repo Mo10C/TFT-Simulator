@@ -182,7 +182,7 @@ const RADIANT_ITEMS = [
 
 /* ═══ SIM-EDITOR MANAGED BLOCK START（自動生成・手動で編集しない） ═══ */
 (function(){
-  const HIDDEN = [];
+  const HIDDEN = ["emblem_darkstar","emblem_timebreaker","emblem_stargazer","emblem_spacegroove","emblem_meeple","emblem_arbiter","emblem_primordian","emblem_nova","emblem_marauder","emblem_challenger","emblem_voyager","emblem_bastion","emblem_shepherd","emblem_rogue","emblem_anima","emblem_psionic","emblem_sniper","ahris_aura","evelynns_intuition","varuss_tenacity","sorakas_miracle","threshs_lantern"];
   const TAGS = {"emblem_darkstar":"set17","emblem_timebreaker":"set17","emblem_stargazer":"set17","emblem_spacegroove":"set17","emblem_meeple":"set17","emblem_arbiter":"set17","emblem_primordian":"set17","emblem_nova":"set17","emblem_marauder":"set17","emblem_voyager":"set17","emblem_challenger":"set17","emblem_shepherd":"set17","emblem_bastion":"set17","emblem_rogue":"set17","emblem_anima":"set17","emblem_psionic":"set17","emblem_sniper":"set17","ahris_aura":"set17","evelynns_intuition":"set17","varuss_tenacity":"set17","threshs_lantern":"set17","sorakas_miracle":"set17","yasuos_bladework":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
