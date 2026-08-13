@@ -87,38 +87,62 @@ function b3dMakeItemPips(items){
     m.position.set((i-(list.length-1)/2)*0.2, B3D.TOP+0.16, R*0.55); grp.add(m); });
   return grp;
 }
-function b3dFitModel(obj){
+/* 🎯 チャンピオンごとの3Dモデル微調整
+   ── 自動の中心合わせでズレる場合はここに書く。キーは champ.id。
+      x / z : 六角形中心からの左右・前後のズレ補正
+      y     : 高さ（浮く・沈む場合）
+      scale : 大きさの倍率（1が既定）
+      rotY  : 向き（ラジアン。Math.PI で180度）
+   例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
+const CHAMP_MODEL_TUNE = {
+};
+
+/* 足元（下から25%）の重心を求める。武器やエフェクトが横に張り出したモデルでも
+   外接箱の中心ではなく「立っている位置」を中心として扱えるようにするため。 */
+function b3dFootprintCenter(obj){
+  const box=new THREE.Box3().setFromObject(obj);
+  const size=new THREE.Vector3(); box.getSize(size);
+  const yCut = box.min.y + Math.max(1e-4, size.y*0.25);
+  const v=new THREE.Vector3();
+  let sx=0, sz=0, n=0;
+  obj.updateMatrixWorld(true);
+  obj.traverse(m=>{
+    if(!m.isMesh || !m.geometry || !m.geometry.attributes || !m.geometry.attributes.position) return;
+    const pos=m.geometry.attributes.position;
+    const step=Math.max(1, Math.floor(pos.count/600));   // 間引いて走査（重いモデル対策）
+    for(let i=0;i<pos.count;i+=step){
+      v.fromBufferAttribute(pos,i); m.localToWorld(v);
+      if(v.y<=yCut){ sx+=v.x; sz+=v.z; n++; }
+    }
+  });
+  if(!n){ const c=new THREE.Vector3(); box.getCenter(c); return { x:c.x, z:c.z }; }
+  return { x:sx/n, z:sz/n };
+}
+
+function b3dFitModel(obj, champId){
+  const tune = (champId && CHAMP_MODEL_TUNE[champId]) || {};
+
   // 1. 初期化
   obj.position.set(0, 0, 0);
   obj.rotation.set(0, 0, 0);
   obj.scale.set(1, 1, 1);
+  if(tune.rotY) obj.rotation.y = tune.rotY;
 
-  // 2. スケーリング（現在のサイズ感を維持）
+  // 2. スケーリング（高さを基準にそろえる）
   const box = new THREE.Box3().setFromObject(obj);
   const size = new THREE.Vector3();
   box.getSize(size);
-
   const height = size.y || 1;
-  const targetHeight = B3D.R * 2.3; 
-  const s = targetHeight / height;
-  obj.scale.setScalar(s);
+  const targetHeight = B3D.R * 2.3 * (tune.scale || 1);
+  obj.scale.setScalar(targetHeight / height);
 
-  // 3. 精密な位置合わせ（底面中央をマス目の中央に配置）
+  // 3. 位置合わせ：足元の重心を六角形の中心に、底面をマスの上面に置く
+  obj.updateMatrixWorld(true);
+  const foot = b3dFootprintCenter(obj);
   const scaledBox = new THREE.Box3().setFromObject(obj);
-
-  const centerX = (scaledBox.min.x + scaledBox.max.x) / 2;
-  const centerZ = (scaledBox.min.z + scaledBox.max.z) / 2;
-  const minY = scaledBox.min.y;
-
-  obj.position.x = -centerX;
-  obj.position.z = -centerZ;
-  obj.position.y = B3D.TOP - minY;
-
-  // 💡 モデルごとに向きや微調整を行いたい場合は、以下の値を変更できます
-  // obj.rotation.y = Math.PI; // 正面に向かせる（180度回転）
-  // obj.position.x += 0.0;    // 左右の微調整
-  // obj.position.z += 0.0;    // 前後の微調整
-  // obj.position.y += 0.0;    // 上下の微調整
+  obj.position.x = -foot.x + (tune.x || 0);
+  obj.position.z = -foot.z + (tune.z || 0);
+  obj.position.y = B3D.TOP - scaledBox.min.y + (tune.y || 0);
 
   // 4. マテリアル・影設定
   obj.traverse(n => {
@@ -182,11 +206,11 @@ function b3dFixMaterials(root){
 }
 
 /* ── 読み込んだモデルを駒に取り付ける（複製して使う） ── */
-function b3dAttachModel(S, g, key, gltf){
+function b3dAttachModel(S, g, key, gltf, champId){
   let m;
   if(THREE.SkeletonUtils && THREE.SkeletonUtils.clone) m=THREE.SkeletonUtils.clone(gltf.scene);
   else m=gltf.scene.clone(true);
-  b3dFitModel(m);
+  b3dFitModel(m, champId);
   b3dFixMaterials(m);
   if(gltf.animations && gltf.animations.length>0){
     const mixer=new THREE.AnimationMixer(m);
@@ -198,6 +222,42 @@ function b3dAttachModel(S, g, key, gltf){
   }
   g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c));
   g.add(m);
+}
+
+/* 📐 盤面全体が画面いっぱいに収まる位置へカメラを合わせる。
+   画面サイズやアスペクト比が変わっても余白が最小になるよう、距離を二分探索で詰める。 */
+function b3dFitCamera(S){
+  const { camera, controls, boardGroup } = S;
+  const box = new THREE.Box3().setFromObject(boardGroup);
+  if(box.isEmpty()) return;
+  box.max.y += 2.4;                       // 駒の高さ分を見込む
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const corners = [
+    new THREE.Vector3(box.min.x,box.min.y,box.min.z), new THREE.Vector3(box.max.x,box.min.y,box.min.z),
+    new THREE.Vector3(box.min.x,box.max.y,box.min.z), new THREE.Vector3(box.max.x,box.max.y,box.min.z),
+    new THREE.Vector3(box.min.x,box.min.y,box.max.z), new THREE.Vector3(box.max.x,box.min.y,box.max.z),
+    new THREE.Vector3(box.min.x,box.max.y,box.max.z), new THREE.Vector3(box.max.x,box.max.y,box.max.z),
+  ];
+  const elev = 46 * Math.PI/180;
+  const dir = new THREE.Vector3(0, Math.sin(elev), Math.cos(elev)).normalize();
+  const m = new THREE.Matrix4();
+  const fits = (d) => {
+    camera.position.copy(center).addScaledVector(dir, d);
+    camera.lookAt(center);
+    camera.updateMatrixWorld(true); camera.updateProjectionMatrix();
+    m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    return corners.every(c => {
+      const p = c.clone().applyMatrix4(m);
+      return Math.abs(p.x) <= 0.97 && Math.abs(p.y) <= 0.97 && p.z < 1;
+    });
+  };
+  let lo = 1, hi = 200;
+  if(!fits(hi)) hi = 600;
+  for(let i=0;i<42;i++){ const mid=(lo+hi)/2; if(fits(mid)) hi=mid; else lo=mid; }
+  fits(hi);
+  controls.target.copy(center);
+  controls.update();
+  S.defaultCam = { pos: camera.position.clone(), target: center.clone() };
 }
 
 function b3dDispose(g){
@@ -281,12 +341,12 @@ function b3dSync(S, board, bench, boardIcon, champModels){
       const cached = b3dModelCache.get(modelUrl);
       if(cached && cached.gltf){
         // 読み込み済み：立て看板を挟まずそのままモデルを出す（ちらつき防止）
-        b3dAttachModel(S, g, key, cached.gltf);
+        b3dAttachModel(S, g, key, cached.gltf, u.id);
       } else {
         g.add(b3dMakeStandee(u,boardIcon));   // 初回のみ、ロード完了まで立て看板
         b3dLoadModel(modelUrl).then(gltf=>{
           if(!g.parent) return;               // 待っている間に消えていたら何もしない
-          b3dAttachModel(S, g, key, gltf);
+          b3dAttachModel(S, g, key, gltf, u.id);
         }).catch(()=>{});
       }
     } else {
@@ -300,7 +360,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
   });
 }
 
-function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected }) {
+function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView }) {
   const mountRef = useRef3D(null);
   const S = useRef3D(null);
   const cbRef = useRef3D(onSlotClick);
@@ -318,7 +378,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
     try {
       const W = mount.clientWidth || 640, H = mount.clientHeight || 460;
       const scene = new THREE.Scene(); scene.background = null;
-      const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 200); camera.position.set(0, 11.5, 14);
+      const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 500); camera.position.set(0, 11.5, 14);
       const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
       renderer.shadowMap.enabled = true; if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -330,7 +390,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
 
       const controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true; controls.dampingFactor = 0.08;
-      controls.minDistance = 6; controls.maxDistance = 26; controls.maxPolarAngle = Math.PI*0.49;
+      controls.minDistance = 4; controls.maxDistance = 80; controls.maxPolarAngle = Math.PI*0.49;
       controls.target.set(0,0,0);
 
       scene.add(new THREE.HemisphereLight(0xdCE8ff, 0x33405c, 1.15));
@@ -420,7 +480,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
         const moved = down ? Math.hypot(e.clientX-down[0],e.clientY-down[1]) : 0;
         down=null;
         try{ renderer.domElement.releasePointerCapture(e.pointerId); }catch(err){}
-        controls.enabled=true;
+        controls.enabled = !!(S.current && S.current.freeView);   // 固定視点のままなら戻さない
         clearHover();
         setPtr(e); const slot=pickSlot();
         if(drag){
@@ -464,15 +524,19 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       }; loop();
        
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
-        camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h); }); ro.observe(mount);
+        camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+        // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
+        if(S.current && !S.current.freeView) b3dFitCamera(S.current); }); ro.observe(mount);
 
-      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, 
+      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, 
          pieces:new Map(), 
          spawning:new Set(), // 出現アニメ中の駒
          mixers: new Map(), // 駒ごとのAnimationMixerを保持
          clock: new THREE.Clock(), // 経過時間計算用
          raf, ro, onDown, onUp, onMove };
       S.current=s;
+      b3dFitCamera(s);          // 画面いっぱいに収まる位置へ
+      controls.enabled=false;   // 既定は固定視点（駒操作でカメラが動かないように）
     } catch(err){ console.error('Board3D init failed', err); setFailed(true); return; }
 
     return ()=>{ 
@@ -486,6 +550,17 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
 
   useEffect3D(()=>{ if(S.current) b3dSync(S.current, board, bench, boardIcon, champModels); }, [board, bench, champModels]);
 
+  // 🎥 view: ON=自由に回せる / OFF=既定の視点に戻して固定
+  useEffect3D(()=>{ const s=S.current; if(!s||!s.controls) return;
+    s.freeView=!!freeView;
+    s.controls.enabled=!!freeView;
+    if(!freeView){
+      if(s.defaultCam){ s.camera.position.copy(s.defaultCam.pos); s.controls.target.copy(s.defaultCam.target); }
+      else b3dFitCamera(s);
+      s.camera.updateProjectionMatrix(); s.controls.update();
+    }
+  }, [freeView]);
+
   useEffect3D(()=>{ const s=S.current; if(!s||!s.selMarker) return;
     const slot = selected ? s.slots.find(h=>h.userData.kind===selected.kind && h.userData.idx===selected.idx) : null;
     if(!slot){ s.selMarker.visible=false; return; }
@@ -497,5 +572,5 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       3D盤面を初期化できませんでした。<br/>three.js が読み込めていないか、WebGL 非対応の可能性があります。2Dに戻して続行できます。
     </div>
   );
-  return <div ref={mountRef} style={{ width:'100%', height:'60vh', maxWidth:820, minHeight:340, borderRadius:12, overflow:'hidden' }} />;
+  return <div ref={mountRef} style={{ position:'absolute', inset:0, borderRadius:12, overflow:'hidden' }} />;
 }

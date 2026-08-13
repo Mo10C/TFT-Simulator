@@ -504,30 +504,41 @@ const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
 const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
 
 // 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
+// ── 表記ゆれ（大文字小文字・空白・アポストロフィ・TFT_Item_ 接頭辞・id/imgName違い）でも
+//    確実に日本語へ解決できるよう、全リストから索引を1度だけ作って引く。
+let __itemJaIndex = null;
+const __itemKey = (s) => String(s || '').toLowerCase()
+  .replace(/^tft\d*_?item_?/, '')     // TFT_Item_Deathblade のような接頭辞を落とす
+  .replace(/[^a-z0-9\u3040-\u30ff\u4e00-\u9faf]/g, '');   // 記号・空白を除去
+const __buildItemJaIndex = () => {
+  const idx = new Map();
+  const put = (k, ja) => { const kk = __itemKey(k); if (kk && ja && !idx.has(kk)) idx.set(kk, ja); };
+  const feed = (list) => {
+    (Array.isArray(list) ? list : Object.values(list || {})).forEach(it => {
+      if (!it || !it.jaName) return;
+      put(it.name, it.jaName); put(it.id, it.jaName);
+      put(it.imgName, it.jaName); put(it.jaName, it.jaName);
+    });
+  };
+  if (typeof PSIONIC_ITEMS !== 'undefined') feed(PSIONIC_ITEMS);
+  if (typeof ITEMS !== 'undefined') feed(ITEMS);
+  if (typeof ITEM_RECIPES !== 'undefined') feed(ITEM_RECIPES);
+  if (typeof CONSUMABLES !== 'undefined') feed(CONSUMABLES);
+  if (typeof ARTIFACTS !== 'undefined') feed(ARTIFACTS);
+  if (typeof RADIANT_ITEMS !== 'undefined') feed(RADIANT_ITEMS);
+  return idx;
+};
 const resolveItemJa = (name) => {
   if (!name) return "";
-  // サイオニックは装備時点で日本語名（記録にも日本語名で保存される）
-  if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === name || p.name === name);
-    if (psi) return psi.jaName;
+  // オブジェクトを渡された場合も拾えるようにする
+  if (typeof name === 'object') {
+    if (name.jaName) return name.jaName;
+    name = name.name || name.id || name.imgName || '';
+    if (!name) return "";
   }
-
-  // ITEMS (素材アイテム) から検索
-  const component = ITEMS.find(i => i.name === name || i.id === name);
-  if (component && component.jaName) return component.jaName;
-
-  // ITEM_RECIPES (完成アイテム、紋章) から検索
-  const completed = Object.values(ITEM_RECIPES).find(r => r.name === name || r.id === name);
-  if (completed && completed.jaName) return completed.jaName;
-
-  // CONSUMABLES (消費アイテム) から検索
-  const consumable = Object.values(CONSUMABLES).find(c => c.name === name || c.id === name);
-  if (consumable && consumable.jaName) return consumable.jaName;
-
-  // ARTIFACTS, RADIANT_ITEMS から検索
-  const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === name || a.id === name || a.imgName === name);
-  if (specialItem && specialItem.jaName) return specialItem.jaName;
-
+  if (!__itemJaIndex) { try { __itemJaIndex = __buildItemJaIndex(); } catch (e) { __itemJaIndex = new Map(); } }
+  const hit = __itemJaIndex.get(__itemKey(name));
+  if (hit) return hit;
   // 見つからなければそのまま返す
   return name;
 };
@@ -1521,7 +1532,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
       key={it.id || it.name} 
       className="asset-icon-wrapper" 
       style={{ borderColor }}
-      title={getJaName(it.name || it.jaName)}
+      title={getJaName(it)}
       draggable
       onDragStart={() => setDragSrc({ type, item: it })}
       onTouchStart={(e) => startTouchDrag(e, { type, item: it })}
@@ -4055,6 +4066,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [showMfPopup, setShowMfPopup] = useState(false);
   const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
   const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
+  const [freeView, setFreeView] = useState(false); // 🎥 3D: 自由視点 ON/OFF（OFFで既定の視点に固定）
 
   // 🧊 3D操作は 2D と同じ hDrop / dragSrc を再利用する（ロジック二重化を避けるため）
   const drop3D = (kind, idx) => {
@@ -6115,7 +6127,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 onTouchStart={(e) => startTouchDrag(e, { type:'inventory', idx:i })}
                 onDragOver={e => e.preventDefault()}
                 onDrop={hDrop('inventory', i)}
-                title={it?.name ? getJaName(it.name) : ""}
+                title={it ? getJaName(it) : ""}
                 style={{ width:36, height:36, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
@@ -6144,10 +6156,18 @@ const handleAugmentPick = (aug, historyContext) => {
               color: use3D ? '#1a1400' : 'var(--text)', fontFamily:'Orbitron', fontWeight:900, fontSize:12, cursor:'pointer' }}>
             {use3D ? '3D' : '2D'}
           </button>
+          {use3D && (
+            <button onClick={() => setFreeView(v => !v)} title="ON=カメラを自由に動かせる / OFF=既定の視点に戻して固定"
+              style={{ position:'absolute', top:46, right:10, zIndex:5, padding:'6px 12px', borderRadius:8,
+                border:'1px solid var(--border)', background: freeView ? 'var(--blue)' : 'var(--bg2)',
+                color: freeView ? '#fff' : 'var(--text)', fontFamily:'Orbitron', fontWeight:900, fontSize:12, cursor:'pointer' }}>
+              VIEW {freeView ? 'ON' : 'OFF'}
+            </button>
+          )}
           {use3D ? (
             <Board3D board={board} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
-              onCancel={handle3DCancel} selected={sel3D} />
+              onCancel={handle3DCancel} selected={sel3D} freeView={freeView} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
