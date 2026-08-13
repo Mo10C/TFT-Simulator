@@ -222,7 +222,7 @@ function b3dRefreshItems(g, u, itemIcon){
       rotY  : 向き（ラジアン。Math.PI で180度）
    例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
 const CHAMP_MODEL_TUNE = {
-  akali: { z:0.98 },   // アカリ
+  akali: { scale:0.89, z:0.98 },   // アカリ
   cinderling: { scale:0.35 },   // シンダーリング
   karma: { scale:1.1 },   // カルマ
   kobuko: { scale:0.71, x:0.4, z:0.01 },   // コブコ
@@ -235,8 +235,9 @@ const CHAMP_MODEL_TUNE = {
   veigar: { scale:0.82 },   // ベイガー
   xayah: { z:-0.3 },   // ザヤ
   yorick: { scale:1.24, x:0.2, y:-0.17, z:-0.46 },   // ヨリック
+  elise: { x:-0.14, z:0.19 },   // エリス
   gromp: { scale:0.69, x:-0.14, y:-0.24 },   // グロンプ
-  kayle: { x:0.1, rotY:-97 * Math.PI/180 },   // ケイル
+  kayle: { x:-0.01, y:-0.48, rotY:-21 * Math.PI/180 },   // ケイル
   leblanc: { scale:1.11, x:0.45, y:-0.2 },   // ルブラン
   murkwolf: { scale:0.49, x:-0.19, rotY:2 * Math.PI/180 },   // マークウルフ
   scuttlecrab: { scale:0.7 },   // スカトルクラブ
@@ -260,15 +261,17 @@ const CHAMP_MODEL_TUNE = {
   aphelios: { scale:1.58, y:-1.5, z:1.17 },   // アフェリオス
   brambleback: { scale:0.79, x:-0.2, z:0.3, rotY:-111 * Math.PI/180 },   // ブランブルバック
   lillia: { scale:1.12 },   // リリア
+  malphite: { x:-0.15, z:-0.15 },   // マルファイト
   morgana: { x:-0.17, z:0.24 },   // モルガナ
   nidalee: { x:0.19, z:-0.24 },   // ニダリー
   sentinel: { scale:0.8 },   // 古の番人
-  sett: { scale:0.97, x:0.01, z:-0.2 },   // セト
+  sett: { scale:0.97, x:0.01, z:-0.05 },   // セト
   sivir: { scale:0.94, x:0.34, z:0.16 },   // シヴィア
   soraka: { z:0.45 },   // ソラカ
   zyra: { scale:0.98, z:-0.18 },   // ザイラ
   alune: { y:-0.45 },   // アルーン
   ashe: { scale:1.13, y:-0.09, z:-0.39 },   // アッシュ
+  draven: { x:-0.1 },   // ドレイヴン
   gnar: { scale:0.55, z:0.27 },   // ナー
   ivern: { x:-0.16 },   // アイバーン
   kennen: { scale:0.82, x:-0.17, z:0.04 },   // ケネン
