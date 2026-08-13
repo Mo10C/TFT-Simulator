@@ -8,22 +8,99 @@
    ============================================================ */
 const {useState:useState3D,useEffect:useEffect3D,useRef:useRef3D}=React;
 
-/* 🧊 3D盤面：チャンピオンID → .glb パス。設定した駒だけ3Dモデル、それ以外はポートレート立て看板。
-   例: const CHAMP_MODELS3D = { akali:'models/akali.glb', sett:'models/sett.glb' }; */
+/* 🧊 3D盤面：チャンピオンID → .glb ファイル名（実装中の全チャンピオン分）
+   ── ファイル名の規則: <champ.id>_(tft_set_<セット番号>).glb
+   ── 置き場所は index.html と同じ階層。別フォルダに置くなら B3D_MODEL_BASE を設定する。
+   ── まだ用意していないモデルは、そのままカード表示になる（エラーにはならない）。
+   ── 優先順: CHAMPS の model → CHAMP_MODELS3D → 自動生成 */
 const CHAMP_MODELS3D = {
-  varus: 'models/infernal_varus.glb',
-  reksai: "models/elderwood_rek'sai.glb",
-  leona: 'models/solar_eclipse_leona.glb',
-  rakan: 'models/elderwood_rakan.glb',
-  yorick: 'models/spirit_blossom_yorick.glb',
-  veigar: 'models/elderwood_veigar.glb',
-  xayah: 'models/elderwood_xayah.glb',
-  karma: 'models/spirit_blossom_karma.glb',
-  ornn: 'models/elderwood_ornn.glb',
-  camille: 'models/coven_camille.glb',
-  alistar: 'models/elderwood_alistar.glb',
-  akali: 'models/infernal_akali.glb',
+  /* ── 1コスト（14体） ── */
+  akali:          'akali_(tft_set_18).glb',
+  camille:        'camille_(tft_set_18).glb',
+  cinderling:     'cinderling_(tft_set_18).glb',
+  karma:          'karma_(tft_set_18).glb',
+  kobuko:         'kobuko_(tft_set_18).glb',
+  leona:          'leona_(tft_set_18).glb',
+  ornn:           'ornn_(tft_set_18).glb',
+  pebbles:        'pebbles_(tft_set_18).glb',
+  rakan:          'rakan_(tft_set_18).glb',
+  reksai:         'reksai_(tft_set_18).glb',
+  varus:          'varus_(tft_set_18).glb',
+  veigar:         'veigar_(tft_set_18).glb',
+  xayah:          'xayah_(tft_set_18).glb',
+  yorick:         'yorick_(tft_set_18).glb',
+  /* ── 2コスト（13体） ── */
+  alistar:        'alistar_(tft_set_18).glb',
+  caitlyn:        'caitlyn_(tft_set_18).glb',
+  elise:          'elise_(tft_set_18).glb',
+  gromp:          'gromp_(tft_set_18).glb',
+  kayle:          'kayle_(tft_set_18).glb',
+  leblanc:        'leblanc_(tft_set_18).glb',
+  murkwolf:       'murkwolf_(tft_set_18).glb',
+  scuttlecrab:    'scuttlecrab_(tft_set_18).glb',
+  sejuani:        'sejuani_(tft_set_18).glb',
+  shen:           'shen_(tft_set_18).glb',
+  teemo:          'teemo_(tft_set_18).glb',
+  warwick:        'warwick_(tft_set_18).glb',
+  yunara:         'yunara_(tft_set_18).glb',
+  /* ── 3コスト（14体） ── */
+  azir:           'azir_(tft_set_18).glb',
+  cassiopeia:     'cassiopeia_(tft_set_18).glb',
+  diana:          'diana_(tft_set_18).glb',
+  fiddlesticks:   'fiddlesticks_(tft_set_18).glb',
+  hecarim:        'hecarim_(tft_set_18).glb',
+  khazix:         'khazix_(tft_set_18).glb',
+  kogmaw:         'kogmaw_(tft_set_18).glb',
+  krug:           'krug_(tft_set_18).glb',
+  mamabeak:       'mamabeak_(tft_set_18).glb',
+  masteryi:       'masteryi_(tft_set_18).glb',
+  rammus:         'rammus_(tft_set_18).glb',
+  rengar:         'rengar_(tft_set_18).glb',
+  tristana:       'tristana_(tft_set_18).glb',
+  vi:             'vi_(tft_set_18).glb',
+  /* ── 4コスト（14体） ── */
+  ahri:           'ahri_(tft_set_18).glb',
+  amumu:          'amumu_(tft_set_18).glb',
+  aphelios:       'aphelios_(tft_set_18).glb',
+  brambleback:    'brambleback_(tft_set_18).glb',
+  ezreal:         'ezreal_(tft_set_18).glb',
+  lillia:         'lillia_(tft_set_18).glb',
+  malphite:       'malphite_(tft_set_18).glb',
+  morgana:        'morgana_(tft_set_18).glb',
+  nidalee:        'nidalee_(tft_set_18).glb',
+  sentinel:       'sentinel_(tft_set_18).glb',
+  sett:           'sett_(tft_set_18).glb',
+  sivir:          'sivir_(tft_set_18).glb',
+  soraka:         'soraka_(tft_set_18).glb',
+  zyra:           'zyra_(tft_set_18).glb',
+  /* ── 5コスト（10体） ── */
+  alune:          'alune_(tft_set_18).glb',
+  ashe:           'ashe_(tft_set_18).glb',
+  draven:         'draven_(tft_set_18).glb',
+  elderdragon:    'elderdragon_(tft_set_18).glb',
+  gnar:           'gnar_(tft_set_18).glb',
+  ivern:          'ivern_(tft_set_18).glb',
+  kennen:         'kennen_(tft_set_18).glb',
+  lux:            'lux_(tft_set_18).glb',
+  maokai:         'maokai_(tft_set_18).glb',
+  taric:          'taric_(tft_set_18).glb',
 };
+
+/* 🗂️ モデルファイルの置き場と命名規則
+   ── ファイル名は「<チャンピオンid>_(tft_set_<セット番号>).glb」で保存する運用。
+      例) ahri → ahri_(tft_set_18).glb / aphelios → aphelios_(tft_set_18).glb
+   ── CHAMP_MODELS3D に載っていないチャンピオン（新規追加など）は、この規則で自動生成する。
+   ── セット番号は sim-config.js の set（'set18' 等）から自動で決まる。
+   ── 置き場所を変える場合は B3D_MODEL_BASE だけ書き換える。 */
+const B3D_MODEL_BASE = '';   // 別フォルダに置く場合のみ 'models/' のように設定する
+const B3D_SET_NO = (function(){
+  try { return String((window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18').replace(/[^0-9]/g, '') || '18'; }
+  catch(e){ return '18'; }
+})();
+function b3dAutoModelUrl(id){
+  if(!id) return '';
+  return `${B3D_MODEL_BASE}${String(id).toLowerCase()}_(tft_set_${B3D_SET_NO}).glb`;
+}
 
 /* ============================================================
    🧊 3D 盤面（Board3D）
@@ -171,7 +248,9 @@ function b3dMakeAnvil(u){
    同じ .glb を何度も取りに行かないよう保持する。移動や★アップのたびに再読込すると
    立て看板が一瞬見えてしまうため。 */
 const b3dModelCache = new Map();   // url -> { gltf } / Promise
+const b3dFailedModels = new Set();   // 取得できなかったURL（毎回リトライしないよう記録）
 function b3dLoadModel(url){
+  if(b3dFailedModels.has(url)) return Promise.reject(new Error('model unavailable'));
   const hit=b3dModelCache.get(url);
   if(hit && hit.promise) return hit.promise;
   if(hit && hit.gltf) return Promise.resolve(hit.gltf);
@@ -182,9 +261,10 @@ function b3dLoadModel(url){
   b3dModelCache.set(url,{promise:p});
   p.catch((err)=>{
     b3dModelCache.delete(url);
-    // 読み込み失敗は握りつぶさず必ず知らせる（パス間違い・404 の切り分けのため）
-    console.warn('[Board3D] モデルを読み込めませんでした:', url,
-      '\n  → パスが正しいか、そのURLをブラウザで直接開けるか確認してください。', err && (err.message || err));
+    if(b3dFailedModels.has(url)) return;
+    b3dFailedModels.add(url);
+    // モデル未用意なら立て看板表示にフォールバックする。切り分け用に1回だけ知らせる
+    console.info('[Board3D] モデルが見つからないためカード表示にします:', url);
   });
   return p;
 }
@@ -194,10 +274,11 @@ function b3dLoadModel(url){
 function b3dCheckModels(champs, champModels){
   const list = champs || (typeof CHAMPS!=='undefined' ? CHAMPS : []);
   const map = champModels || CHAMP_MODELS3D;
-  const rows = list.map(c => ({ id:c.id, 名前:c.jaName, URL:(c.model || map[c.id] || '(なし)'),
-    出所: c.model ? 'data-champions.js' : (map[c.id] ? 'CHAMP_MODELS3D' : '-') }));
+  const rows = list.map(c => ({ id:c.id, 名前:c.jaName,
+    URL: c.model || map[c.id] || b3dAutoModelUrl(c.id),
+    出所: c.model ? 'data-champions.js' : (map[c.id] ? 'CHAMP_MODELS3D' : '自動生成') }));
   if(console.table) console.table(rows); else console.log(rows);
-  const urls=[...new Set(rows.filter(r=>r.URL!=='(なし)').map(r=>r.URL))];
+  const urls=[...new Set(rows.map(r=>r.URL).filter(Boolean))];
   console.log('[Board3D] 設定済み', urls.length, '件を確認します…');
   urls.forEach(u=>{
     fetch(u, {method:'GET'})
@@ -309,13 +390,48 @@ function b3dFitCamera(S){
 /* 💾 保存済みの視点（管理者が決めた既定アングル）を適用する。
    savedView = { pos:[x,y,z], target:[x,y,z] } */
 function b3dApplySavedView(S, savedView){
-  if(!S || !savedView || !Array.isArray(savedView.pos) || !Array.isArray(savedView.target)) return false;
+  const ok = (a) => Array.isArray(a) && a.length === 3 && a.every(n => typeof n === 'number' && isFinite(n));
+  if(!S || !S.camera || !S.controls || !savedView || !ok(savedView.pos) || !ok(savedView.target)) return false;
   const { camera, controls } = S;
-  camera.position.set(savedView.pos[0], savedView.pos[1], savedView.pos[2]);
-  controls.target.set(savedView.target[0], savedView.target[1], savedView.target[2]);
-  camera.lookAt(controls.target);
-  camera.updateMatrixWorld(true); camera.updateProjectionMatrix();
-  controls.update();
+  const target = new THREE.Vector3(savedView.target[0], savedView.target[1], savedView.target[2]);
+  const pos = new THREE.Vector3(savedView.pos[0], savedView.pos[1], savedView.pos[2]);
+  const place = (p) => {
+    camera.position.copy(p); controls.target.copy(target); camera.lookAt(target);
+    camera.updateMatrixWorld(true); camera.updateProjectionMatrix(); controls.update();
+  };
+  place(pos);
+
+  // 保存時と画面比が違うと端が切れることがあるので、角度はそのままに距離だけ引いて収める
+  if(S.boardGroup){
+    const box = new THREE.Box3().setFromObject(S.boardGroup);
+    if(!box.isEmpty()){
+      box.max.y += 2.3;
+      const corners = [
+        new THREE.Vector3(box.min.x,box.min.y,box.min.z), new THREE.Vector3(box.max.x,box.min.y,box.min.z),
+        new THREE.Vector3(box.min.x,box.max.y,box.min.z), new THREE.Vector3(box.max.x,box.max.y,box.min.z),
+        new THREE.Vector3(box.min.x,box.min.y,box.max.z), new THREE.Vector3(box.max.x,box.min.y,box.max.z),
+        new THREE.Vector3(box.min.x,box.max.y,box.max.z), new THREE.Vector3(box.max.x,box.max.y,box.max.z),
+      ];
+      const m = new THREE.Matrix4();
+      const fitsAt = (d) => {
+        place(target.clone().addScaledVector(dir, d));
+        m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+        return corners.every(c => { const p=c.clone().applyMatrix4(m);
+          return Math.abs(p.x)<=0.995 && Math.abs(p.y)<=0.995 && p.z<1; });
+      };
+      const dir = pos.clone().sub(target);
+      const d0 = dir.length() || 1;
+      dir.normalize();
+      if(!fitsAt(d0)){
+        let lo = d0, hi = d0;
+        for(let i=0;i<12 && !fitsAt(hi);i++) hi *= 1.5;   // 収まる距離まで下がる
+        for(let i=0;i<32;i++){ const mid=(lo+hi)/2; if(fitsAt(mid)) hi=mid; else lo=mid; }
+        fitsAt(hi);
+      } else {
+        place(pos);
+      }
+    }
+  }
   S.defaultCam = { pos: camera.position.clone(), target: controls.target.clone() };
   return true;
 }
@@ -344,7 +460,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     const u = (src && src[idx]) || null;
     if(!u) return;
     const isAnvil = !!u.isAnvil;
-    const modelUrl = !isAnvil ? (u.model || (champModels && champModels[u.id]) || '') : '';
+    const modelUrl = !isAnvil ? (u.model || (champModels && champModels[u.id]) || b3dAutoModelUrl(u.id)) : '';
     const sig=`${u.uid||u.id}|${isAnvil?'anvil':u.star}|${(u.items||[]).length}|${modelUrl}`;
     want.set(kind+':'+idx, { slot:h, kind, idx, u, isAnvil, modelUrl, sig });
   });
@@ -407,7 +523,9 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     const base=b3dMakeBase(u); if(base) g.add(base);   // 台座（空実装なら何も足さない）
     if(modelUrl && THREE.GLTFLoader){
       const cached = b3dModelCache.get(modelUrl);
-      if(cached && cached.gltf){
+      if(b3dFailedModels.has(modelUrl)){
+        g.add(b3dMakeStandee(u,boardIcon));       // 取得できないと分かっているものは即カード表示
+      } else if(cached && cached.gltf){
         // 読み込み済み：立て看板を挟まずそのままモデルを出す（ちらつき防止）
         b3dAttachModel(S, g, key, cached.gltf, u.id);
       } else {
@@ -607,7 +725,10 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
         // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
-        if(S.current && !S.current.freeView && !savedViewRef.current) b3dFitCamera(S.current); }); ro.observe(mount);
+        if(S.current && !S.current.freeView){
+          if(savedViewRef.current) b3dApplySavedView(S.current, savedViewRef.current);  // 角度は維持、距離だけ再調整
+          else b3dFitCamera(S.current);
+        } }); ro.observe(mount);
 
       s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, 
          pieces:new Map(), 
