@@ -291,7 +291,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     <!-- 右：調整パネル -->
     <div>
       <div id="m3d-current" style="font-size:13px;font-weight:900;margin-bottom:2px">— 未選択 —</div>
-      <div id="m3d-size" class="note" style="margin-bottom:8px"></div>
+      <div id="m3d-size" class="note"></div>
+      <div id="m3d-anim" class="note" style="margin-bottom:8px"></div>
       <div id="m3d-controls" style="opacity:.4;pointer-events:none">
         <div style="margin-bottom:10px">
           <label>大きさ (scale)</label>
@@ -1365,6 +1366,8 @@ let m3dSel = null;         // 選択中のチャンピオンid
 let m3dCompare = [];       // 比較表示するid（選択中を含む）
 let m3dScene, m3dCam, m3dRenderer, m3dControls, m3dTiles, m3dRuler, m3dSlots = [];
 let m3dCache = new Map();  // url -> gltf
+let m3dMixers = new Map(); // id -> AnimationMixer（盤面と同じ待機モーション）
+let m3dClock = null;
 let m3dInited = false;
 
 // エディタが読み込んだチャンピオン（champs）を使う。未読込なら window.CHAMPS にフォールバック
@@ -1396,8 +1399,8 @@ function m3dInit() {
   if (m3dInited) return;
   const host = document.getElementById('m3d-view');
   if (!host || typeof THREE === 'undefined') { document.getElementById('m3d-status').textContent = '3D表示を初期化できません（three.js が読み込めていません）'; return; }
-  m3dInited = true;
   const W = host.clientWidth || 700, H = host.clientHeight || 520;
+  try {
   m3dScene = new THREE.Scene();
   m3dCam = new THREE.PerspectiveCamera(45, W / H, 0.1, 200);
   m3dRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -1417,15 +1420,30 @@ function m3dInit() {
   m3dTiles = new THREE.Group(); m3dScene.add(m3dTiles);
   m3dRuler = new THREE.Group(); m3dScene.add(m3dRuler);
   m3dResetCam();
-  (function loop() { requestAnimationFrame(loop); m3dControls.update(); m3dRenderer.render(m3dScene, m3dCam); })();
+  m3dClock = new THREE.Clock();
+  (function loop() {
+    requestAnimationFrame(loop);
+    const dt = m3dClock.getDelta();
+    m3dMixers.forEach(mx => mx.update(dt));   // 待機モーションを再生
+    m3dControls.update(); m3dRenderer.render(m3dScene, m3dCam);
+  })();
   new ResizeObserver(() => {
     const w = host.clientWidth || W, h = host.clientHeight || H;
     m3dCam.aspect = w / h; m3dCam.updateProjectionMatrix(); m3dRenderer.setSize(w, h);
   }).observe(host);
+  m3dInited = true;
+  } catch (err) {
+    // WebGL が使えない環境でも、画面が無反応にならないよう理由を出す
+    m3dScene = m3dCam = m3dRenderer = m3dControls = m3dTiles = m3dRuler = null;
+    document.getElementById('m3d-status').textContent = '3D表示を開始できませんでした（WebGLが使えない可能性があります）';
+    document.getElementById('m3d-view').innerHTML =
+      '<div style="padding:20px;font-size:12px;color:#475569">3D表示を開始できませんでした。<br>ブラウザのハードウェアアクセラレーションが無効になっていないか確認してください。</div>';
+    console.error('3Dビューの初期化に失敗', err);
+  }
 }
 
 function m3dResetCam() {
-  if (!m3dCam) return;
+  if (!m3dCam || !m3dControls) return;
   // 並んでいるマスとモデル全体が画面に収まる位置へ
   const n = Math.max(1, m3dCompare.length);
   const halfW = ((n - 1) * M3D_HSP) / 2 + M3D_R * 1.2;
@@ -1443,6 +1461,7 @@ function m3dToggleRuler() { if (m3dRuler) m3dRuler.visible = document.getElement
 
 /* ── 比較用の足場（六角マス＋高さの目安）を並べ直す ── */
 function m3dBuildStage() {
+  if (!m3dTiles || !m3dRuler) return;   // 3Dビュー未初期化なら何もしない
   [m3dTiles, m3dRuler].forEach(g => { while (g.children.length) { const c = g.children.pop(); g.remove(c); } });
   m3dSlots = [];
   const n = Math.max(1, m3dCompare.length);
@@ -1455,7 +1474,8 @@ function m3dBuildStage() {
     const col = M3D_COST_COLOR[c ? c.cost : 1] || 0x9aa7b5;
     const tile = new THREE.Mesh(new THREE.CylinderGeometry(M3D_R, M3D_R, M3D_TH, 6),
       new THREE.MeshStandardMaterial({ color: id === m3dSel ? 0x4b6a92 : 0x2b3a52, metalness: .2, roughness: .8 }));
-    tile.rotation.y = Math.PI / 6; tile.position.set(x, 0, 0); tile.receiveShadow = true; m3dTiles.add(tile);
+    tile.rotation.y = Math.PI / 6; tile.position.set(x, 0, 0); tile.receiveShadow = true;
+    tile.userData.tileFor = id; m3dTiles.add(tile);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(M3D_R * 0.99, 0.02, 8, 6),
       new THREE.MeshBasicMaterial({ color: col }));
     ring.rotation.set(Math.PI / 2, 0, Math.PI / 6); ring.position.set(x, M3D_TOP + 0.01, 0); m3dTiles.add(ring);
@@ -1523,8 +1543,9 @@ function m3dFixMaterials(root) {
 /* ── 比較中のモデルを並べ直す ── */
 let m3dPieces = new Map();
 function m3dRebuild() {
-  if (!m3dInited) return;
+  if (!m3dInited || !m3dScene) return;
   m3dBuildStage();
+  m3dMixers.forEach(mx => mx.stopAllAction()); m3dMixers.clear();
   m3dPieces.forEach(g => m3dScene.remove(g)); m3dPieces.clear();
   const champs = m3dChamps();
   m3dSlots.forEach(slot => {
@@ -1540,6 +1561,8 @@ function m3dRebuild() {
       const raw = new THREE.Vector3(); new THREE.Box3().setFromObject(m).getSize(raw);
       holder.userData.rawSize = raw.clone();
       m3dApplyTo(slot.id);
+      // 盤面と同じ待機モーションを再生する（向き・姿勢をゲームと一致させるため）
+      m3dPlayIdle(slot.id, m, gltf);
       m3dResetCam();
       document.getElementById('m3d-status').textContent = '';
       m3dShowSize();
@@ -1552,6 +1575,22 @@ function m3dRebuild() {
       m3dRenderList();
     });
   });
+}
+
+/* 待機モーションの再生。クリップの選び方は board3d.js とまったく同じにする
+   （idle1 → idle → 先頭 の順）。向きや姿勢はこのモーションで決まるため、
+   ここを揃えないとエディタとゲームで見え方がずれる。 */
+function m3dPlayIdle(id, model, gltf) {
+  if (!gltf.animations || !gltf.animations.length) return;
+  const clip = gltf.animations.find(c => c.name.toLowerCase().includes('idle1'))
+    || gltf.animations.find(c => c.name.toLowerCase().includes('idle'))
+    || gltf.animations[0];
+  if (!clip) return;
+  const mx = new THREE.AnimationMixer(model);
+  mx.clipAction(clip).play();
+  m3dMixers.set(id, mx);
+  const el = document.getElementById('m3d-anim');
+  if (el && id === m3dSel) el.textContent = `待機モーション: ${clip.name}`;
 }
 
 /* 調整値を1体に反映（board3d.js の b3dFitModel と同じ計算） */
@@ -1593,20 +1632,38 @@ function m3dRenderList() {
   }).join('') || `<div class="note" style="padding:10px">${m3dChamps().length ? '該当なし' : 'チャンピオンを読み込み中です。「🦸 チャンピオン」タブで data-champions.js が読み込まれると一覧に出ます。'}</div>`;
 }
 
+/* 並んでいるマスの色だけ塗り替える（駒を作り直さないので位置が動かない） */
+function m3dHighlight() {
+  if (!m3dTiles) return;
+  m3dTiles.children.forEach(o => {
+    if (!o.userData || !o.userData.tileFor || !o.material || !o.material.color) return;
+    o.material.color.setHex(o.userData.tileFor === m3dSel ? 0x4b6a92 : 0x2b3a52);
+  });
+}
 function m3dSelect(id) {
+  const already = m3dCompare.includes(id);
   m3dSel = id;
-  if (!m3dCompare.includes(id)) m3dCompare = m3dCompare.length ? [id, ...m3dCompare].slice(0, 6) : [id];
-  document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === id) || {}).jaName || id;
+  if (!already) {
+    // 並び順は変えずに末尾へ追加。1体だけ表示していたときは差し替える
+    if (m3dCompare.length >= 6) { showMsg('比較は6体までです。チェックを外してから選んでください', true); m3dSel = m3dCompare[0]; }
+    else if (m3dCompare.length === 1) m3dCompare = [id];
+    else m3dCompare.push(id);
+  }
+  document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === m3dSel) || {}).jaName || m3dSel;
   document.getElementById('m3d-controls').style.opacity = 1;
   document.getElementById('m3d-controls').style.pointerEvents = 'auto';
-  m3dSyncPanel(); m3dRenderList(); m3dRebuild(); m3dResetCam(); m3dShowSize();
+  m3dSyncPanel(); m3dRenderList(); m3dShowSize();
+  // 既に並んでいる駒を選び直しただけなら、組み直さない＝その場から動かさない
+  if (already) m3dHighlight();
+  else { m3dRebuild(); m3dResetCam(); }
 }
 function m3dToggleCompare(id) {
   const i = m3dCompare.indexOf(id);
   if (i >= 0) { if (m3dCompare.length > 1) m3dCompare.splice(i, 1); }
   else { if (m3dCompare.length >= 6) return showMsg('比較は6体までです', true); m3dCompare.push(id); }
   if (!m3dCompare.includes(m3dSel)) m3dSel = m3dCompare[0] || null;
-  m3dRenderList(); m3dRebuild(); m3dResetCam();
+  document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === m3dSel) || {}).jaName || '— 未選択 —';
+  m3dSyncPanel(); m3dRenderList(); m3dRebuild(); m3dResetCam(); m3dShowSize();
 }
 function m3dClearCompare() { m3dCompare = m3dSel ? [m3dSel] : []; m3dRenderList(); m3dRebuild(); m3dResetCam(); }
 
@@ -1714,7 +1771,7 @@ function m3dShowSize() {
 }
 
 /* デバッグ・検証用に主要処理を公開する */
-Object.assign(window, { m3dChamps, m3dGet, m3dSnippet, m3dModelUrls, m3dShowSize });
+Object.assign(window, { m3dChamps, m3dGet, m3dSnippet, m3dModelUrls, m3dShowSize, m3dMixerCount: () => m3dMixers.size, m3dPieceCount: () => m3dPieces.size, m3dInitedFlag: () => m3dInited, m3dPieceAt: (id) => m3dPieces.get(id), m3dCompareList: () => m3dCompare.slice() });
 
 /* タブを開いたときに初期化 */
 document.querySelector('.tab[data-page="models"]').addEventListener('click', () => {
