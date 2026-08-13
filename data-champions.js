@@ -45,7 +45,7 @@ const CHAMPS=[
   {id:"kogmaw", name:"KogMaw", jaName:"コグ＝マウ", cost:3, traits:["Caustic","Adaptor","Invoker"], set:"set18"},
   {id:"krug", name:"Krug", jaName:"クルーグ", cost:3, traits:["Riftbeast","Brawler"], set:"set18"},
   {id:"mamabeak", name:"MamaBeak", jaName:"ラプター", cost:3, traits:["Riftbeast","Summoner","Rapidfire"], set:"set18"},
-  {id:"masteryi", name:"Master Yi", jaName:"マスター・イー", cost:3, traits:["Blossom","Adaptor"], set:"set18"},
+  {id:"masteryi", name:"MasterYi", jaName:"マスター・イー", cost:3, traits:["Blossom","Adaptor"], set:"set18"},
   {id:"rammus", name:"Rammus", jaName:"ラムス", cost:3, traits:["Sprykin","Defender"], set:"set18"},
   {id:"rengar", name:"Rengar", jaName:"レンガー", cost:3, traits:["Rival"], set:"set18"},
   {id:"tristana", name:"Tristana", jaName:"トリスターナ", cost:3, traits:["Fae","Sprykin","Hunter"], set:"set18"},
