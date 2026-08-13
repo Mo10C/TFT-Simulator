@@ -59,6 +59,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 </head>
 <body>
 <div class="header">
@@ -289,7 +290,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
 
     <!-- 右：調整パネル -->
     <div>
-      <div id="m3d-current" style="font-size:13px;font-weight:900;margin-bottom:8px">— 未選択 —</div>
+      <div id="m3d-current" style="font-size:13px;font-weight:900;margin-bottom:2px">— 未選択 —</div>
+      <div id="m3d-size" class="note" style="margin-bottom:8px"></div>
       <div id="m3d-controls" style="opacity:.4;pointer-events:none">
         <div style="margin-bottom:10px">
           <label>大きさ (scale)</label>
@@ -1424,9 +1426,17 @@ function m3dInit() {
 
 function m3dResetCam() {
   if (!m3dCam) return;
+  // 並んでいるマスとモデル全体が画面に収まる位置へ
   const n = Math.max(1, m3dCompare.length);
-  m3dCam.position.set(0, 3.2, 4.2 + n * 1.1);
-  m3dControls.target.set(0, 1.0, 0); m3dControls.update();
+  const halfW = ((n - 1) * M3D_HSP) / 2 + M3D_R * 1.2;
+  const top = M3D_TOP + M3D_BASE_HEIGHT * 1.25;
+  const fov = m3dCam.fov * Math.PI / 180;
+  const distV = (top / 2) / Math.tan(fov / 2);
+  const distH = halfW / (Math.tan(fov / 2) * m3dCam.aspect);
+  const d = Math.max(3.2, Math.max(distV, distH) * 1.55);
+  m3dCam.position.set(0, top * 0.62 + 0.6, d);
+  m3dControls.target.set(0, top * 0.42, 0);
+  m3dCam.updateProjectionMatrix(); m3dControls.update();
 }
 function m3dToggleGrid() { if (m3dTiles) m3dTiles.visible = document.getElementById('m3d-showgrid').checked; }
 function m3dToggleRuler() { if (m3dRuler) m3dRuler.visible = document.getElementById('m3d-showruler').checked; }
@@ -1526,8 +1536,13 @@ function m3dRebuild() {
       m3dFixMaterials(m);
       holder.userData.model = m;
       holder.add(m);
+      // 元モデルの実寸を控えておく（極端に大きい/小さいファイルの切り分け用）
+      const raw = new THREE.Vector3(); new THREE.Box3().setFromObject(m).getSize(raw);
+      holder.userData.rawSize = raw.clone();
       m3dApplyTo(slot.id);
+      m3dResetCam();
       document.getElementById('m3d-status').textContent = '';
+      m3dShowSize();
     }).catch(() => {
       // モデルが無いときは、大きさの目安になる箱を置く
       const ph = new THREE.Mesh(new THREE.BoxGeometry(.5, M3D_BASE_HEIGHT, .5),
@@ -1584,7 +1599,7 @@ function m3dSelect(id) {
   document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === id) || {}).jaName || id;
   document.getElementById('m3d-controls').style.opacity = 1;
   document.getElementById('m3d-controls').style.pointerEvents = 'auto';
-  m3dSyncPanel(); m3dRenderList(); m3dRebuild(); m3dResetCam();
+  m3dSyncPanel(); m3dRenderList(); m3dRebuild(); m3dResetCam(); m3dShowSize();
 }
 function m3dToggleCompare(id) {
   const i = m3dCompare.indexOf(id);
@@ -1613,7 +1628,7 @@ function m3dSet(key, val) {
   const t = m3dGet(m3dSel);
   t[key] = Math.round(parseFloat(val) * 1000) / 1000 || 0;
   if (key === 'scale' && t.scale <= 0) t.scale = 0.05;
-  m3dTune[m3dSel] = t; m3dSave(); m3dApplyTo(m3dSel); m3dRenderList();
+  m3dTune[m3dSel] = t; m3dSave(); m3dApplyTo(m3dSel); m3dRenderList(); m3dShowSize();
 }
 function m3dOnSlider(key, v) { m3dSet(key, v); m3dSyncPanel(); }
 function m3dOnNumber(key, v) { m3dSet(key, v); m3dSyncPanel(); }
@@ -1687,8 +1702,19 @@ function m3dDownloadTune() {
   showMsg('書き出しました');
 }
 
+/* 選択中モデルの元サイズを表示する（1マス＝1.0 が目安） */
+function m3dShowSize() {
+  const el = document.getElementById('m3d-size'); if (!el) return;
+  const h = m3dPieces.get(m3dSel);
+  if (!h) { el.textContent = ''; return; }
+  if (h.userData.missing) { el.textContent = 'モデルファイルが見つかりません'; return; }
+  const r = h.userData.rawSize;
+  if (!r) { el.textContent = '読み込み中…'; return; }
+  el.textContent = `元サイズ 横${r.x.toFixed(2)} 高${r.y.toFixed(2)} 奥${r.z.toFixed(2)} → 高さ${(M3D_BASE_HEIGHT * m3dGet(m3dSel).scale).toFixed(2)}に調整`;
+}
+
 /* デバッグ・検証用に主要処理を公開する */
-Object.assign(window, { m3dChamps, m3dGet, m3dSnippet, m3dModelUrls });
+Object.assign(window, { m3dChamps, m3dGet, m3dSnippet, m3dModelUrls, m3dShowSize });
 
 /* タブを開いたときに初期化 */
 document.querySelector('.tab[data-page="models"]').addEventListener('click', () => {
