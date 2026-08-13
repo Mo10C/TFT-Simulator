@@ -88,7 +88,7 @@ const ITEM_JA = {
 
 /* ── 素材アイテム ── */
 const ITEMS=[
-  {id:'bf', name:'B.F. Sword', icon:'⚔️', type:'comp', imgId: 1}, 
+  {id:'bfsword', name:'B.F. Sword', icon:'⚔️', type:'comp', imgId: 1}, 
   {id:'bow', name:'Recurve Bow', icon:'🏹', type:'comp', imgId: 2},
   {id:'rod', name:'Needlessly Large Rod', icon:'🔮', type:'comp', imgId: 3}, 
   {id:'tear', name:'Tear of the Goddess', icon:'💧', type:'comp', imgId: 4},
@@ -111,14 +111,14 @@ const PSIONIC_ITEMS = [
 
 /* ── 完成アイテムのレシピ ── */
 const ITEM_RECIPES = {
-  'bf_bf':{id:'deathblade', name:'deathblade', icon:'🗡️', imgId: 11}, 
-  'bf_bow':{id:'giantslayer', name:'Giant Slayer', icon:'🪚', imgId: 12},
-  'bf_rod':{id:'gunblade', name:'Hextech Gunblade', icon:'🔫', imgId: 13}, 
-  'bf_tear':{id:'shojin', name:'spearofshojin', icon:'🔱', imgId: 14},
+  'bfsword_bfsword':{id:'deathblade', name:'deathblade', icon:'🗡️', imgId: 11}, 
+  'bfsword_bow':{id:'giantslayer', name:'Giant Slayer', icon:'🪚', imgId: 12},
+  'bfsword_rod':{id:'gunblade', name:'Hextech Gunblade', icon:'🔫', imgId: 13}, 
+  'bfsword_tear':{id:'shojin', name:'spearofshojin', icon:'🔱', imgId: 14},
   'bf_chain':{id:'edgeofnight', name:'guardianangel', icon:'🌑', imgId: 15}, 
-  'bf_cloak':{id:'bloodthirster', name:'Bloodthirster', icon:'🧛', imgId: 16},
-  'bf_belt':{id:'steraksgage', name:"steraksgage", icon:'💪', imgId: 17}, 
-  'bf_glove':{id:'infinityedge', name:'Infinity Edge', icon:'✨', imgId: 19},
+  'bfsword_cloak':{id:'bloodthirster', name:'Bloodthirster', icon:'🧛', imgId: 16},
+  'bfsword_belt':{id:'steraksgage', name:"steraksgage", icon:'💪', imgId: 17}, 
+  'bfsword_glove':{id:'infinityedge', name:'Infinity Edge', icon:'✨', imgId: 19},
   'bow_bow':{id:'rapidfirecannon', name:'rapidfirecannon', icon:'🔥', imgId: 22}, 
   'bow_rod':{id:'guinsoo', name:"Guinsoo's Rageblade", icon:'☄️', imgId: 23},
   'bow_tear':{id:'statikk', name:'statikkshiv', icon:'⚡', imgId: 24}, 
