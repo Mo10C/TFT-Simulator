@@ -180,9 +180,33 @@ function b3dLoadModel(url){
     catch(e){ rej(e); }
   });
   b3dModelCache.set(url,{promise:p});
-  p.catch(()=>b3dModelCache.delete(url));
+  p.catch((err)=>{
+    b3dModelCache.delete(url);
+    // 読み込み失敗は握りつぶさず必ず知らせる（パス間違い・404 の切り分けのため）
+    console.warn('[Board3D] モデルを読み込めませんでした:', url,
+      '\n  → パスが正しいか、そのURLをブラウザで直接開けるか確認してください。', err && (err.message || err));
+  });
   return p;
 }
+
+/* 🔎 モデル設定の一括チェック。ブラウザのコンソールで b3dCheckModels() を実行すると
+   どのチャンピオンにモデルが割り当たっているか／実際に取得できるかを一覧表示する。 */
+function b3dCheckModels(champs, champModels){
+  const list = champs || (typeof CHAMPS!=='undefined' ? CHAMPS : []);
+  const map = champModels || CHAMP_MODELS3D;
+  const rows = list.map(c => ({ id:c.id, 名前:c.jaName, URL:(c.model || map[c.id] || '(なし)'),
+    出所: c.model ? 'data-champions.js' : (map[c.id] ? 'CHAMP_MODELS3D' : '-') }));
+  if(console.table) console.table(rows); else console.log(rows);
+  const urls=[...new Set(rows.filter(r=>r.URL!=='(なし)').map(r=>r.URL))];
+  console.log('[Board3D] 設定済み', urls.length, '件を確認します…');
+  urls.forEach(u=>{
+    fetch(u, {method:'GET'})
+      .then(r=> console.log(r.ok ? '  ✅ OK  ' : '  ❌ ' + r.status + '  ', u))
+      .catch(e=> console.log('  ❌ 取得失敗  ', u, e.message));
+  });
+  return rows;
+}
+if (typeof window !== 'undefined') window.b3dCheckModels = b3dCheckModels;
 
 /* ── 材質の補正 ──
    three r128 では outputEncoding / texture.encoding を sRGB にしないと暗く沈む。
@@ -230,8 +254,7 @@ function b3dFitCamera(S){
   const { camera, controls, boardGroup } = S;
   const box = new THREE.Box3().setFromObject(boardGroup);
   if(box.isEmpty()) return;
-  box.max.y += 2.4;                       // 駒の高さ分を見込む
-  const center = new THREE.Vector3(); box.getCenter(center);
+  box.max.y += 2.3;                       // 駒の高さ分の余白を確保
   const corners = [
     new THREE.Vector3(box.min.x,box.min.y,box.min.z), new THREE.Vector3(box.max.x,box.min.y,box.min.z),
     new THREE.Vector3(box.min.x,box.max.y,box.min.z), new THREE.Vector3(box.max.x,box.max.y,box.min.z),
@@ -240,24 +263,47 @@ function b3dFitCamera(S){
   ];
   const elev = 46 * Math.PI/180;
   const dir = new THREE.Vector3(0, Math.sin(elev), Math.cos(elev)).normalize();
+  const target = new THREE.Vector3(); box.getCenter(target);
   const m = new THREE.Matrix4();
-  const fits = (d) => {
-    camera.position.copy(center).addScaledVector(dir, d);
-    camera.lookAt(center);
+
+  const place = (d) => {
+    camera.position.copy(target).addScaledVector(dir, d);
+    camera.lookAt(target);
     camera.updateMatrixWorld(true); camera.updateProjectionMatrix();
     m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-    return corners.every(c => {
-      const p = c.clone().applyMatrix4(m);
-      return Math.abs(p.x) <= 0.97 && Math.abs(p.y) <= 0.97 && p.z < 1;
-    });
   };
-  let lo = 1, hi = 200;
-  if(!fits(hi)) hi = 600;
-  for(let i=0;i<42;i++){ const mid=(lo+hi)/2; if(fits(mid)) hi=mid; else lo=mid; }
-  fits(hi);
-  controls.target.copy(center);
+  // 画面内に収まっているか（余白 3%）
+  const fits = (d) => { place(d);
+    return corners.every(c => { const p=c.clone().applyMatrix4(m);
+      return Math.abs(p.x)<=0.97 && Math.abs(p.y)<=0.97 && p.z<1; }); };
+  // 投影後の見た目の中心（NDC）
+  const projCenter = () => {
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+    corners.forEach(c=>{ const p=c.clone().applyMatrix4(m);
+      minX=Math.min(minX,p.x); maxX=Math.max(maxX,p.x); minY=Math.min(minY,p.y); maxY=Math.max(maxY,p.y); });
+    return { x:(minX+maxX)/2, y:(minY+maxY)/2 };
+  };
+
+  let d = 30;
+  // 距離を詰める → 画面中央に来るよう注視点をずらす、を数回繰り返して収束させる
+  for(let pass=0; pass<4; pass++){
+    let lo=1, hi=200;
+    if(!fits(hi)) hi=600;
+    for(let i=0;i<40;i++){ const mid=(lo+hi)/2; if(fits(mid)) hi=mid; else lo=mid; }
+    d = hi; place(d);
+    const c = projCenter();
+    if(Math.abs(c.x)<0.002 && Math.abs(c.y)<0.002) break;
+    // NDC のズレをワールド座標の移動量に変換して注視点を補正
+    const halfH = d * Math.tan((camera.fov*Math.PI/180)/2);
+    const halfW = halfH * camera.aspect;
+    const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+    const up    = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
+    target.addScaledVector(right, c.x * halfW).addScaledVector(up, c.y * halfH);
+  }
+  place(d);
+  controls.target.copy(target);
   controls.update();
-  S.defaultCam = { pos: camera.position.clone(), target: center.clone() };
+  S.defaultCam = { pos: camera.position.clone(), target: target.clone() };
 }
 
 function b3dDispose(g){
