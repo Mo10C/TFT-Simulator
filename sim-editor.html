@@ -55,6 +55,10 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
 .champ-img{width:26px;height:26px;border-radius:5px;object-fit:cover;vertical-align:middle;background:var(--bg2);border:1px solid var(--border)}
 .msg{position:fixed;bottom:18px;right:18px;background:#e5f6ec;border:1px solid #1a7a41;color:#14532d;padding:10px 16px;border-radius:9px;font-size:12.5px;font-weight:700;display:none;z-index:99;box-shadow:0 4px 16px rgba(30,41,59,0.15)}
 </style>
+<!-- 🧊 3Dモデル調整タブ用（board3d.js と同じ r128 系で揃える） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
 <div class="header">
@@ -70,6 +74,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="tab" data-page="augs">✨ オーグメント</div>
   <div class="tab" data-page="items">🗡️ アイテム</div>
   <div class="tab" data-page="encounters">🎲 遭遇</div>
+  <div class="tab" data-page="models">🧊 3Dモデル</div>
 </div>
 
 <!-- ══════════ 📊 記録データ ══════════ -->
@@ -235,6 +240,123 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="card" style="overflow-x:auto">
     <table><thead><tr><th></th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
     <tbody id="enc-body"><tr><td colspan="9" class="note">読み込み中…</td></tr></tbody></table>
+  </div>
+</div>
+
+<div class="page" id="page-models">
+  <div class="card">
+    <h2>🧊 3Dモデルの大きさ・中心位置の調整</h2>
+    <div class="row">
+      <span class="note" id="m3d-status">読み込み中…</span>
+      <button onclick="m3dAutoAll()">✨ 全体を自動フィット</button>
+      <button onclick="m3dLoadTune()">📂 設定を読み込む</button>
+      <button class="gold" onclick="m3dCopyTune()">📋 CHAMP_MODEL_TUNE をコピー</button>
+      <button onclick="m3dDownloadTune()">⬇ ファイルで書き出す</button>
+      <button class="danger" onclick="m3dResetAll()">全部リセット</button>
+    </div>
+    <div class="note">六角形1マスを基準に、各チャンピオンの<b>大きさ・中心位置・向き</b>を決めます。調整した値は自動保存され、<b>CHAMP_MODEL_TUNE</b> として書き出して board3d.js に貼り付ければゲームに反映されます。比較したいチャンピオンは一覧のチェックを入れると隣に並びます。</div>
+  </div>
+
+  <div class="card" style="display:grid;grid-template-columns:260px 1fr 260px;gap:14px;align-items:start">
+    <!-- 左：チャンピオン一覧 -->
+    <div>
+      <div class="row" style="margin-bottom:6px">
+        <input type="text" id="m3d-search" placeholder="チャンピオン検索" style="flex:1;min-width:0" oninput="m3dRenderList()">
+      </div>
+      <div class="row" style="margin-bottom:6px;gap:4px">
+        <select id="m3d-costfilter" onchange="m3dRenderList()" style="flex:1">
+          <option value="">全コスト</option>
+          <option value="1">1コスト</option><option value="2">2コスト</option>
+          <option value="3">3コスト</option><option value="4">4コスト</option><option value="5">5コスト</option>
+        </select>
+        <button onclick="m3dClearCompare()" style="padding:6px 8px;font-size:11px">比較解除</button>
+      </div>
+      <div id="m3d-list" style="max-height:520px;overflow-y:auto;border:1px solid var(--bg2);border-radius:8px"></div>
+    </div>
+
+    <!-- 中央：3Dビュー -->
+    <div>
+      <div id="m3d-view" style="width:100%;height:520px;background:linear-gradient(#dbe6f3,#eef3f9);border:1px solid var(--bg2);border-radius:10px;overflow:hidden;position:relative">
+        <div id="m3d-hint" style="position:absolute;left:10px;top:10px;font-size:11px;color:#475569;background:rgba(255,255,255,.75);padding:4px 8px;border-radius:6px">ドラッグで回転 / ホイールで拡大縮小</div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label>表示</label>
+        <label style="font-weight:400"><input type="checkbox" id="m3d-showgrid" checked onchange="m3dToggleGrid()"> 六角マス</label>
+        <label style="font-weight:400"><input type="checkbox" id="m3d-showruler" checked onchange="m3dToggleRuler()"> 高さの目安</label>
+        <button onclick="m3dResetCam()" style="padding:6px 10px;font-size:11px">視点リセット</button>
+      </div>
+    </div>
+
+    <!-- 右：調整パネル -->
+    <div>
+      <div id="m3d-current" style="font-size:13px;font-weight:900;margin-bottom:8px">— 未選択 —</div>
+      <div id="m3d-controls" style="opacity:.4;pointer-events:none">
+        <div style="margin-bottom:10px">
+          <label>大きさ (scale)</label>
+          <div class="row" style="gap:6px;margin-bottom:2px">
+            <input type="range" id="m3d-scale" min="0.2" max="3" step="0.01" value="1" oninput="m3dOnSlider('scale',this.value)" style="flex:1">
+            <input type="number" id="m3d-scale-n" step="0.01" value="1" onchange="m3dOnNumber('scale',this.value)" style="width:72px">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>左右 (x)</label>
+          <div class="row" style="gap:6px;margin-bottom:2px">
+            <input type="range" id="m3d-x" min="-1.5" max="1.5" step="0.01" value="0" oninput="m3dOnSlider('x',this.value)" style="flex:1">
+            <input type="number" id="m3d-x-n" step="0.01" value="0" onchange="m3dOnNumber('x',this.value)" style="width:72px">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>前後 (z)</label>
+          <div class="row" style="gap:6px;margin-bottom:2px">
+            <input type="range" id="m3d-z" min="-1.5" max="1.5" step="0.01" value="0" oninput="m3dOnSlider('z',this.value)" style="flex:1">
+            <input type="number" id="m3d-z-n" step="0.01" value="0" onchange="m3dOnNumber('z',this.value)" style="width:72px">
+          </div>
+        </div>
+        <div style="margin-bottom:10px">
+          <label>高さ (y)</label>
+          <div class="row" style="gap:6px;margin-bottom:2px">
+            <input type="range" id="m3d-y" min="-1" max="1.5" step="0.01" value="0" oninput="m3dOnSlider('y',this.value)" style="flex:1">
+            <input type="number" id="m3d-y-n" step="0.01" value="0" onchange="m3dOnNumber('y',this.value)" style="width:72px">
+          </div>
+        </div>
+        <div style="margin-bottom:12px">
+          <label>向き (rotY・度)</label>
+          <div class="row" style="gap:6px;margin-bottom:2px">
+            <input type="range" id="m3d-rot" min="-180" max="180" step="1" value="0" oninput="m3dOnSlider('rotY',this.value)" style="flex:1">
+            <input type="number" id="m3d-rot-n" step="1" value="0" onchange="m3dOnNumber('rotY',this.value)" style="width:72px">
+          </div>
+        </div>
+        <div class="row" style="gap:6px">
+          <button onclick="m3dAutoFitOne()" style="flex:1">✨ 自動フィット</button>
+          <button onclick="m3dResetOne()" class="danger" style="padding:8px 10px">リセット</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px;padding:12px">
+        <h2 style="font-size:12px">まとめて設定</h2>
+        <div class="row" style="gap:6px">
+          <label>対象</label>
+          <select id="m3d-bulk-target" style="flex:1">
+            <option value="checked">比較中のチャンピオン</option>
+            <option value="cost">同じコスト</option>
+            <option value="all">全チャンピオン</option>
+          </select>
+        </div>
+        <div class="row" style="gap:6px">
+          <label>項目</label>
+          <select id="m3d-bulk-key" style="flex:1">
+            <option value="scale">大きさ</option><option value="x">左右</option>
+            <option value="z">前後</option><option value="y">高さ</option><option value="rotY">向き</option>
+          </select>
+          <input type="number" id="m3d-bulk-val" step="0.01" value="1" style="width:72px">
+        </div>
+        <div class="row" style="gap:6px">
+          <button onclick="m3dBulkApply()" style="flex:1">この値にする</button>
+          <button onclick="m3dBulkFromCurrent()" style="flex:1">今の値を配る</button>
+        </div>
+        <div class="note" style="margin-top:6px">コスト帯で大きさを変えたいときは「同じコスト」にまとめて適用すると差別化しやすくなります。</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -527,6 +649,10 @@ document.getElementById('champ-file').addEventListener('change', async ev => {
   const f = ev.target.files[0]; if (f) { loadChampText(await f.text()); document.getElementById('champ-status').textContent = `📂 ${f.name} を読み込みました`; }
 });
 function renderChamps() {
+  // チャンピオン読み込み後に、3Dモデルタブの一覧も追いつかせる
+  if (typeof m3dRenderList === 'function' && document.getElementById('m3d-list')) {
+    try { m3dRenderList(); } catch (e) {}
+  }
   // セットタブバー
   const sets = champSets();
   if (!sets.includes(activeChampSet)) sets.push(activeChampSet);
@@ -1219,6 +1345,366 @@ window.addEventListener('load', () => {
     else { loadLocal(); }                                          // なければローカル記録だけ
   } catch (err) { showMsg('自動読み込みでエラー: ' + err.message, true); }
 });
+
+/* ═══════════════════════════════════════════════════════════
+   🧊 3Dモデル調整タブ
+   ── 六角形1マスを基準に、各チャンピオンの大きさ・中心位置・向きを決める。
+   ── 結果は board3d.js の CHAMP_MODEL_TUNE 形式で書き出す。
+   ── 調整値はブラウザに自動保存されるので、閉じても続きから作業できる。
+   ═══════════════════════════════════════════════════════════ */
+const M3D_KEY = 'tft_model_tune_' + (CURRENT_SET || 'set18');
+const M3D_R = 1.0, M3D_TH = 0.28, M3D_TOP = M3D_TH / 2;
+const M3D_GAP = 1.10, M3D_HSP = Math.sqrt(3) * M3D_R * M3D_GAP;
+const M3D_BASE_HEIGHT = M3D_R * 2.3;          // scale=1 のときの高さ（board3d.js と同じ）
+const M3D_COST_COLOR = {1:0x9aa7b5,2:0x2ec77e,3:0x2f9bff,4:0xc46bff,5:0xf4c04a};
+
+let m3dTune = {};          // { [id]: {scale,x,y,z,rotY} }
+let m3dSel = null;         // 選択中のチャンピオンid
+let m3dCompare = [];       // 比較表示するid（選択中を含む）
+let m3dScene, m3dCam, m3dRenderer, m3dControls, m3dTiles, m3dRuler, m3dSlots = [];
+let m3dCache = new Map();  // url -> gltf
+let m3dInited = false;
+
+// エディタが読み込んだチャンピオン（champs）を使う。未読込なら window.CHAMPS にフォールバック
+const m3dChamps = () => ((typeof champs !== 'undefined' && champs && champs.length) ? champs
+  : (window.CHAMPS || [])).map(c => ({ id: c.id, jaName: c.jaName || c.id, cost: +c.cost || 1, model: c.model || '' }))
+  .filter(c => c.id);
+
+const m3dDefault = () => ({ scale: 1, x: 0, y: 0, z: 0, rotY: 0 });
+const m3dGet = (id) => Object.assign(m3dDefault(), m3dTune[id] || {});
+const m3dSetNo = String(CURRENT_SET || 'set18').replace(/[^0-9]/g, '') || '18';
+function m3dModelUrls(c) {
+  if (c.model) return [c.model];
+  const f = `${String(c.id).toLowerCase()}_(tft_set_${m3dSetNo}).glb`;
+  return ['models/' + f, f];      // board3d.js と同じく両方の置き場を試す
+}
+
+function m3dSave() { try { localStorage.setItem(M3D_KEY, JSON.stringify(m3dTune)); } catch (e) {} }
+function m3dLoadTune() {
+  try {
+    const raw = localStorage.getItem(M3D_KEY);
+    m3dTune = raw ? JSON.parse(raw) : {};
+    showMsg('保存済みの設定を読み込みました');
+  } catch (e) { m3dTune = {}; }
+  m3dRenderList(); m3dSyncPanel(); m3dRebuild();
+}
+
+/* ── 3Dビューの用意 ── */
+function m3dInit() {
+  if (m3dInited) return;
+  const host = document.getElementById('m3d-view');
+  if (!host || typeof THREE === 'undefined') { document.getElementById('m3d-status').textContent = '3D表示を初期化できません（three.js が読み込めていません）'; return; }
+  m3dInited = true;
+  const W = host.clientWidth || 700, H = host.clientHeight || 520;
+  m3dScene = new THREE.Scene();
+  m3dCam = new THREE.PerspectiveCamera(45, W / H, 0.1, 200);
+  m3dRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  m3dRenderer.setSize(W, H); m3dRenderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  m3dRenderer.shadowMap.enabled = true;
+  if (THREE.sRGBEncoding !== undefined) m3dRenderer.outputEncoding = THREE.sRGBEncoding;
+  host.appendChild(m3dRenderer.domElement);
+
+  m3dControls = new THREE.OrbitControls(m3dCam, m3dRenderer.domElement);
+  m3dControls.enableDamping = true; m3dControls.maxPolarAngle = Math.PI * 0.49;
+
+  m3dScene.add(new THREE.HemisphereLight(0xdce8ff, 0x33405c, 1.1));
+  m3dScene.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(4, 10, 6);
+  key.castShadow = true; m3dScene.add(key);
+
+  m3dTiles = new THREE.Group(); m3dScene.add(m3dTiles);
+  m3dRuler = new THREE.Group(); m3dScene.add(m3dRuler);
+  m3dResetCam();
+  (function loop() { requestAnimationFrame(loop); m3dControls.update(); m3dRenderer.render(m3dScene, m3dCam); })();
+  new ResizeObserver(() => {
+    const w = host.clientWidth || W, h = host.clientHeight || H;
+    m3dCam.aspect = w / h; m3dCam.updateProjectionMatrix(); m3dRenderer.setSize(w, h);
+  }).observe(host);
+}
+
+function m3dResetCam() {
+  if (!m3dCam) return;
+  const n = Math.max(1, m3dCompare.length);
+  m3dCam.position.set(0, 3.2, 4.2 + n * 1.1);
+  m3dControls.target.set(0, 1.0, 0); m3dControls.update();
+}
+function m3dToggleGrid() { if (m3dTiles) m3dTiles.visible = document.getElementById('m3d-showgrid').checked; }
+function m3dToggleRuler() { if (m3dRuler) m3dRuler.visible = document.getElementById('m3d-showruler').checked; }
+
+/* ── 比較用の足場（六角マス＋高さの目安）を並べ直す ── */
+function m3dBuildStage() {
+  [m3dTiles, m3dRuler].forEach(g => { while (g.children.length) { const c = g.children.pop(); g.remove(c); } });
+  m3dSlots = [];
+  const n = Math.max(1, m3dCompare.length);
+  const span = (n - 1) * M3D_HSP;
+  const champs = m3dChamps();
+  m3dCompare.forEach((id, i) => {
+    const x = i * M3D_HSP - span / 2;
+    m3dSlots.push({ id, x });
+    const c = champs.find(v => v.id === id);
+    const col = M3D_COST_COLOR[c ? c.cost : 1] || 0x9aa7b5;
+    const tile = new THREE.Mesh(new THREE.CylinderGeometry(M3D_R, M3D_R, M3D_TH, 6),
+      new THREE.MeshStandardMaterial({ color: id === m3dSel ? 0x4b6a92 : 0x2b3a52, metalness: .2, roughness: .8 }));
+    tile.rotation.y = Math.PI / 6; tile.position.set(x, 0, 0); tile.receiveShadow = true; m3dTiles.add(tile);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(M3D_R * 0.99, 0.02, 8, 6),
+      new THREE.MeshBasicMaterial({ color: col }));
+    ring.rotation.set(Math.PI / 2, 0, Math.PI / 6); ring.position.set(x, M3D_TOP + 0.01, 0); m3dTiles.add(ring);
+    // 中心の十字（中心合わせの目印）
+    const mk = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x - .25, M3D_TOP + .02, 0), new THREE.Vector3(x + .25, M3D_TOP + .02, 0),
+        new THREE.Vector3(x, M3D_TOP + .02, -.25), new THREE.Vector3(x, M3D_TOP + .02, .25)]),
+      new THREE.LineBasicMaterial({ color: 0xffffff }));
+    m3dTiles.add(mk);
+    // 高さの目安（scale=1 の基準線）
+    const h = M3D_BASE_HEIGHT;
+    const bar = new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(x - M3D_R, M3D_TOP + h, 0), new THREE.Vector3(x + M3D_R, M3D_TOP + h, 0)]),
+      new THREE.LineBasicMaterial({ color: 0xb8860b }));
+    m3dRuler.add(bar);
+  });
+  m3dToggleGrid(); m3dToggleRuler();
+}
+
+/* ── モデルの読み込み（候補を順に試す） ── */
+function m3dLoadModel(c) {
+  const urls = m3dModelUrls(c);
+  const hit = urls.map(u => m3dCache.get(u)).find(Boolean);
+  if (hit) return Promise.resolve(hit);
+  let i = 0;
+  const tryNext = () => new Promise((res, rej) => {
+    if (i >= urls.length) return rej(new Error('not found'));
+    const u = urls[i++];
+    new THREE.GLTFLoader().load(u, g => { m3dCache.set(u, g); res(g); }, undefined, () => tryNext().then(res, rej));
+  });
+  return tryNext();
+}
+
+/* 足元（下から25%）の重心＝立っている位置。board3d.js と同じ考え方 */
+function m3dFootprint(obj) {
+  const box = new THREE.Box3().setFromObject(obj), size = new THREE.Vector3(); box.getSize(size);
+  const yCut = box.min.y + Math.max(1e-4, size.y * 0.25);
+  const v = new THREE.Vector3(); let sx = 0, sz = 0, n = 0;
+  obj.updateMatrixWorld(true);
+  obj.traverse(m => {
+    if (!m.isMesh || !m.geometry || !m.geometry.attributes || !m.geometry.attributes.position) return;
+    const pos = m.geometry.attributes.position, step = Math.max(1, Math.floor(pos.count / 600));
+    for (let i = 0; i < pos.count; i += step) { v.fromBufferAttribute(pos, i); m.localToWorld(v); if (v.y <= yCut) { sx += v.x; sz += v.z; n++; } }
+  });
+  if (!n) { const c2 = new THREE.Vector3(); box.getCenter(c2); return { x: c2.x, z: c2.z }; }
+  return { x: sx / n, z: sz / n };
+}
+function m3dFixMaterials(root) {
+  root.traverse(n => {
+    if (!n.isMesh || !n.material) return;
+    (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => {
+      if (!m) return;
+      if (m.map && THREE.sRGBEncoding !== undefined) { m.map.encoding = THREE.sRGBEncoding; m.map.needsUpdate = true; }
+      if (typeof m.metalness === 'number' && m.metalness > .25) m.metalness = .15;
+      if (typeof m.roughness === 'number' && m.roughness < .35) m.roughness = .6;
+      if (m.color && m.color.getHex() === 0 && m.map) m.color.setHex(0xffffff);
+      m.needsUpdate = true;
+    });
+    n.castShadow = true;
+  });
+}
+
+/* ── 比較中のモデルを並べ直す ── */
+let m3dPieces = new Map();
+function m3dRebuild() {
+  if (!m3dInited) return;
+  m3dBuildStage();
+  m3dPieces.forEach(g => m3dScene.remove(g)); m3dPieces.clear();
+  const champs = m3dChamps();
+  m3dSlots.forEach(slot => {
+    const c = champs.find(v => v.id === slot.id); if (!c) return;
+    const holder = new THREE.Group(); holder.position.x = slot.x; m3dScene.add(holder);
+    m3dPieces.set(slot.id, holder);
+    m3dLoadModel(c).then(gltf => {
+      const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone) ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
+      m3dFixMaterials(m);
+      holder.userData.model = m;
+      holder.add(m);
+      m3dApplyTo(slot.id);
+      document.getElementById('m3d-status').textContent = '';
+    }).catch(() => {
+      // モデルが無いときは、大きさの目安になる箱を置く
+      const ph = new THREE.Mesh(new THREE.BoxGeometry(.5, M3D_BASE_HEIGHT, .5),
+        new THREE.MeshStandardMaterial({ color: 0xcbd5e1, transparent: true, opacity: .5 }));
+      ph.position.y = M3D_TOP + M3D_BASE_HEIGHT / 2; holder.add(ph);
+      holder.userData.missing = true;
+      m3dRenderList();
+    });
+  });
+}
+
+/* 調整値を1体に反映（board3d.js の b3dFitModel と同じ計算） */
+function m3dApplyTo(id) {
+  const holder = m3dPieces.get(id); if (!holder) return;
+  const m = holder.userData.model; if (!m) return;
+  const t = m3dGet(id);
+  m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
+  m.rotation.y = (t.rotY || 0) * Math.PI / 180;
+  const box = new THREE.Box3().setFromObject(m), size = new THREE.Vector3(); box.getSize(size);
+  m.scale.setScalar((M3D_BASE_HEIGHT * (t.scale || 1)) / (size.y || 1));
+  m.updateMatrixWorld(true);
+  const foot = m3dFootprint(m);
+  const b2 = new THREE.Box3().setFromObject(m);
+  m.position.x = -foot.x + (t.x || 0);
+  m.position.z = -foot.z + (t.z || 0);
+  m.position.y = M3D_TOP - b2.min.y + (t.y || 0);
+}
+
+/* ── 一覧 ── */
+function m3dRenderList() {
+  const host = document.getElementById('m3d-list'); if (!host) return;
+  const q = (document.getElementById('m3d-search').value || '').toLowerCase();
+  const cf = document.getElementById('m3d-costfilter').value;
+  const rows = m3dChamps().filter(c =>
+    (!cf || String(c.cost) === cf) &&
+    (!q || c.id.toLowerCase().includes(q) || (c.jaName || '').toLowerCase().includes(q)));
+  host.innerHTML = rows.map(c => {
+    const t = m3dTune[c.id];
+    const on = m3dCompare.includes(c.id);
+    const missing = m3dPieces.get(c.id) && m3dPieces.get(c.id).userData.missing;
+    return `<div onclick="m3dSelect('${c.id}')" style="display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;border-bottom:1px solid var(--bg2);${c.id === m3dSel ? 'background:#e8f0fb' : ''}">
+      <input type="checkbox" ${on ? 'checked' : ''} onclick="event.stopPropagation();m3dToggleCompare('${c.id}')">
+      <span style="width:8px;height:8px;border-radius:50%;background:${['#9aa7b5','#2ec77e','#2f9bff','#c46bff','#f4c04a'][c.cost-1]}"></span>
+      <span style="flex:1;font-size:12px;font-weight:${c.id === m3dSel ? 900 : 400}">${esc(c.jaName)}</span>
+      ${missing ? '<span class="note" style="font-size:10px">モデル無</span>' : ''}
+      ${t ? '<span class="badge clean">調整済</span>' : ''}
+    </div>`;
+  }).join('') || `<div class="note" style="padding:10px">${m3dChamps().length ? '該当なし' : 'チャンピオンを読み込み中です。「🦸 チャンピオン」タブで data-champions.js が読み込まれると一覧に出ます。'}</div>`;
+}
+
+function m3dSelect(id) {
+  m3dSel = id;
+  if (!m3dCompare.includes(id)) m3dCompare = m3dCompare.length ? [id, ...m3dCompare].slice(0, 6) : [id];
+  document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === id) || {}).jaName || id;
+  document.getElementById('m3d-controls').style.opacity = 1;
+  document.getElementById('m3d-controls').style.pointerEvents = 'auto';
+  m3dSyncPanel(); m3dRenderList(); m3dRebuild(); m3dResetCam();
+}
+function m3dToggleCompare(id) {
+  const i = m3dCompare.indexOf(id);
+  if (i >= 0) { if (m3dCompare.length > 1) m3dCompare.splice(i, 1); }
+  else { if (m3dCompare.length >= 6) return showMsg('比較は6体までです', true); m3dCompare.push(id); }
+  if (!m3dCompare.includes(m3dSel)) m3dSel = m3dCompare[0] || null;
+  m3dRenderList(); m3dRebuild(); m3dResetCam();
+}
+function m3dClearCompare() { m3dCompare = m3dSel ? [m3dSel] : []; m3dRenderList(); m3dRebuild(); m3dResetCam(); }
+
+/* ── スライダー・数値入力 ── */
+function m3dSyncPanel() {
+  if (!m3dSel) return;
+  const t = m3dGet(m3dSel);
+  const set = (k, v) => {
+    const a = document.getElementById('m3d-' + k), b = document.getElementById('m3d-' + k + '-n');
+    if (a) a.value = v; if (b) b.value = v;
+  };
+  set('scale', t.scale); set('x', t.x); set('z', t.z); set('y', t.y);
+  const r = document.getElementById('m3d-rot'), rn = document.getElementById('m3d-rot-n');
+  if (r) r.value = t.rotY;
+  if (rn) rn.value = t.rotY;
+}
+function m3dSet(key, val) {
+  if (!m3dSel) return;
+  const t = m3dGet(m3dSel);
+  t[key] = Math.round(parseFloat(val) * 1000) / 1000 || 0;
+  if (key === 'scale' && t.scale <= 0) t.scale = 0.05;
+  m3dTune[m3dSel] = t; m3dSave(); m3dApplyTo(m3dSel); m3dRenderList();
+}
+function m3dOnSlider(key, v) { m3dSet(key, v); m3dSyncPanel(); }
+function m3dOnNumber(key, v) { m3dSet(key, v); m3dSyncPanel(); }
+function m3dResetOne() { if (!m3dSel) return; delete m3dTune[m3dSel]; m3dSave(); m3dSyncPanel(); m3dApplyTo(m3dSel); m3dRenderList(); showMsg('この1体をリセットしました'); }
+function m3dResetAll() { if (!confirm('全チャンピオンの調整値を消します。よろしいですか？')) return; m3dTune = {}; m3dSave(); m3dSyncPanel(); m3dRebuild(); m3dRenderList(); showMsg('すべてリセットしました'); }
+
+/* ── 自動フィット（中心を合わせ、大きさは1に戻す） ── */
+function m3dAutoFitOne() {
+  if (!m3dSel) return;
+  const t = m3dGet(m3dSel); t.x = 0; t.z = 0; t.y = 0;
+  m3dTune[m3dSel] = t; m3dSave(); m3dSyncPanel(); m3dApplyTo(m3dSel);
+  showMsg('中心と高さを自動で合わせました');
+}
+function m3dAutoAll() {
+  m3dChamps().forEach(c => { const t = m3dGet(c.id); t.x = 0; t.z = 0; t.y = 0; m3dTune[c.id] = t; });
+  m3dSave(); m3dSyncPanel(); m3dRebuild(); m3dRenderList();
+  showMsg('全体の中心と高さを自動で合わせました');
+}
+
+/* ── まとめて設定 ── */
+function m3dBulkTargets() {
+  const mode = document.getElementById('m3d-bulk-target').value;
+  const champs = m3dChamps();
+  if (mode === 'checked') return m3dCompare.slice();
+  if (mode === 'cost') { const c = champs.find(v => v.id === m3dSel); return c ? champs.filter(v => v.cost === c.cost).map(v => v.id) : []; }
+  return champs.map(v => v.id);
+}
+function m3dBulkApply() {
+  const key = document.getElementById('m3d-bulk-key').value;
+  const val = parseFloat(document.getElementById('m3d-bulk-val').value);
+  if (isNaN(val)) return showMsg('数値を入れてください', true);
+  const ids = m3dBulkTargets(); if (!ids.length) return showMsg('対象がありません', true);
+  ids.forEach(id => { const t = m3dGet(id); t[key] = val; m3dTune[id] = t; });
+  m3dSave(); m3dSyncPanel(); m3dCompare.forEach(m3dApplyTo); m3dRenderList();
+  showMsg(`${ids.length}体に適用しました`);
+}
+function m3dBulkFromCurrent() {
+  if (!m3dSel) return showMsg('先にチャンピオンを選んでください', true);
+  const key = document.getElementById('m3d-bulk-key').value;
+  const val = m3dGet(m3dSel)[key];
+  document.getElementById('m3d-bulk-val').value = val;
+  const ids = m3dBulkTargets().filter(id => id !== m3dSel);
+  ids.forEach(id => { const t = m3dGet(id); t[key] = val; m3dTune[id] = t; });
+  m3dSave(); m3dCompare.forEach(m3dApplyTo); m3dRenderList();
+  showMsg(`今の値（${val}）を${ids.length}体に配りました`);
+}
+
+/* ── 書き出し ── */
+function m3dSnippet() {
+  const champs = m3dChamps();
+  const lines = champs.filter(c => m3dTune[c.id]).map(c => {
+    const t = m3dGet(c.id), parts = [];
+    if (t.scale !== 1) parts.push(`scale:${t.scale}`);
+    if (t.x) parts.push(`x:${t.x}`);
+    if (t.y) parts.push(`y:${t.y}`);
+    if (t.z) parts.push(`z:${t.z}`);
+    if (t.rotY) parts.push(`rotY:${t.rotY} * Math.PI/180`);
+    return parts.length ? `  ${c.id}: { ${parts.join(', ')} },   // ${c.jaName}` : null;
+  }).filter(Boolean);
+  return 'const CHAMP_MODEL_TUNE = {\n' + lines.join('\n') + '\n};';
+}
+function m3dCopyTune() {
+  const txt = m3dSnippet();
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => showMsg('コピーしました。board3d.js の CHAMP_MODEL_TUNE と差し替えてください'), () => showMsg('コピーできませんでした', true));
+  else showMsg('コピーできませんでした', true);
+}
+function m3dDownloadTune() {
+  const blob = new Blob([m3dSnippet()], { type: 'text/javascript' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'CHAMP_MODEL_TUNE.js'; a.click();
+  showMsg('書き出しました');
+}
+
+/* デバッグ・検証用に主要処理を公開する */
+Object.assign(window, { m3dChamps, m3dGet, m3dSnippet, m3dModelUrls });
+
+/* タブを開いたときに初期化 */
+document.querySelector('.tab[data-page="models"]').addEventListener('click', () => {
+  setTimeout(() => {
+    m3dInit();
+    if (!m3dCompare.length) {
+      try { const raw = localStorage.getItem(M3D_KEY); m3dTune = raw ? JSON.parse(raw) : {}; } catch (e) {}
+      const first = m3dChamps()[0];
+      if (first) { m3dSel = first.id; m3dCompare = [first.id]; document.getElementById('m3d-current').textContent = first.jaName;
+        document.getElementById('m3d-controls').style.opacity = 1; document.getElementById('m3d-controls').style.pointerEvents = 'auto'; }
+      m3dRenderList(); m3dSyncPanel(); m3dRebuild();
+      document.getElementById('m3d-status').textContent = 'モデルを読み込んでいます…';
+    }
+  }, 30);
+});
+
 </script>
 <!-- 🗡️ 理想アイテム選択モーダル（チャンピオンエディタ用） -->
 <div id="ideal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:9000;align-items:center;justify-content:center" onclick="if(event.target===this)closeIdealPicker()">

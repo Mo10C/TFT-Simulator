@@ -15,75 +15,75 @@ const {useState:useState3D,useEffect:useEffect3D,useRef:useRef3D}=React;
    ── 優先順: CHAMPS の model → CHAMP_MODELS3D → 自動生成 */
 const CHAMP_MODELS3D = {
   /* ── 1コスト（14体） ── */
-  akali:        'models/akali_(tft_set_18).glb',
-  camille:      'models/camille_(tft_set_18).glb',
-  cinderling:   'models/cinderling_(tft_set_18).glb',
-  karma:        'models/karma_(tft_set_18).glb',
-  kobuko:       'models/kobuko_(tft_set_18).glb',
-  leona:        'models/leona_(tft_set_18).glb',
-  ornn:         'models/ornn_(tft_set_18).glb',
-  pebbles:      'models/pebbles_(tft_set_18).glb',
-  rakan:        'models/rakan_(tft_set_18).glb',
-  reksai:       'models/reksai_(tft_set_18).glb',
-  varus:        'models/varus_(tft_set_18).glb',
-  veigar:       'models/veigar_(tft_set_18).glb',
-  xayah:        'models/xayah_(tft_set_18).glb',
-  yorick:       'models/yorick_(tft_set_18).glb',
+  akali:          'akali_(tft_set_18).glb',
+  camille:        'camille_(tft_set_18).glb',
+  cinderling:     'cinderling_(tft_set_18).glb',
+  karma:          'karma_(tft_set_18).glb',
+  kobuko:         'kobuko_(tft_set_18).glb',
+  leona:          'leona_(tft_set_18).glb',
+  ornn:           'ornn_(tft_set_18).glb',
+  pebbles:        'pebbles_(tft_set_18).glb',
+  rakan:          'rakan_(tft_set_18).glb',
+  reksai:         'reksai_(tft_set_18).glb',
+  varus:          'varus_(tft_set_18).glb',
+  veigar:         'veigar_(tft_set_18).glb',
+  xayah:          'xayah_(tft_set_18).glb',
+  yorick:         'yorick_(tft_set_18).glb',
   /* ── 2コスト（13体） ── */
-  alistar:      'models/alistar_(tft_set_18).glb',
-  caitlyn:      'models/caitlyn_(tft_set_18).glb',
-  elise:        'models/elise_(tft_set_18).glb',
-  gromp:        'models/gromp_(tft_set_18).glb',
-  kayle:        'models/kayle_(tft_set_18).glb',
-  leblanc:      'models/leblanc_(tft_set_18).glb',
-  murkwolf:     'models/murkwolf_(tft_set_18).glb',
-  scuttlecrab:  'models/scuttlecrab_(tft_set_18).glb',
-  sejuani:      'models/sejuani_(tft_set_18).glb',
-  shen:         'models/shen_(tft_set_18).glb',
-  teemo:        'models/teemo_(tft_set_18).glb',
-  warwick:      'models/warwick_(tft_set_18).glb',
-  yunara:       'models/yunara_(tft_set_18).glb',
+  alistar:        'alistar_(tft_set_18).glb',
+  caitlyn:        'caitlyn_(tft_set_18).glb',
+  elise:          'elise_(tft_set_18).glb',
+  gromp:          'gromp_(tft_set_18).glb',
+  kayle:          'kayle_(tft_set_18).glb',
+  leblanc:        'leblanc_(tft_set_18).glb',
+  murkwolf:       'murkwolf_(tft_set_18).glb',
+  scuttlecrab:    'scuttlecrab_(tft_set_18).glb',
+  sejuani:        'sejuani_(tft_set_18).glb',
+  shen:           'shen_(tft_set_18).glb',
+  teemo:          'teemo_(tft_set_18).glb',
+  warwick:        'warwick_(tft_set_18).glb',
+  yunara:         'yunara_(tft_set_18).glb',
   /* ── 3コスト（14体） ── */
-  azir:         'models/azir_(tft_set_18).glb',
-  cassiopeia:   'models/cassiopeia_(tft_set_18).glb',
-  diana:        'models/diana_(tft_set_18).glb',
-  fiddlesticks: 'models/fiddlesticks_(tft_set_18).glb',
-  hecarim:      'models/hecarim_(tft_set_18).glb',
-  khazix:       'models/khazix_(tft_set_18).glb',
-  kogmaw:       'models/kogmaw_(tft_set_18).glb',
-  krug:         'models/krug_(tft_set_18).glb',
-  mamabeak:     'models/mamabeak_(tft_set_18).glb',
-  masteryi:     'models/masteryi_(tft_set_18).glb',
-  rammus:       'models/rammus_(tft_set_18).glb',
-  rengar:       'models/rengar_(tft_set_18).glb',
-  tristana:     'models/tristana_(tft_set_18).glb',
-  vi:           'models/vi_(tft_set_18).glb',
+  azir:           'azir_(tft_set_18).glb',
+  cassiopeia:     'cassiopeia_(tft_set_18).glb',
+  diana:          'diana_(tft_set_18).glb',
+  fiddlesticks:   'fiddlesticks_(tft_set_18).glb',
+  hecarim:        'hecarim_(tft_set_18).glb',
+  khazix:         'khazix_(tft_set_18).glb',
+  kogmaw:         'kogmaw_(tft_set_18).glb',
+  krug:           'krug_(tft_set_18).glb',
+  mamabeak:       'mamabeak_(tft_set_18).glb',
+  masteryi:       'masteryi_(tft_set_18).glb',
+  rammus:         'rammus_(tft_set_18).glb',
+  rengar:         'rengar_(tft_set_18).glb',
+  tristana:       'tristana_(tft_set_18).glb',
+  vi:             'vi_(tft_set_18).glb',
   /* ── 4コスト（14体） ── */
-  ahri:         'models/ahri_(tft_set_18).glb',
-  amumu:        'models/amumu_(tft_set_18).glb',
-  aphelios:     'models/aphelios_(tft_set_18).glb',
-  brambleback:  'models/brambleback_(tft_set_18).glb',
-  ezreal:       'models/ezreal_(tft_set_18).glb',
-  lillia:       'models/lillia_(tft_set_18).glb',
-  malphite:     'models/malphite_(tft_set_18).glb',
-  morgana:      'models/morgana_(tft_set_18).glb',
-  nidalee:      'models/nidalee_(tft_set_18).glb',
-  sentinel:     'models/sentinel_(tft_set_18).glb',
-  sett:         'models/sett_(tft_set_18).glb',
-  sivir:        'models/sivir_(tft_set_18).glb',
-  soraka:       'models/soraka_(tft_set_18).glb',
-  zyra:         'models/zyra_(tft_set_18).glb',
+  ahri:           'ahri_(tft_set_18).glb',
+  amumu:          'amumu_(tft_set_18).glb',
+  aphelios:       'aphelios_(tft_set_18).glb',
+  brambleback:    'brambleback_(tft_set_18).glb',
+  ezreal:         'ezreal_(tft_set_18).glb',
+  lillia:         'lillia_(tft_set_18).glb',
+  malphite:       'malphite_(tft_set_18).glb',
+  morgana:        'morgana_(tft_set_18).glb',
+  nidalee:        'nidalee_(tft_set_18).glb',
+  sentinel:       'sentinel_(tft_set_18).glb',
+  sett:           'sett_(tft_set_18).glb',
+  sivir:          'sivir_(tft_set_18).glb',
+  soraka:         'soraka_(tft_set_18).glb',
+  zyra:           'zyra_(tft_set_18).glb',
   /* ── 5コスト（10体） ── */
-  alune:        'models/alune_(tft_set_18).glb',
-  ashe:         'models/ashe_(tft_set_18).glb',
-  draven:       'models/draven_(tft_set_18).glb',
-  elderdragon:  'models/elderdragon_(tft_set_18).glb',
-  gnar:         'models/gnar_(tft_set_18).glb',
-  ivern:        'models/ivern_(tft_set_18).glb',
-  kennen:       'models/kennen_(tft_set_18).glb',
-  lux:          'models/lux_(tft_set_18).glb',
-  maokai:       'models/maokai_(tft_set_18).glb',
-  taric:        'models/taric_(tft_set_18).glb',
+  alune:          'alune_(tft_set_18).glb',
+  ashe:           'ashe_(tft_set_18).glb',
+  draven:         'draven_(tft_set_18).glb',
+  elderdragon:    'elderdragon_(tft_set_18).glb',
+  gnar:           'gnar_(tft_set_18).glb',
+  ivern:          'ivern_(tft_set_18).glb',
+  kennen:         'kennen_(tft_set_18).glb',
+  lux:            'lux_(tft_set_18).glb',
+  maokai:         'maokai_(tft_set_18).glb',
+  taric:          'taric_(tft_set_18).glb',
 };
 
 /* 🗂️ モデルファイルの置き場と命名規則
@@ -92,7 +92,15 @@ const CHAMP_MODELS3D = {
    ── CHAMP_MODELS3D に載っていないチャンピオン（新規追加など）は、この規則で自動生成する。
    ── セット番号は sim-config.js の set（'set18' 等）から自動で決まる。
    ── 置き場所を変える場合は B3D_MODEL_BASE だけ書き換える。 */
-const B3D_MODEL_BASE = '';   // 別フォルダに置く場合のみ 'models/' のように設定する
+const B3D_MODEL_BASE = 'models/';   // モデルの置き場（末尾スラッシュ付き）。同階層なら '' にする
+/* 置き場所が変わっても動くよう、候補を順に試す（最初に見つかったものを使う） */
+function b3dModelCandidates(url){
+  if(!url) return [];
+  if(/^https?:\/\//.test(url)) return [url];          // 絶対URLはそのまま
+  const file = url.replace(/^.*\//, '');
+  const list = [url, 'models/' + file, file];
+  return [...new Set(list)];
+}
 const B3D_SET_NO = (function(){
   try { return String((window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18').replace(/[^0-9]/g, '') || '18'; }
   catch(e){ return '18'; }
@@ -249,6 +257,16 @@ function b3dMakeAnvil(u){
    立て看板が一瞬見えてしまうため。 */
 const b3dModelCache = new Map();   // url -> { gltf } / Promise
 const b3dFailedModels = new Set();   // 取得できなかったURL（毎回リトライしないよう記録）
+/* 候補を順に試し、最初に読めたものを返す */
+function b3dLoadModelAny(url){
+  const cands = b3dModelCandidates(url);
+  if(!cands.length) return Promise.reject(new Error('no url'));
+  let i = 0;
+  const next = () => b3dLoadModel(cands[i]).catch(err => {
+    i++; return (i < cands.length) ? next() : Promise.reject(err);
+  });
+  return next();
+}
 function b3dLoadModel(url){
   if(b3dFailedModels.has(url)) return Promise.reject(new Error('model unavailable'));
   const hit=b3dModelCache.get(url);
@@ -542,15 +560,15 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     }
     const base=b3dMakeBase(u); if(base) g.add(base);   // 台座（空実装なら何も足さない）
     if(modelUrl && THREE.GLTFLoader){
-      const cached = b3dModelCache.get(modelUrl);
-      if(b3dFailedModels.has(modelUrl)){
+      const cached = b3dModelCandidates(modelUrl).map(u=>b3dModelCache.get(u)).find(c=>c&&c.gltf);
+      if(b3dModelCandidates(modelUrl).every(u=>b3dFailedModels.has(u))){
         g.add(b3dMakeStandee(u,boardIcon));       // 取得できないと分かっているものは即カード表示
       } else if(cached && cached.gltf){
         // 読み込み済み：立て看板を挟まずそのままモデルを出す（ちらつき防止）
         b3dAttachModel(S, g, key, cached.gltf, u.id);
       } else {
         g.add(b3dMakeStandee(u,boardIcon));   // 初回のみ、ロード完了まで立て看板
-        b3dLoadModel(modelUrl).then(gltf=>{
+        b3dLoadModelAny(modelUrl).then(gltf=>{
           if(!g.parent) return;               // 待っている間に消えていたら何もしない
           b3dAttachModel(S, g, key, gltf, u.id);
         }).catch(()=>{});
