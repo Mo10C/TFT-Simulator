@@ -36,6 +36,13 @@ const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*thi
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
 const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
 
+/* テクスチャを sRGB として扱う（r128=encoding / r152+=colorSpace の両対応） */
+function b3dSetSRGB(t){
+  if(!t) return t;
+  if(THREE.SRGBColorSpace !== undefined) t.colorSpace = THREE.SRGBColorSpace;
+  else if(THREE.sRGBEncoding !== undefined) t.encoding = THREE.sRGBEncoding;
+  return t;
+}
 function b3dRoundRect(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
 
 function b3dStandeeTexture(unit, boardIcon){
@@ -50,7 +57,7 @@ function b3dStandeeTexture(unit, boardIcon){
     g.lineWidth=6; g.strokeStyle=cost; b3dRoundRect(g,8,8,240,304,20); g.stroke();
     g.fillStyle='#e6edf7'; g.font='900 30px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
     g.fillText(unit.jaName||unit.name||'',128,276); tex.needsUpdate=true; };
-  const tex=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) tex.colorSpace=THREE.SRGBColorSpace; draw(null);
+  const tex=new THREE.CanvasTexture(cv); b3dSetSRGB(tex); draw(null);
   try{ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=boardIcon(unit.id); }catch(e){}
   return tex;
 }
@@ -60,7 +67,7 @@ function b3dStarTexture(star){
   g.fillStyle=star>=3?'#f4c04a':(star>=2?'#d7dbe2':'#c98b52');
   g.strokeStyle='rgba(0,0,0,.8)'; g.lineWidth=5;
   const s='★'.repeat(Math.max(1,Math.min(3,star||1))); g.strokeText(s,96,26); g.fillText(s,96,26);
-  const t=new THREE.CanvasTexture(cv); if(THREE.SRGBColorSpace) t.colorSpace=THREE.SRGBColorSpace; return t;
+  const t=new THREE.CanvasTexture(cv); b3dSetSRGB(t); return t;
 }
 function b3dMakeBase(unit){
 
@@ -136,6 +143,63 @@ function b3dMakeAnvil(u){
   foot.position.y=B3D.TOP+0.06; g.add(foot);
   return g;
 }
+/* ── モデル読み込みキャッシュ ──
+   同じ .glb を何度も取りに行かないよう保持する。移動や★アップのたびに再読込すると
+   立て看板が一瞬見えてしまうため。 */
+const b3dModelCache = new Map();   // url -> { gltf } / Promise
+function b3dLoadModel(url){
+  const hit=b3dModelCache.get(url);
+  if(hit && hit.promise) return hit.promise;
+  if(hit && hit.gltf) return Promise.resolve(hit.gltf);
+  const p=new Promise((res,rej)=>{
+    try{ new THREE.GLTFLoader().load(url,(gltf)=>{ b3dModelCache.set(url,{gltf}); res(gltf); }, undefined, rej); }
+    catch(e){ rej(e); }
+  });
+  b3dModelCache.set(url,{promise:p});
+  p.catch(()=>b3dModelCache.delete(url));
+  return p;
+}
+
+/* ── 材質の補正 ──
+   three r128 では outputEncoding / texture.encoding を sRGB にしないと暗く沈む。
+   加えて metalness が高い素材は環境マップが無いと真っ黒になるため落としておく。 */
+function b3dFixMaterials(root){
+  const sRGB = THREE.sRGBEncoding;
+  root.traverse(n=>{
+    if(!n.isMesh || !n.material) return;
+    const mats = Array.isArray(n.material) ? n.material : [n.material];
+    mats.forEach(m=>{
+      if(!m) return;
+      if(m.map){ b3dSetSRGB(m.map); m.map.needsUpdate=true; }
+      if(m.emissiveMap) b3dSetSRGB(m.emissiveMap);
+      if(typeof m.metalness==='number' && m.metalness>0.25) m.metalness=0.15;  // 環境マップ無しの黒化を防ぐ
+      if(typeof m.roughness==='number' && m.roughness<0.35) m.roughness=0.6;
+      if(m.color && m.color.getHex()===0x000000 && m.map) m.color.setHex(0xffffff); // 黒ベースカラーで潰れるのを回避
+      m.side=THREE.DoubleSide;
+      m.needsUpdate=true;
+    });
+  });
+}
+
+/* ── 読み込んだモデルを駒に取り付ける（複製して使う） ── */
+function b3dAttachModel(S, g, key, gltf){
+  let m;
+  if(THREE.SkeletonUtils && THREE.SkeletonUtils.clone) m=THREE.SkeletonUtils.clone(gltf.scene);
+  else m=gltf.scene.clone(true);
+  b3dFitModel(m);
+  b3dFixMaterials(m);
+  if(gltf.animations && gltf.animations.length>0){
+    const mixer=new THREE.AnimationMixer(m);
+    const clip = gltf.animations.find(c=>c.name.toLowerCase().includes('idle1'))
+      || gltf.animations.find(c=>c.name.toLowerCase().includes('idle'))
+      || gltf.animations[0];
+    mixer.clipAction(clip).play();
+    S.mixers.set(key, mixer);
+  }
+  g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c));
+  g.add(m);
+}
+
 function b3dDispose(g){
   g.traverse(n=>{ if(n.geometry&&n.geometry.dispose) n.geometry.dispose();
     if(n.material){ const ms=Array.isArray(n.material)?n.material:[n.material];
@@ -143,14 +207,55 @@ function b3dDispose(g){
 }
 function b3dSync(S, board, bench, boardIcon, champModels){
   const { boardGroup, slots, pieces } = S;
+
+  // ── 1) 各スロットに「本来あるべき駒」を割り出す
+  const want=new Map();
+  slots.forEach(h=>{
+    const { kind, idx } = h.userData;
+    const src = (kind==='bench') ? bench : board;
+    const u = (src && src[idx]) || null;
+    if(!u) return;
+    const isAnvil = !!u.isAnvil;
+    const modelUrl = !isAnvil ? (u.model || (champModels && champModels[u.id]) || '') : '';
+    const sig=`${u.uid||u.id}|${isAnvil?'anvil':u.star}|${(u.items||[]).length}|${modelUrl}`;
+    want.set(kind+':'+idx, { slot:h, kind, idx, u, isAnvil, modelUrl, sig });
+  });
+
+  // ── 2) 既にある駒を sig で引けるようにする（同じ駒が別マスへ移動した場合の受け皿）
+  const bySig=new Map();
+  pieces.forEach((g,k)=>{ const s=g.userData.sig; if(!bySig.has(s)) bySig.set(s,[]); bySig.get(s).push(k); });
+
+  // ── 3) 移動：同じ駒が別スロットに現れたら、作り直さずそのまま動かす（モデル再読込のちらつき防止）
+  const moved=new Map();
+  want.forEach((w,key)=>{
+    const cur=pieces.get(key);
+    if(cur && cur.userData.sig===w.sig) return;           // 変化なし
+    const cands=bySig.get(w.sig);
+    if(!cands || !cands.length) return;
+    // 別スロットにいる同一の駒を探す（そのスロットがもう同じ駒を必要としていない場合のみ）
+    const fromKey=cands.find(k=>{ if(k===key) return false;
+      const stillWanted=want.get(k); return !(stillWanted && stillWanted.sig===w.sig); });
+    if(!fromKey) return;
+    const g=pieces.get(fromKey); if(!g) return;
+    cands.splice(cands.indexOf(fromKey),1);
+    pieces.delete(fromKey);
+    const home={x:w.slot.userData.x, y:w.slot.userData.y||0, z:w.slot.userData.z};
+    g.position.set(home.x,home.y,home.z);
+    g.userData.home=home; g.userData.kind=w.kind; g.userData.idx=w.idx;
+    moved.set(key,g);
+    if(S.mixers && S.mixers.has(fromKey)){ const mx=S.mixers.get(fromKey); S.mixers.delete(fromKey); S.mixers.set(key,mx); }
+  });
+  moved.forEach((g,key)=>pieces.set(key,g));
+
+  // ── 4) 残り（新規作成・削除）を処理
   slots.forEach(h=>{
     const { kind, idx } = h.userData;
     const key = kind + ':' + idx;
-    const src = (kind==='bench') ? bench : board;
-    const u = (src && src[idx]) || null;
-    const isAnvil = !!(u && u.isAnvil);
-    const modelUrl = (u && !isAnvil) ? (u.model || (champModels && champModels[u.id]) || '') : '';
-    const sig=u ? `${u.uid||u.id}|${isAnvil?'anvil':u.star}|${(u.items||[]).length}|${modelUrl}` : null;
+    const w = want.get(key);
+    const u = w ? w.u : null;
+    const isAnvil = w ? w.isAnvil : false;
+    const modelUrl = w ? w.modelUrl : '';
+    const sig = w ? w.sig : null;
     const cur=pieces.get(key);
     if(cur && cur.userData.sig===sig) return;
     if(cur){ 
@@ -173,27 +278,17 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     }
     const base=b3dMakeBase(u); if(base) g.add(base);   // 台座（空実装なら何も足さない）
     if(modelUrl && THREE.GLTFLoader){
-      g.add(b3dMakeStandee(u,boardIcon));   // ロード完了まで立て看板
-      try{ 
-         new THREE.GLTFLoader().load(modelUrl,(gltf)=>{ 
-            const m=gltf.scene; 
-            b3dFitModel(m);
-            //  アニメーションが存在する場合は再生する
-            if (gltf.animations && gltf.animations.length > 0) {
-               const mixer = new THREE.AnimationMixer(m);
-               // 通常、待機アニメーション（Idle）は最初の要素（index 0）に入っていることが多いです
-               const clip = gltf.animations.find(c => c.name.toLowerCase().includes('idle1'))
-                  || gltf.animations.find(c => c.name.toLowerCase().includes('idle'))
-                  || gltf.animations[0];
-               const action = mixer.clipAction(clip);
-               action.play();
-        
-               // ミキサーを保持（駒が削除されたときにクリーンアップできるようにする）
-               S.mixers.set(key, mixer);
-            }
-            g.children.filter(c=>c.userData&&c.userData.b3dSprite).forEach(c=>g.remove(c)); 
-            g.add(m);
-      }, undefined, ()=>{}); }catch(e){}
+      const cached = b3dModelCache.get(modelUrl);
+      if(cached && cached.gltf){
+        // 読み込み済み：立て看板を挟まずそのままモデルを出す（ちらつき防止）
+        b3dAttachModel(S, g, key, cached.gltf);
+      } else {
+        g.add(b3dMakeStandee(u,boardIcon));   // 初回のみ、ロード完了まで立て看板
+        b3dLoadModel(modelUrl).then(gltf=>{
+          if(!g.parent) return;               // 待っている間に消えていたら何もしない
+          b3dAttachModel(S, g, key, gltf);
+        }).catch(()=>{});
+      }
     } else {
       g.add(b3dMakeStandee(u,boardIcon));
     }
@@ -227,7 +322,10 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
       renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
       renderer.shadowMap.enabled = true; if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // 色空間：r128 は outputEncoding、r152+ は outputColorSpace。両対応にしないとモデルが暗くなる
+      if (THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      else if (THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
+      renderer.physicallyCorrectLights = false;
       mount.appendChild(renderer.domElement);
 
       const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -235,7 +333,8 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       controls.minDistance = 6; controls.maxDistance = 26; controls.maxPolarAngle = Math.PI*0.49;
       controls.target.set(0,0,0);
 
-      scene.add(new THREE.HemisphereLight(0x9fc4ff, 0x0a1120, 0.7));
+      scene.add(new THREE.HemisphereLight(0xdCE8ff, 0x33405c, 1.15));
+      scene.add(new THREE.AmbientLight(0xffffff, 0.55));   // 影側が黒く潰れないよう底上げ
       const keyL = new THREE.DirectionalLight(0xffffff, 1.8); keyL.position.set(6,14,7);
       keyL.castShadow = true; keyL.shadow.mapSize.set(1024,1024);
       keyL.shadow.camera.left=-12; keyL.shadow.camera.right=12; keyL.shadow.camera.top=12; keyL.shadow.camera.bottom=-12;
