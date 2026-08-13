@@ -5622,6 +5622,64 @@ const handleAugmentPick = (aug, historyContext) => {
   };
 
   const getMinReq = (t) => TRAIT_TIERS[t] ? TRAIT_TIERS[t][0] : 2;
+
+  /* 🔰 シナジー1行（本家の表示に合わせる）
+     ── 六角アイコンの色＝発動段階（ブロンズ→シルバー→ゴールド→プリズム）
+     ── 発動中は段階のしきい値を「3 › 5 › 7」と並べ、到達済みを強調
+     ── 未発動は「1/2」のように、あと何体で発動するかを出す */
+  const TIER_STYLE = [
+    { bg:'#7c4a21', fg:'#f0c9a0', bd:'#a4642c' },   // ブロンズ
+    { bg:'#5c6672', fg:'#e6edf7', bd:'#8b97a5' },   // シルバー
+    { bg:'#a8842a', fg:'#ffeeb6', bd:'#d9b23c' },   // ゴールド
+    { bg:'#7a33cc', fg:'#f0dcff', bd:'#a86ce0' },   // プリズム
+  ];
+  const traitTierIndex = (t, c) => {
+    const tiers = TRAIT_TIERS[t] || [2];
+    let i = -1;
+    tiers.forEach((n, k) => { if (c >= n) i = k; });
+    return { index: i, tiers };
+  };
+  const TraitRow = ({ t, c, active }) => {
+    const { index, tiers } = traitTierIndex(t, c);
+    const last = tiers.length - 1;
+    // 段階数に応じて色を割り当てる（最上位は必ずプリズム扱い）
+    const styleIdx = !active ? -1 : (index >= last ? 3 : Math.min(index, 2));
+    const st = TIER_STYLE[styleIdx] || { bg:'rgba(28,40,60,.85)', fg:'#9fb0c8', bd:'rgba(255,255,255,.16)' };
+    const next = tiers.find(n => n > c);
+    return (
+      <div key={t}
+        onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)}
+        onMouseLeave={() => setTraitTooltipData(null)}
+        className={active ? 'syn-row syn-on' : 'syn-row syn-off'}
+        style={{ display:'flex', alignItems:'center', gap:7, marginBottom:4, padding:'4px 7px',
+          borderRadius:7, background: active ? 'rgba(18,26,40,.92)' : 'rgba(18,26,40,.66)',
+          border:`1px solid ${active ? st.bd : 'rgba(255,255,255,.14)'}` }}>
+        {/* 六角形のアイコン枠 */}
+        <div className="syn-hex" style={{ position:'relative', width:22, height:24, flexShrink:0,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          background: st.bg, clipPath:'polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)' }}>
+          <img src={getTraitIconUrl(t)} style={{ width:13, height:13, filter:'brightness(0) invert(1)', opacity: active ? 1 : .65 }}
+            onError={(e) => e.target.style.display='none'} />
+        </div>
+        <div style={{ minWidth:0, flex:1 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:5 }}>
+            <span className="syn-count" style={{ fontSize:11, fontWeight:900, color: active ? st.fg : '#9fb0c8' }}>{c}</span>
+            <span className="syn-name" style={{ fontSize:11, fontWeight:900, color: active ? '#ffffff' : '#b9c6d8',
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{getTraitJaName(t)}</span>
+          </div>
+          <div className="syn-tiers" style={{ fontSize:9, letterSpacing:.3, color:'#7f8ea3', marginTop:1 }}>
+            {active
+              ? tiers.map((n, k) => (
+                  <span key={n}>
+                    <span style={{ color: c >= n ? st.fg : '#7f8ea3', fontWeight: c >= n ? 900 : 400 }}>{n}</span>
+                    {k < tiers.length - 1 && <span style={{ opacity:.5 }}> › </span>}
+                  </span>))
+              : <span>{c}/{next || tiers[0]}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  };
   const activeTraits = Object.entries(traitCounts).filter(([t,c]) => c >= getMinReq(t)).sort((a,b) => b[1]-a[1]);
   const inactiveTraits = Object.entries(traitCounts).filter(([t,c]) => c < getMinReq(t)).sort((a,b) => b[1]-a[1]);
 
@@ -6267,8 +6325,8 @@ const handleAugmentPick = (aug, historyContext) => {
               <div style={{ fontSize:8, color:'var(--blue)', fontFamily:'Noto Sans JP' }}>ユニット数</div>
               <div style={{ fontSize:14, color:'var(--text-main)', fontWeight:900, fontFamily:'Orbitron' }}>{board.filter(Boolean).length}/{passiveBuffs.some(b => b.type === 'solo_leveling') ? 1 : level + teamSizeBonus}</div>
             </div>
-            {activeTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg1)', borderRadius:6, padding:6, border:'1px solid var(--gold)', color:'var(--text-main)', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
-            {inactiveTraits.map(([t,c]) => (<div key={t} onMouseEnter={(e) => handleTraitMouseEnter(e, t, c)} onMouseLeave={() => setTraitTooltipData(null)} style={{ fontSize:10, marginBottom:4, background:'var(--bg2)', borderRadius:6, padding:6, border:'1px dashed var(--border)', color:'var(--textdim)', display:'flex', alignItems:'center', gap:6 }}><img src={getTraitIconUrl(t)} style={{ width:14, height:14, opacity:0.5, filter:'brightness(0)' }} onError={(e) => e.target.style.display='none'}/><span>{c} {getTraitJaName(t)}</span></div>))}
+            {activeTraits.map(([t,c]) => <TraitRow key={t} t={t} c={c} active={true} />)}
+            {inactiveTraits.map(([t,c]) => <TraitRow key={t} t={t} c={c} active={false} />)}
           </div>
           {/* アイテム欄 */}
           <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>

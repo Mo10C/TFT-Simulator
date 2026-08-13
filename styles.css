@@ -332,11 +332,27 @@ body.dark {
   overflow: hidden;
 }
 
-/* オーバーレイ上の文字はガラス背景に合わせて明るく */
+/* オーバーレイ上の文字はガラス背景に合わせて明るく。
+   インラインで明るいテーマ用の濃い色が入っているため !important で上書きする。 */
 .b3d-full .sp-left-side,
 .b3d-full .sp-left-side *,
 .b3d-full .sp-right-aug,
-.b3d-full .sp-right-aug * { color: #e8eefc; }
+.b3d-full .sp-right-aug * { color: #eaf1ff !important; }
+
+/* 「ユニット数」枠は青のアクセントを残す */
+.b3d-full .sp-left-trait > div[style*="text-align"] {
+  background: rgba(26, 159, 255, 0.18) !important;
+  border-color: #4aa8ff !important;
+}
+/* シナジー行は自前で配色を持つので、上の文字色の一括指定を打ち消す */
+.b3d-full .syn-row, .b3d-full .syn-row * { color: inherit !important; }
+.b3d-full .syn-row .syn-name { color: #ffffff !important; }
+.b3d-full .syn-off .syn-name { color: #b9c6d8 !important; }
+.b3d-full .syn-row .syn-tiers { color: #7f8ea3 !important; }
+.b3d-full .syn-row img { filter: brightness(0) invert(1) !important; }
+/* 見出し（ユニット数・アイテム）はガラス上でも沈まないよう明るい金に */
+.b3d-full .sp-left-side [style*="var(--blue)"] { color: #8fc7ff !important; }
+.b3d-full .sp-left-item [style*="var(--gold)"] { color: #ffd76e !important; }
 
 /* パネル内の不透明な背景を透過させて、下の3D盤面を透かす */
 .b3d-full .sp-left-trait,
