@@ -178,3 +178,29 @@ const RADIANT_ITEMS = [
   { id: 'r_guardbreaker', name: 'Willbreaker', jaName: 'レディアント ストライカー フレイル', type: 'radiant', imgName: 'tft5_item_trapclawradiant' },
   { id: 'r_thiefs', name: "Rascal's sparringglovess", jaName: 'レディアント 盗賊のグローブ', type: 'radiant', imgName: 'tft5_item_thiefssparringglovessradiant' }
 ];
+
+
+/* ═══ SIM-EDITOR MANAGED BLOCK START（自動生成・手動で編集しない） ═══ */
+(function(){
+  const HIDDEN = [];
+  const TAGS = {"emblem_darkstar":"set17","emblem_timebreaker":"set17","emblem_stargazer":"set17","emblem_spacegroove":"set17","emblem_meeple":"set17","emblem_arbiter":"set17","emblem_primordian":"set17","emblem_nova":"set17","emblem_marauder":"set17","emblem_voyager":"set17","emblem_challenger":"set17","emblem_shepherd":"set17","emblem_bastion":"set17","emblem_rogue":"set17","emblem_anima":"set17","emblem_psionic":"set17","emblem_sniper":"set17","ahris_aura":"set17","evelynns_intuition":"set17","varuss_tenacity":"set17","threshs_lantern":"set17","sorakas_miracle":"set17","yasuos_bladework":"set17"};
+  const ADDED = [];
+  const ADDED_JA = {};
+  const mark = (it) => { if (!it || !it.id) return;
+    if (HIDDEN.includes(it.id)) it.hidden = true;
+    if (TAGS[it.id]) it.setTag = TAGS[it.id]; };
+  (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(mark);
+  Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(mark);
+  (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(mark);
+  // 日本語名は各アイテムの jaName に直接反映する（ITEM_JA は旧形式のデータ用）
+  const setJa = (it) => { if (it && it.name && ADDED_JA[it.name]) it.jaName = ADDED_JA[it.name]; };
+  (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(setJa);
+  Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(setJa);
+  Object.values(typeof CONSUMABLES !== 'undefined' ? CONSUMABLES : {}).forEach(setJa);
+  (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(setJa);
+  (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(setJa);
+  if (typeof ITEM_JA !== 'undefined') Object.assign(ITEM_JA, ADDED_JA);
+  ADDED.forEach(it => { if (it.type === 'comp' && typeof ITEMS !== 'undefined') ITEMS.push(it);
+    else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it); });
+})();
+/* ═══ SIM-EDITOR MANAGED BLOCK END ═══ */
