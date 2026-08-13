@@ -601,6 +601,13 @@ function buildManagedBlock(kind, state) {
   (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(mark);
   Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(mark);
   (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(mark);
+  // 日本語名は各アイテムの jaName に直接反映する（ITEM_JA は旧形式のデータ用）
+  const setJa = (it) => { if (it && it.name && ADDED_JA[it.name]) it.jaName = ADDED_JA[it.name]; };
+  (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(setJa);
+  Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(setJa);
+  Object.values(typeof CONSUMABLES !== 'undefined' ? CONSUMABLES : {}).forEach(setJa);
+  (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(setJa);
+  (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(setJa);
   if (typeof ITEM_JA !== 'undefined') Object.assign(ITEM_JA, ADDED_JA);
   ADDED.forEach(it => { if (it.type === 'comp' && typeof ITEMS !== 'undefined') ITEMS.push(it);
     else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it); });`;
@@ -1064,18 +1071,19 @@ function loadItemText(text) {
       return { ITEMS: typeof ITEMS!=='undefined'?ITEMS:[], ITEM_RECIPES: typeof ITEM_RECIPES!=='undefined'?ITEM_RECIPES:{},
                ARTIFACTS: typeof ARTIFACTS!=='undefined'?ARTIFACTS:[], ITEM_JA: typeof ITEM_JA!=='undefined'?ITEM_JA:{},
                RADIANT_ITEMS: typeof RADIANT_ITEMS!=='undefined'?RADIANT_ITEMS:[], PSIONIC_ITEMS: typeof PSIONIC_ITEMS!=='undefined'?PSIONIC_ITEMS:[] };`)();
-    const ja = (n) => itemMB.addedJa[n] || got.ITEM_JA[n] || n;
+    // 日本語名は各アイテムの jaName が基本。ITEM_JA は旧形式のデータ用の受け皿として残す
+    const ja = (n, it) => itemMB.addedJa[n] || (it && it.jaName) || (got.ITEM_JA || {})[n] || n;
     itemList = [
-      ...got.ITEMS.map(it => ({ id: it.id, name: it.name, ja: ja(it.name), type: it.type || 'comp', imgName: it.imgName })),
-      ...Object.values(got.ITEM_RECIPES).map(it => ({ id: it.id, name: it.name, ja: ja(it.name), type: 'completed', imgName: it.imgName })),
-      ...got.ARTIFACTS.map(it => ({ id: it.id, name: it.name, ja: it.jaName || ja(it.name), type: 'artifact', imgName: it.imgName })),
+      ...got.ITEMS.map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: it.type || 'comp', imgName: it.imgName })),
+      ...Object.values(got.ITEM_RECIPES).map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: 'completed', imgName: it.imgName })),
+      ...got.ARTIFACTS.map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: 'artifact', imgName: it.imgName })),
       ...itemMB.added.map(it => ({ id: it.id, name: it.name, ja: itemMB.addedJa[it.name] || it.jaName || it.name, type: it.type, imgName: it.imgName, isAdded: true })),
     ];
 
     // 🇯🇵 記録タブ・集計用：英名→日本語の変換マップ（表記ゆれに強いよう小文字・記号除去キーでも引ける）
     window.__itemJaMap = {};
     const addJa = (k, v) => { if (!k || !v) return; window.__itemJaMap[k] = v; window.__itemJaMap[String(k).toLowerCase().replace(/['.\s]/g, '')] = v; };
-    Object.entries(got.ITEM_JA).forEach(([k, v]) => addJa(k, v));
+    Object.entries(got.ITEM_JA || {}).forEach(([k, v]) => addJa(k, v));
     itemList.forEach(it => addJa(it.name, it.ja));
     got.RADIANT_ITEMS.forEach(it => { addJa(it.name, it.jaName); addJa(it.id, it.jaName); addJa(it.imgName, it.jaName); });
     got.PSIONIC_ITEMS.forEach(it => { addJa(it.name, it.jaName); });

@@ -519,6 +519,12 @@ const __itemKey = (s) => String(s || '').toLowerCase()
 const __buildItemJaIndex = () => {
   const idx = new Map();
   const put = (k, ja) => { const kk = __itemKey(k); if (kk && ja && !idx.has(kk)) idx.set(kk, ja); };
+  // ① ITEM_JA（旧形式）。今は各アイテムの jaName に統合済みだが、
+  //    古い data-items.js を読み込んだ場合の受け皿として残しておく。
+  if (typeof ITEM_JA !== 'undefined' && ITEM_JA) {
+    Object.entries(ITEM_JA).forEach(([k, v]) => { put(k, v); });
+  }
+  // ② 各データの jaName（こちらが本来の日本語名）
   const feed = (list) => {
     (Array.isArray(list) ? list : Object.values(list || {})).forEach(it => {
       if (!it || !it.jaName) return;
@@ -532,17 +538,24 @@ const __buildItemJaIndex = () => {
   if (typeof CONSUMABLES !== 'undefined') feed(CONSUMABLES);
   if (typeof ARTIFACTS !== 'undefined') feed(ARTIFACTS);
   if (typeof RADIANT_ITEMS !== 'undefined') feed(RADIANT_ITEMS);
+  // ③ ITEM_JA の値側（日本語名そのもの）でも引けるようにしておく
+  if (typeof ITEM_JA !== 'undefined' && ITEM_JA) {
+    Object.values(ITEM_JA).forEach(v => put(v, v));
+  }
   return idx;
 };
 const resolveItemJa = (name) => {
   if (!name) return "";
-  // オブジェクトを渡された場合も拾えるようにする
-  if (typeof name === 'object') {
-    if (name.jaName) return name.jaName;
-    name = name.name || name.id || name.imgName || '';
-    if (!name) return "";
-  }
   if (!__itemJaIndex) { try { __itemJaIndex = __buildItemJaIndex(); } catch (e) { __itemJaIndex = new Map(); } }
+  // オブジェクトを渡された場合は、名前・id など引ける手がかりを順に試す
+  if (typeof name === 'object') {
+    const keys = [name.name, name.id, name.imgName, name.jaName];
+    for (const k of keys) {
+      const h = k && __itemJaIndex.get(__itemKey(k));
+      if (h) return h;
+    }
+    return name.jaName || name.name || "";
+  }
   const hit = __itemJaIndex.get(__itemKey(name));
   if (hit) return hit;
   // 見つからなければそのまま返す
@@ -624,22 +637,40 @@ const getAugmentIconUrl = (aug) => {
 //    ・サイオニック（日本語名で保存）→ 画像URLが引けずアイコンが出ない
 //    ・アーティファクト/レディアント/消費アイテム → type が失われ枠色（赤/金）が出ない
 //    という問題が起きる。ここで imgName / type を補完してから HexCell に渡す。
+/* 📦 記録からアイテムを復元する。
+   ── 保存形式は id に統一したが、過去の記録は英名・日本語名で保存されているため、
+      id / name / jaName / imgName のどれで来ても復元できるようにする。 */
 const hydrateItemByName = (n) => {
   if (!n) return { name: '' };
+  const hit = (it) => it && (it.id === n || it.name === n || it.jaName === n || it.imgName === n);
   if (typeof PSIONIC_ITEMS !== 'undefined' && Array.isArray(PSIONIC_ITEMS)) {
-    const psi = PSIONIC_ITEMS.find(p => p.jaName === n || p.name === n);
+    const psi = PSIONIC_ITEMS.find(hit);
     if (psi) return { name: psi.jaName, imgName: psi.name, isPsionic: true, type: 'completed' };
   }
-  const consumable = Object.values(CONSUMABLES).find(c => c.name === n || c.jaName === n);
+  const consumable = Object.values(CONSUMABLES).find(hit);
   if (consumable) return { ...consumable, type: 'consumable' };
 
   const sp = [
     ...(typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []),
     ...(typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []),
-  ].find(a => a.name === n || a.id === n || a.imgName === n || a.jaName === n);
+  ].find(hit);
   if (sp) return { ...sp };
+
+  const comp = (typeof ITEMS !== 'undefined' ? ITEMS : []).find(hit);
+  if (comp) return { ...comp };
+  const completed = Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).find(hit);
+  if (completed) return { ...completed, type: completed.type || 'completed' };
+
   return { name: n };
 };
+/* 集計用のキー。旧記録の英名・日本語名も id に寄せて、同じアイテムを二重に数えないようにする */
+const itemStatKey = (x) => {
+  if (!x) return '';
+  const it = hydrateItemByName(x);
+  return (it && it.id) || String(x);
+};
+/* 記録に保存するときのキー。id を最優先にする（表記ゆれや置換事故に強いため） */
+const itemRefKey = (it) => (it && (it.id || it.name || it.jaName)) || '';
 
 
 
@@ -658,7 +689,7 @@ const ENC_CHAMP_SPECS = {
 const packReplayUnit = (u) => {
   if (!u) return 0;                                   // 空きスロットは 0
   if (u.isAnvil) return { av: u.anvilType || 'component' };
-  return { i: u.id, s: u.star || 1, it: (u.items || []).map(x => x && (x.name || x.jaName)).filter(Boolean) };
+  return { i: u.id, s: u.star || 1, it: (u.items || []).map(itemRefKey).filter(Boolean) };
 };
 const unpackReplayUnit = (u) => {
   if (!u) return null;
@@ -670,7 +701,7 @@ const unpackReplayUnit = (u) => {
 const packReplayHistory = (hist) => (hist || []).map(f => ({
   l: f.label || '', rd: f.round, g: f.gold, lv: f.level, xp: f.xp, fr: f.freeRerolls || 0,
   au: (f.augments || []).map(a => ({ n: a.name, tr: a.tier, ic: a.icon || '' })),
-  iv: (f.inventory || []).map(it => ({ n: (it && it.name) || '', ic: (it && it.icon) || '', id: (it && it.id) || '', c: (it && it.count) || 1 })),
+  iv: (f.inventory || []).map(it => ({ n: itemRefKey(it), ic: (it && it.icon) || '', id: (it && it.id) || '', c: (it && it.count) || 1 })),
   bd: (f.board || []).map(packReplayUnit), bn: (f.bench || []).map(packReplayUnit), sh: (f.shop || []).map(packReplayUnit),
 }));
 const unpackReplayHistory = (packed) => (Array.isArray(packed) ? packed : []).map(f => ({
@@ -1213,7 +1244,8 @@ function SeedStatsDrawer({ seed, open, onClose }) {
       new Set((d.bench || []).map(u => u.id + '\u0001' + u.star + '\u0001' + u.jaName)).forEach(k => {
         const [id, star, jaName] = k.split('\u0001'); bump(benchMap, id + '_' + star, { id, star: Number(star), jaName });
       });
-      new Set(d.items || []).forEach(name => bump(itemMap, name, { name }));
+      // 新形式(id)と旧形式(英名)が混在しても同じアイテムとして数えるよう、idに寄せて集計する
+      new Set((d.items || []).map(x => itemStatKey(x))).forEach(key => bump(itemMap, key, { name: key }));
     });
     const sorted = (m) => [...m.values()].sort((a, b) => b.count - a.count);
     // 🏆 チャレンジャー＋注目プレイヤーの記録（盤面をそのまま閲覧できる）
@@ -3798,7 +3830,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const finishedTsRef = useRef(null);
   const buildRecord = (acctPlayer) => {
     const pickBoard = (arr) => arr.map((u, pos) => (u && !u.isAnvil) ? { id: u.id, jaName: u.jaName, star: u.star || 1, pos,
-      itemNames: (u.items || []).map(it => it && it.name).filter(Boolean) } : null).filter(Boolean);
+      itemNames: (u.items || []).map(itemRefKey).filter(Boolean) } : null).filter(Boolean);
     const pickUnits = (arr) => arr.filter(u => u && !u.isAnvil).map(u => ({ id: u.id, jaName: u.jaName, star: u.star || 1 }));
     // 🆕 オーグメント選択履歴（結果画面のAUGMENT HISTORYを履歴でも再現）。effect関数等を落として圧縮。
     const slimAug = (x) => x ? { id: x.id, name: x.name, imgName: x.imgName, tier: x.tier } : null;
