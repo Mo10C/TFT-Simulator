@@ -4073,16 +4073,27 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
   const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
   const [freeView, setFreeView] = useState(false); // 🎥 3D: 自由視点 ON/OFF（OFFで既定の視点に固定）
-  // 📌 3D盤面の既定アングル。優先順: sim-config.js の board3dView > この端末の保存 > 自動フィット
+  // 📌 3D盤面の既定アングル
+  //    優先順: sim-config.js の board3dView（全ユーザー共通） > この端末の保存 > 自動フィット
+  //    sim-config.js に設定があるときは全員そのアングルで固定される（端末の保存では上書きできない）。
   const view3DKey = `tft_${SET_ID}_board3d_view`;
   const [savedView3D, setSavedView3D] = useState(() => {
-    try {
-      if (SIM_CFG.board3dView && Array.isArray(SIM_CFG.board3dView.pos)) return SIM_CFG.board3dView;
-      const raw = localStorage.getItem(view3DKey);
-      const v = raw ? JSON.parse(raw) : null;
-      return (v && Array.isArray(v.pos) && Array.isArray(v.target)) ? v : null;
-    } catch (e) { return null; }
+    // 値が壊れていても白画面や変なアングルにならないよう、数値3つずつを厳密に確認する
+    const parse = (v) => {
+      if (!v || typeof v !== 'object') return null;
+      const ok = (a) => Array.isArray(a) && a.length === 3 && a.every(n => typeof n === 'number' && isFinite(n));
+      return (ok(v.pos) && ok(v.target)) ? { pos: v.pos.slice(), target: v.target.slice() } : null;
+    };
+    const fromConfig = parse(SIM_CFG.board3dView);
+    if (fromConfig) {
+      // 共通設定が入ったら、以前この端末で保存した古いアングルは消して全員の見え方を揃える
+      try { localStorage.removeItem(view3DKey); } catch (e) {}
+      return fromConfig;
+    }
+    try { return parse(JSON.parse(localStorage.getItem(view3DKey))); } catch (e) { return null; }
   });
+  // 共通設定がある間は、管理者でも端末保存では上書きしない（＝全ユーザーで同じ見え方を担保）
+  const view3DLockedByConfig = !!(SIM_CFG.board3dView && SIM_CFG.board3dView.pos);
   const view3DApi = useRef(null);
   // 管理者判定（sim-config.js の admins ＋ Firestore の管理者リスト）
   const [admins3D, setAdmins3D] = useState(null);
@@ -4095,21 +4106,32 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const saveView3D = () => {
     const api = view3DApi.current; if (!api) return;
     const v = api.getView(); if (!v) return;
-    try { localStorage.setItem(view3DKey, JSON.stringify(v)); } catch (e) {}
+    // 共通設定が有効なときは端末に保存しない（全ユーザーの見え方を1箇所で管理するため）
+    if (!view3DLockedByConfig) { try { localStorage.setItem(view3DKey, JSON.stringify(v)); } catch (e) {} }
     setSavedView3D(v);
     setFreeView(false);   // 固定視点に戻して、その場で結果を確認できるように
     const snippet = `board3dView: ${JSON.stringify(v)},`;
     if (navigator.clipboard) navigator.clipboard.writeText(snippet).catch(()=>{});
     showMsg(<div style={{ lineHeight:1.5 }}>
-      📌 この視点を既定にしました（この端末に保存）<br/>
+      📌 この視点を確認用に反映しました<br/>
       <span style={{ fontSize:10, color:'var(--textdim)' }}>
-        全員に反映するには sim-config.js に貼り付け（クリップボードにコピー済み）:<br/>{snippet}
+        全ユーザーに固定するには sim-config.js の board3dView を差し替え（コピー済み）:<br/>{snippet}<br/>
+        {view3DLockedByConfig ? '※ 現在は sim-config.js の設定が有効です。貼り替えるまで全員のアングルは変わりません。'
+                              : '※ 貼り付けるまでは、この端末だけに保存されます。'}
       </span>
     </div>);
   };
-  // 既定のアングルを消して自動フィットに戻す（管理者用）
+  // 既定のアングルを解除して自動フィットに戻す（管理者用・この端末のみ）
   const clearView3D = () => {
     try { localStorage.removeItem(view3DKey); } catch (e) {}
+    if (view3DLockedByConfig) {
+      // 共通設定は消さない。プレビューを共通設定の値に戻すだけ
+      setSavedView3D(SIM_CFG.board3dView);
+      if (view3DApi.current) view3DApi.current.applyView(SIM_CFG.board3dView);
+      setFreeView(false);
+      showMsg('↩️ sim-config.js の共通アングルに戻しました');
+      return;
+    }
     setSavedView3D(null);
     if (view3DApi.current) view3DApi.current.fitToScreen();
     setFreeView(false);
@@ -5892,6 +5914,7 @@ const handleAugmentPick = (aug, historyContext) => {
   return (
 
   <div 
+    className={use3D ? 'b3d-full' : undefined}
     onDragOver={e => e.preventDefault()} 
     onDrop={hDrop('anywhere', -1)} 
     style={{ height:'100vh', width:'100vw', background:'var(--bg0)', display:'flex', flexDirection:'column', overflow:'hidden', userSelect:'none', position:'relative' }}
@@ -6146,10 +6169,10 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
       </div>
 
-      {/* メインエリア */}
-      <div style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
+      {/* メインエリア（3Dのときは b3d-full で全画面3D＋パネルをオーバーレイ表示に切替） */}
+      <div className="sp-main-area" style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
-        <div style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0, paddingLeft:'env(safe-area-inset-left)' }}>
+        <div className="sp-left-side" style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0, paddingLeft:'env(safe-area-inset-left)' }}>
           <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
             
@@ -6192,6 +6215,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
         {/* 盤面 */}
         <div
+          className="sp-board-area"
           ref={boardContainerRef}
           onTouchStart={handleBoardTouchStart}
           onTouchMove={handleBoardTouchMove}

@@ -280,3 +280,86 @@ body.dark {
   --text-main: #e2e8f0;
   --text-inv: #0b1320;
 }
+
+/* ============================================================
+   🧊 全画面3Dレイアウト（body直下ではなく対戦画面ルートの .b3d-full に付与）
+   ── 3D盤面を画面いっぱいに敷き、特性/アイテム/ショップ/オーグメントを
+      その上に浮かせる（本家ゲームに近い見え方）。
+   ── 2Dのときはこのブロックが一切効かないので、従来レイアウトはそのまま。
+   ============================================================ */
+
+/* 盤面エリアを画面全体へ。ヘッダーの下から下端まで敷き詰める */
+.b3d-full .sp-main-area { position: static; }
+.b3d-full .sp-board-area {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  z-index: 0;
+}
+
+/* 共通：オーバーレイ化したパネルの見た目 */
+.b3d-full .sp-left-side,
+.b3d-full .sp-right-aug,
+.b3d-full .sp-shop-area {
+  position: absolute !important;
+  z-index: 20;
+  background: rgba(12, 20, 34, 0.62) !important;
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  color: #e8eefc;
+}
+
+/* 左：特性 ＋ アイテム欄（本家と同じく画面左に縦並び） */
+.b3d-full .sp-left-side {
+  top: 12px !important; left: 12px !important; bottom: 168px !important;
+  align-items: stretch;
+  overflow: hidden;
+}
+.b3d-full .sp-left-trait { border-right: 1px solid rgba(255,255,255,0.10); }
+
+/* 右：オーグメント（チート側の縦列と同じ位置） */
+.b3d-full .sp-right-aug {
+  top: 12px !important; right: 12px !important; bottom: 168px !important;
+  border-left: none !important;
+}
+
+/* 下：ショップ（画面下部に横長のオーバーレイ） */
+.b3d-full .sp-shop-area {
+  left: 12px !important; right: 12px !important; bottom: 12px !important;
+  border-top: 1px solid rgba(255,255,255,0.10) !important;
+  overflow: hidden;
+}
+
+/* オーバーレイ上の文字はガラス背景に合わせて明るく */
+.b3d-full .sp-left-side,
+.b3d-full .sp-left-side *,
+.b3d-full .sp-right-aug,
+.b3d-full .sp-right-aug * { color: #e8eefc; }
+
+/* パネル内の不透明な背景を透過させて、下の3D盤面を透かす */
+.b3d-full .sp-left-trait,
+.b3d-full .sp-left-item,
+.b3d-full .sp-shop-area > div,
+.b3d-full .sp-next-btn-area { background: transparent !important; }
+
+/* 3D盤面のドラッグ操作を邪魔しないよう、パネルの隙間はクリックを通す */
+.b3d-full .sp-main-area { pointer-events: none !important; }
+.b3d-full .sp-board-area,
+.b3d-full .sp-left-side,
+.b3d-full .sp-right-aug,
+.b3d-full .sp-shop-area { pointer-events: auto; }
+
+/* 画面が狭いときはパネルを小さくして盤面を確保 */
+@media screen and (max-height: 700px) {
+  .b3d-full .sp-left-side,
+  .b3d-full .sp-right-aug { bottom: 132px; }
+}
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  .b3d-full .sp-left-side,
+  .b3d-full .sp-right-aug { top: 6px; bottom: 118px; }
+  .b3d-full .sp-left-side { left: 6px; }
+  .b3d-full .sp-right-aug { right: 6px; }
+  .b3d-full .sp-shop-area { left: 6px; right: 6px; bottom: 6px; }
+}
