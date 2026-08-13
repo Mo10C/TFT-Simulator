@@ -188,6 +188,7 @@ const CHAMP_MODEL_TUNE = {
   ornn: { z:-0.66 },   // オーン
   pebbles: { scale:0.71, z:0.14 },   // 小石
   rakan: { x:-0.27, z:-0.19 },   // ラカン
+  reksai: { scale:0.79, x:0.22 },   // レク＝サイ
   varus: { scale:1.2, y:-0.29, z:0.8 },   // ヴァルス
   veigar: { scale:0.82 },   // ベイガー
   xayah: { z:-0.3 },   // ザヤ
@@ -205,6 +206,8 @@ const CHAMP_MODEL_TUNE = {
   diana: { scale:1.12 },   // ダイアナ
   fiddlesticks: { scale:1.05, x:0.07, y:-0.57, z:-0.34 },   // フィドルスティックス
   hecarim: { scale:1.26 },   // ヘカリム
+  khazix: { scale:0.84, x:-0.19, z:0.22 },   // カ＝ジックス
+  kogmaw: { scale:0.64 },   // コグ＝マウ
   krug: { scale:0.76, x:0.04 },   // クルーグ
   rammus: { z:-0.17 },   // ラムス
   rengar: { scale:0.94, rotY:-87 * Math.PI/180 },   // レンガー
