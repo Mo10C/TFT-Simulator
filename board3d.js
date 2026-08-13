@@ -251,6 +251,7 @@ const CHAMP_MODEL_TUNE = {
   khazix: { scale:0.84, x:-0.19, z:0.22 },   // カ＝ジックス
   kogmaw: { scale:0.64 },   // コグ＝マウ
   krug: { scale:0.76, x:0.04 },   // クルーグ
+  mamabeak: { scale:0.6 },   // ラプター
   rammus: { z:-0.17 },   // ラムス
   rengar: { scale:0.94, x:0.13, z:-0.17, rotY:10 * Math.PI/180 },   // レンガー
   tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
