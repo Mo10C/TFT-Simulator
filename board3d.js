@@ -165,12 +165,54 @@ function b3dMakeStars(star){
   const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStarTexture(star),transparent:true}));
   spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*1.7; return spr;
 }
-function b3dMakeItemPips(items){
-  const list=(items||[]).slice(0,3); if(!list.length) return null; const grp=new THREE.Group(); const R=B3D.R;
-  list.forEach((it,i)=>{ const col=it?.type==='artifact'?0xdc3545:(it?.type==='radiant'?0xf0d074:(it?.type==='completed'?0xd4af37:0x9fb0c8));
-    const m=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.16,0.05), new THREE.MeshStandardMaterial({color:col,metalness:0.4,roughness:0.4,emissive:col,emissiveIntensity:0.3}));
-    m.position.set((i-(list.length-1)/2)*0.2, B3D.TOP+0.16, R*0.55); grp.add(m); });
+/* 🎒 装備アイテムは駒の頭上に並べる（本家と同じく3つまで） */
+const B3D_ITEM_Y = 1.5;        // 頭上の表示高さ
+const B3D_ITEM_SIZE = 0.34;    // アイコン1個の大きさ
+const B3D_ITEM_GAP = 0.38;     // 横の間隔
+
+function b3dItemTexture(item, itemIcon){
+  const cv=document.createElement('canvas'); cv.width=cv.height=96; const g=cv.getContext('2d');
+  const border = item?.type==='artifact' ? '#dc3545'
+    : item?.type==='radiant' ? '#f0d074'
+    : item?.type==='consumable' ? '#7fd0ff'
+    : item?.type==='comp' ? '#9fb0c8' : '#d4af37';
+  const draw=(img)=>{
+    g.clearRect(0,0,96,96);
+    g.fillStyle='#0c1626'; b3dRoundRect(g,3,3,90,90,14); g.fill();
+    if(img){ g.save(); b3dRoundRect(g,6,6,84,84,12); g.clip(); g.drawImage(img,6,6,84,84); g.restore(); }
+    else { g.fillStyle=border; g.font='900 46px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
+      g.fillText((item?.jaName||item?.name||'?')[0], 48, 50); }
+    g.lineWidth=5; g.strokeStyle=border; b3dRoundRect(g,3,3,90,90,14); g.stroke();
+    tex.needsUpdate=true;
+  };
+  const tex=new THREE.CanvasTexture(cv); b3dSetSRGB(tex); draw(null);
+  try{
+    const url = itemIcon && itemIcon(item);
+    if(url){ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=url; }
+  }catch(e){}
+  return tex;
+}
+function b3dMakeItemPips(items, itemIcon){
+  const list=(items||[]).filter(Boolean).slice(0,3);
+  if(!list.length) return null;
+  const grp=new THREE.Group(); grp.userData.b3dItems=true;
+  list.forEach((it,i)=>{
+    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dItemTexture(it,itemIcon),transparent:true,depthTest:false}));
+    spr.renderOrder=10;
+    spr.scale.set(B3D_ITEM_SIZE,B3D_ITEM_SIZE,1);
+    spr.position.set((i-(list.length-1)/2)*B3D_ITEM_GAP, B3D_ITEM_Y, 0);
+    grp.add(spr);
+  });
   return grp;
+}
+/* 装備の増減は駒を作り直さず、頭上の表示だけ差し替える（モデルの再読込を避けるため） */
+function b3dItemsSig(u){ return (u && u.items || []).filter(Boolean).map(it=>it.id||it.name||'?').join(','); }
+function b3dRefreshItems(g, u, itemIcon){
+  const sig=b3dItemsSig(u);
+  if(g.userData.itemsSig === sig) return;
+  g.userData.itemsSig = sig;
+  g.children.filter(c=>c.userData && c.userData.b3dItems).forEach(c=>{ g.remove(c); b3dDispose(c); });
+  const pips=b3dMakeItemPips(u.items, itemIcon); if(pips) g.add(pips);
 }
 /* 🎯 チャンピオンごとの3Dモデル微調整
    ── 自動の中心合わせでズレる場合はここに書く。キーは champ.id。
@@ -307,6 +349,21 @@ function b3dMakeAnvil(u){
    立て看板が一瞬見えてしまうため。 */
 const b3dModelCache = new Map();   // url -> { gltf } / Promise
 const b3dFailedModels = new Set();   // 取得できなかったURL（毎回リトライしないよう記録）
+/* 🚚 モデルの先読み。ショップから盤面に出した瞬間に「読み込み待ち」が起きないよう、
+   3D表示を開いた時点で全チャンピオン分を裏で取っておく（同時数を絞って負荷を抑える）。 */
+let b3dPreloadStarted = false;
+function b3dPreloadModels(champs, champModels, limit){
+  if(b3dPreloadStarted) return; b3dPreloadStarted = true;
+  const list = (champs || []).map(c => c.model || (champModels && champModels[c.id]) || b3dAutoModelUrl(c.id)).filter(Boolean);
+  const urls = [...new Set(list)];
+  let i = 0;
+  const next = () => {
+    if(i >= urls.length) return;
+    const url = urls[i++];
+    b3dLoadModelAny(url).catch(()=>{}).then(()=>{ setTimeout(next, 30); });
+  };
+  for(let k = 0; k < (limit || 4); k++) next();   // 同時 4 本ずつ
+}
 /* 候補を順に試し、最初に読めたものを返す */
 function b3dLoadModelAny(url){
   const cands = b3dModelCandidates(url);
@@ -537,7 +594,7 @@ function b3dDispose(g){
     if(n.material){ const ms=Array.isArray(n.material)?n.material:[n.material];
       ms.forEach(mt=>{ if(mt.map&&mt.map.dispose) mt.map.dispose(); if(mt.dispose) mt.dispose(); }); } });
 }
-function b3dSync(S, board, bench, boardIcon, champModels){
+function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
   const { boardGroup, slots, pieces } = S;
 
   // ── 1) 各スロットに「本来あるべき駒」を割り出す
@@ -549,7 +606,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     if(!u) return;
     const isAnvil = !!u.isAnvil;
     const modelUrl = !isAnvil ? (u.model || (champModels && champModels[u.id]) || b3dAutoModelUrl(u.id)) : '';
-    const sig=`${u.uid||u.id}|${isAnvil?'anvil':u.star}|${(u.items||[]).length}|${modelUrl}`;
+    const sig=`${u.uid||u.id}|${isAnvil?'anvil':u.star}|${modelUrl}`;   // アイテムは別途更新するので含めない
     want.set(kind+':'+idx, { slot:h, kind, idx, u, isAnvil, modelUrl, sig });
   });
 
@@ -577,7 +634,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     moved.set(key,g);
     if(S.mixers && S.mixers.has(fromKey)){ const mx=S.mixers.get(fromKey); S.mixers.delete(fromKey); S.mixers.set(key,mx); }
   });
-  moved.forEach((g,key)=>pieces.set(key,g));
+  moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w) b3dRefreshItems(g, w.u, itemIcon); });
 
   // ── 4) 残り（新規作成・削除）を処理
   slots.forEach(h=>{
@@ -589,7 +646,7 @@ function b3dSync(S, board, bench, boardIcon, champModels){
     const modelUrl = w ? w.modelUrl : '';
     const sig = w ? w.sig : null;
     const cur=pieces.get(key);
-    if(cur && cur.userData.sig===sig) return;
+    if(cur && cur.userData.sig===sig){ if(u) b3dRefreshItems(cur, u, itemIcon); return; }
     if(cur){ 
        boardGroup.remove(cur); 
        b3dDispose(cur); 
@@ -617,24 +674,25 @@ function b3dSync(S, board, bench, boardIcon, champModels){
         // 読み込み済み：立て看板を挟まずそのままモデルを出す（ちらつき防止）
         b3dAttachModel(S, g, key, cached.gltf, u.id);
       } else {
-        g.add(b3dMakeStandee(u,boardIcon));   // 初回のみ、ロード完了まで立て看板
+        // ⚠ ここで立て看板を出すと、ショップから出した瞬間にカードが一瞬見えてしまう。
+        //    モデルが用意されている駒は、読み込みが終わるまで何も出さずに待つ。
         b3dLoadModelAny(modelUrl).then(gltf=>{
           if(!g.parent) return;               // 待っている間に消えていたら何もしない
           b3dAttachModel(S, g, key, gltf, u.id);
-        }).catch(()=>{});
+        }).catch(()=>{ if(g.parent && !g.children.some(c=>c.userData&&c.userData.b3dSprite)) g.add(b3dMakeStandee(u,boardIcon)); });
       }
     } else {
       g.add(b3dMakeStandee(u,boardIcon));
     }
     g.add(b3dMakeStars(u.star));
-    const pips=b3dMakeItemPips(u.items); if(pips) g.add(pips);
+    b3dRefreshItems(g, u, itemIcon);
     g.userData.spawnT=0;
     boardGroup.add(g); pieces.set(key,g);
     if(S.spawning) S.spawning.add(g);
   });
 }
 
-function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi, insets, onDropOutside, onHoverSlot }) {
+function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi, insets, onDropOutside, onHoverSlot, onDomDrop }) {
   const mountRef = useRef3D(null);
   const S = useRef3D(null);
   const cbRef = useRef3D(onSlotClick);
@@ -644,8 +702,9 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
   const savedViewRef = useRef3D(savedView);
   const insetsRef = useRef3D(insets);
   const outsideRef = useRef3D(onDropOutside);
+  const domDropRef = useRef3D(onDomDrop);
   const hoverRef = useRef3D(onHoverSlot);
-  useEffect3D(()=>{ outsideRef.current=onDropOutside; hoverRef.current=onHoverSlot; }, [onDropOutside, onHoverSlot]);
+  useEffect3D(()=>{ outsideRef.current=onDropOutside; hoverRef.current=onHoverSlot; domDropRef.current=onDomDrop; }, [onDropOutside, onHoverSlot, onDomDrop]);
   // オーバーレイに隠れない範囲が変わったら、その枠の中央に収め直す
   useEffect3D(()=>{ insetsRef.current=insets; const s=S.current; if(!s) return;
     s.insets = insets || {left:0,right:0,top:0,bottom:0};
@@ -661,6 +720,16 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       getView: () => b3dReadView(S.current),
       applyView: (v) => b3dApplySavedView(S.current, v),
       fitToScreen: () => { if(S.current) b3dFitCamera(S.current); },
+      // 画面座標 → 盤面/ベンチのマス。2D側からのドラッグ（アイテム装備など）で使う
+      slotAt: (clientX, clientY) => {
+        const st = S.current; if(!st || !st.renderer) return null;
+        const b = st.renderer.domElement.getBoundingClientRect();
+        if(clientX < b.left || clientX > b.right || clientY < b.top || clientY > b.bottom) return null;
+        const p = new THREE.Vector2(((clientX-b.left)/b.width)*2-1, -((clientY-b.top)/b.height)*2+1);
+        const r = new THREE.Raycaster(); r.setFromCamera(p, st.camera);
+        const hit = r.intersectObjects(st.slots, false)[0];
+        return hit ? { kind: hit.object.userData.kind, idx: hit.object.userData.idx } : null;
+      },
       nudge: (dy) => b3dNudgeView(S.current, dy),
     };
     return ()=>{ if(viewApi) viewApi.current = null; };
@@ -795,6 +864,15 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
         if(moved>6) return;   // カメラを回しただけ
         if(slot && cbRef.current) cbRef.current(slot.userData.kind, slot.userData.idx);
       };
+      // 2Dのアイテム欄などから canvas 上にドロップされた場合の受け口
+      const onDragOver=(e)=>{ e.preventDefault(); setPtr(e); const slot=pickSlot();
+        if(hovered && (!slot || slot!==hovered)) clearHover();
+        if(slot){ slot.material=hexHover; hovered=slot; } };
+      const onDomDropEv=(e)=>{ e.preventDefault(); clearHover(); setPtr(e); const slot=pickSlot();
+        if(slot && domDropRef.current) domDropRef.current(slot.userData.kind, slot.userData.idx); };
+      renderer.domElement.addEventListener('dragover', onDragOver);
+      renderer.domElement.addEventListener('drop', onDomDropEv);
+
       renderer.domElement.addEventListener('pointerdown', onDown);
       renderer.domElement.addEventListener('pointerup', onUp);
       renderer.domElement.addEventListener('pointermove', onMove);
@@ -832,7 +910,7 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
           else b3dFitCamera(S.current);
         } }); ro.observe(mount);
 
-      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false,
+      s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, onDragOver, onDomDropEv,
          viewSize:{w:W,h:H}, insets:insetsRef.current||{left:0,right:0,top:0,bottom:0}, 
          pieces:new Map(), 
          spawning:new Set(), // 出現アニメ中の駒
@@ -849,12 +927,15 @@ function Board3D({ board, bench, boardIcon, champModels, onSlotClick, onPickup, 
       const x=S.current; if(!x) return;
       cancelAnimationFrame(x.raf);
       cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
-      const el=x.renderer.domElement; el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
+      const el=x.renderer.domElement; el.removeEventListener('dragover',x.onDragOver); el.removeEventListener('drop',x.onDomDropEv); el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
       x.pieces.forEach(g=>b3dDispose(g)); try{ x.renderer.dispose(); }catch(e){}
       if(el.parentNode) el.parentNode.removeChild(el); S.current=null; };
   }, []);
 
-  useEffect3D(()=>{ if(S.current) b3dSync(S.current, board, bench, boardIcon, champModels); }, [board, bench, champModels]);
+  useEffect3D(()=>{ if(S.current) b3dSync(S.current, board, bench, boardIcon, champModels, itemIcon); }, [board, bench, champModels]);
+
+  // 3D表示を開いたらモデルを先読みしておく
+  useEffect3D(()=>{ if(champs && champs.length) b3dPreloadModels(champs, champModels); }, [champs]);
 
   // 保存済み視点が更新されたら既定として取り込む
   useEffect3D(()=>{ const s=S.current; if(!s) return;

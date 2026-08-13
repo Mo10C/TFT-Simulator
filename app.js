@@ -505,7 +505,10 @@ const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
    ── ショップだけ参照元が違うので他とは分けている。id から自動生成されるので個別指定は不要。
    ── 例) aphelios → .../championsplashes/tft18_aphelios.png
    ── サイズを変えたい場合は opts の width / height を調整する。 */
-const shopIcon=(id, opts='width=256,height=256,fit=cover,format=auto')=>
+/* ── ショップのスプラッシュアート
+   ⚠ CDN側で正方形に切ると、カード（横長）に収めるときに二重トリミングになり中心がずれる。
+      ここでは縦横比を保ったまま縮小だけ行い、切り抜きは CSS の object-fit に一本化する。 */
+const shopIcon=(id, opts='width=512,format=auto')=>
   `https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/championsplashes/tft${SET_NO}_${String(id).toLowerCase()}.png`;
 const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
 
@@ -579,9 +582,11 @@ const getMetaTFTItemUrl = (item) => {
     return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
   }
 
-  const itemObj = typeof item === 'string' ? { name: item, id: item } : item;
-  const nameInput = itemObj.name;
-  const idInput = itemObj.id;
+  const itemObj = typeof item === 'string' ? { name: item, id: item } : (item || {});
+  // ⚠ 片方しか無いオブジェクト（古い記録から復元したアイテム等）でも落ちないよう、
+  //    以降の判定は必ず文字列として扱う。未知のアイテムは空URLを返す。
+  const nameInput = String(itemObj.name || itemObj.jaName || itemObj.id || '');
+  const idInput = String(itemObj.id || itemObj.imgName || itemObj.name || '');
 
   if (!nameInput && !idInput) return "";
 
@@ -733,6 +738,30 @@ const shuffleArray = (arr, rng) => {
 };
 
 /* ── 金床データの生成 ── */
+/* 🧪 消費アイテムの判定
+   ── id を直接書くと data-items.js 側で id を変えたときに黙って動かなくなるため、
+      必ず CONSUMABLES の定義から引く。 */
+/* 🥄 へら／フライパンは通常の素材とは扱いが違う（合成先が紋章になる）ので別枠にする。
+   id が変わっても追従するよう、日本語名でも見つけられるようにしておく。 */
+const findComponentId = (...cands) => {
+  const list = (typeof ITEMS !== 'undefined' ? ITEMS : []);
+  for (const c of cands) { const hit = list.find(i => i.id === c || i.jaName === c); if (hit) return hit.id; }
+  return cands[0];
+};
+const SPATULA_ID = findComponentId('spatula', '黄金のへら');
+const PAN_ID = findComponentId('fryingpan', 'pan', 'フライパン');
+const isSpecialComponent = (it) => !!it && (it.id === SPATULA_ID || it.id === PAN_ID);
+
+const CONSUMABLE_ID = (key) => {
+  const c = (typeof CONSUMABLES !== 'undefined' && CONSUMABLES) ? CONSUMABLES[key] : null;
+  return (c && c.id) || '';
+};
+const isConsumable = (item, key) => {
+  if (!item) return false;
+  const id = CONSUMABLE_ID(key);
+  return !!id && item.id === id;
+};
+
 const createAnvil = (type) => {
   let jaName = '金床', color = '#94a3b8'; // default
   if (type === 'component') { jaName = '素材の金床'; color = '#c0c0c0'; }
@@ -1014,7 +1043,7 @@ function ReplayViewer({ history, seed, onClose }) {
               {frame.inventory.length > 0 ? frame.inventory.map((it, i) => (
                 <div key={i} style={{ width: 28, height: 28, background: '#1e293b', borderRadius: 4, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                   {it?.name ? <img src={getMetaTFTItemUrl(it)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 12, display:'flex', alignItems:'center', justifyContent:'center', height:'100%' }}>{it?.icon}</span>}
-                  {it?.id === 'remover' && (it.count || 1) > 1 && (
+                  {isConsumable(it,'REMOVER') && (it.count || 1) > 1 && (
                     <div style={{ position: 'absolute', top: -1, left: -1, background: 'var(--blue)', color: 'white', fontSize: 8, fontWeight: 900, width: 12, height: 12, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{it.count}</div>
                   )}
                 </div>
@@ -2346,7 +2375,7 @@ function DropPickerScreen({ ov, setOvKey, onBack }) {
     ...Array(dropPlanSel.plan.blue).fill('BLUE'),
   ] : [];
   const dcOrbs = (ov.dropConfig && ov.dropConfig.planIndex === ov.dropPlanIndex && Array.isArray(ov.dropConfig.orbs)) ? ov.dropConfig.orbs : [];
-  const compItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(it => it.type === 'comp' && it.id !== 'spatula' && it.id !== 'pan');
+  const compItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(it => it.type === 'comp' && !isSpecialComponent(it));
   const champsByCost = (cost) => (typeof CHAMPS !== 'undefined' ? CHAMPS : []).filter(c => c.cost === cost);
   const setOrbCfg = (i, patch) => {
     const orbs = dropChips.map((t, k) => {
@@ -4047,6 +4076,16 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     if (ghostEl) ghostEl.remove();
     touchDragRef.current = null;
 
+    // 3D盤面の上で離した場合は、その位置のマスへドロップする（アイテム装備など）
+    const api3D = view3DApi.current;
+    if (api3D && api3D.slotAt) {
+      const slot = api3D.slotAt(touch.clientX, touch.clientY);
+      if (slot && hDropRef.current) {
+        const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+        hDropRef.current(slot.kind, slot.idx)(syntheticE);
+        return;
+      }
+    }
     // 指を離した座標の要素を探してドロップターゲットを特定
     const el = document.elementFromPoint(touch.clientX, touch.clientY);
     const dropTarget = el && el.closest('[data-drop-type]');
@@ -4227,6 +4266,13 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     handle3DCancel();
   };
 
+  // 🧊 3D: 2Dのアイテム欄などから3D盤面へドロップされたとき（装備・合成・消費アイテム）
+  const handle3DDomDrop = (kind, idx) => {
+    const syntheticE = { preventDefault: ()=>{}, stopPropagation: ()=>{} };
+    if (hDropRef.current) hDropRef.current(kind, idx)(syntheticE);
+    setSel3D(null);
+  };
+
   // 🧊 3D: カーソル下の駒を記録して、売却キーを2Dと同じように使えるようにする
   const handle3DHoverSlot = (kind, idx) => {
     if (kind == null) { hoveredUnitRef.current = null; return; }
@@ -4311,7 +4357,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     let pool = [];
     let count = 4;
     if (anvilType === 'component') {
-      pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && it.id !== 'spatula' && it.id !== 'pan');
+      pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
     } else if (anvilType === 'completed') {
       const recipes = Object.values(ITEM_RECIPES);
       pool = recipes.filter(r => !r.grantedTrait && r.id !== 'tacticians_crown').map(r => ({...r, type: 'completed'}));
@@ -4323,7 +4369,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       pool = RADIANT_ITEMS;
       count = pool.length;
     } else if (anvilType === 'duplication') {
-      pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && it.id !== 'spatula' && it.id !== 'pan');
+      pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
       count = 3;
     }
     const shuffled = shuffleArray(pool, rngMisc).slice(0, count);
@@ -4902,7 +4948,7 @@ useEffect(() => {
       case 'g_remover': {
         setInventory(p => {
           const nb = [...p];
-          const ex = nb.findIndex(i => i.id === 'remover');
+          const ex = nb.findIndex(i => isConsumable(i,'REMOVER'));
           if (ex !== -1) nb[ex] = { ...nb[ex], count: (nb[ex].count || 1) + 1 };
           else nb.push({ ...CONSUMABLES.REMOVER, count: 1 });
           return nb;
@@ -4956,7 +5002,7 @@ useEffect(() => {
     drops.forEach((dropType, i) => {
       const cfg = cfgList[i] || null;
       if (dropType === 'comp') {
-        const comps = ITEMS.filter(it => it.type === 'comp' && !it.hidden && it.id !== 'spatula' && it.id !== 'pan');
+        const comps = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
         let availableComps = comps.filter(c => !droppedComps.includes(c.id) && !newlyDroppedIds.includes(c.id));
         
         if (availableComps.length === 0) {
@@ -5047,7 +5093,7 @@ useEffect(() => {
       // 🌟 除去装置をスタック（重ねて）追加する処理
       setInventory(prev => {
         const nb = [...prev];
-        const existingIdx = nb.findIndex(i => i && i.id === 'remover');
+        const existingIdx = nb.findIndex(i => isConsumable(i,'REMOVER'));
         if (existingIdx !== -1) {
           // すでにある場合はカウントを+4する
           nb[existingIdx] = { ...nb[existingIdx], count: (nb[existingIdx].count || 1) + 4 };
@@ -5300,8 +5346,8 @@ const handleAugmentPick = (aug, historyContext) => {
     // --- リフォージ用の抽選ロジック ---
     const getReforgeTarget = (itemToReforge) => {
       if (itemToReforge.type === 'comp') {
-        if (itemToReforge.id === 'spatula') return { ...ITEMS.find(x => x.id === 'pan') };
-        if (itemToReforge.id === 'pan') return { ...ITEMS.find(x => x.id === 'spatula') };
+        if (itemToReforge.id === SPATULA_ID) return { ...ITEMS.find(x => x.id === PAN_ID) };
+        if (itemToReforge.id === PAN_ID) return { ...ITEMS.find(x => x.id === SPATULA_ID) };
         
         const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== itemToReforge.id && x.id !== 'spatula' && x.id !== 'pan');
         const pool = comps.length > 0 ? comps : ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
@@ -5345,7 +5391,7 @@ const handleAugmentPick = (aug, historyContext) => {
         }
         if (!unit.items) unit.items = [];
         if (newItem.type === 'consumable') {
-          if (newItem.id === 'remover') {
+          if (isConsumable(newItem,'REMOVER')) {
             if (unit.items.length === 0) { showMsg("⚠️ アイテムを持っていません！"); setDragSrc(null); return; }
             ninv.push(...unit.items); unit.items = []; 
             
@@ -5355,15 +5401,15 @@ const handleAugmentPick = (aug, historyContext) => {
             }
             
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを取り外しました</span></div>);
-          } else if (newItem.id === 'reforger') {
+          } else if (isConsumable(newItem,'REFORGER')) {
             if (unit.items.length === 0) { showMsg("⚠️ アイテムを持っていません！"); setDragSrc(null); return; }
             const newItems = unit.items.map(it => getReforgeTarget(it));
             ninv.push(...newItems); unit.items = []; 
             if (dragSrc.type === 'inventory') ninv.splice(dragSrc.idx, 1);
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(newItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成して取り外しました</span></div>);
-          } else if (newItem.id === 'champ_dupe' || newItem.id === 'lesser_dupe' || newItem.id === 'tiny_dupe') {
-            if (newItem.id === 'tiny_dupe' && unit.cost > 1) { showMsg("⚠️ 1コストのみ使用可"); setDragSrc(null); return; }
-            if (newItem.id === 'lesser_dupe' && unit.cost > 3) { showMsg("⚠️ 1〜3コストのみ使用可"); setDragSrc(null); return; }
+          } else if (isConsumable(newItem,'CHAMP_DUPE') || isConsumable(newItem,'LESSER_DUPE') || isConsumable(newItem,'TINY_DUPE')) {
+            if (isConsumable(newItem,'TINY_DUPE') && unit.cost > 1) { showMsg("⚠️ 1コストのみ使用可"); setDragSrc(null); return; }
+            if (isConsumable(newItem,'LESSER_DUPE') && unit.cost > 3) { showMsg("⚠️ 1〜3コストのみ使用可"); setDragSrc(null); return; }
             const emptySlot = nb.findIndex(x => !x);
             if (emptySlot === -1) { showMsg("⚠️ ベンチに空きがありません"); setDragSrc(null); return; }
             const copy = { ...CHAMPS.find(c => c.id === unit.id), star:1, uid:rngMisc(), items:[] };
@@ -5442,7 +5488,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 isTGGenerated: true 
               };
               unit.items.push(randomFullItem);
-              const comps = ITEMS.filter(it => it.type === 'comp' && !it.hidden && it.id !== 'spatula' && it.id !== 'pan');
+              const comps = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
               const randomCompItem = { 
                 ...comps[Math.floor(rngMisc() * comps.length)],
                 isTGGenerated: true 
@@ -5499,7 +5545,7 @@ const handleAugmentPick = (aug, historyContext) => {
               setDragSrc(null); return;
             }
           }
-          if (itemA.id === 'reforger' && (itemB.type === 'comp' || itemB.type === 'completed')) {
+          if (isConsumable(itemA,'REFORGER') && (itemB.type === 'comp' || itemB.type === 'completed')) {
             const transformedItem = getReforgeTarget(itemB);
             ninv[targetIdx] = transformedItem; ninv.splice(srcIdx, 1); setInventory(ninv.filter(Boolean));
             showMsg(<div style={{ display:'flex', alignItems:'center', gap:6 }}><img src={getMetaTFTItemUrl(transformedItem.name)} style={{ width:18, height:18 }} /><span>アイテムを再合成しました！</span></div>);
@@ -5956,7 +6002,7 @@ const handleAugmentPick = (aug, historyContext) => {
                         {it?.name ? (<img src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />) : (<span style={{ fontSize: 12 }}>{it?.icon}</span>)}
                         
                         {/* 除去装置などのスタック表示 */}
-                        {it?.id === 'remover' && (it.count || 1) > 1 && (
+                        {isConsumable(it,'REMOVER') && (it.count || 1) > 1 && (
                           <div style={{ position: 'absolute', top: -6, left: -6, background: 'var(--blue)', color: 'white', fontSize: 9, fontWeight: 900, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--bg0)', zIndex: 10 }}>
                             {it.count}
                           </div>
@@ -6378,7 +6424,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
                 {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
-                {it?.id === 'remover' && (it.count || 1) > 1 && (
+                {isConsumable(it,'REMOVER') && (it.count || 1) > 1 && (
                   <div style={{ position:'absolute', top:-6, left:-6, background:'var(--blue)', color:'white', fontSize:10, fontWeight:900, width:16, height:16, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', border:'1px solid var(--bg0)', zIndex:10, boxShadow:'0 2px 4px rgba(0,0,0,0.5)' }}>
                     {it.count}
                   </div>
@@ -6402,7 +6448,8 @@ const handleAugmentPick = (aug, historyContext) => {
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
               onCancel={handle3DCancel} selected={sel3D} freeView={freeView}
               savedView={savedView3D} viewApi={view3DApi} insets={insets3D}
-              onDropOutside={handle3DDropOutside} onHoverSlot={handle3DHoverSlot} />
+              onDropOutside={handle3DDropOutside} onHoverSlot={handle3DHoverSlot}
+              onDomDrop={handle3DDomDrop} itemIcon={getMetaTFTItemUrl} champs={CHAMPS} />
           ) : (
           <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
             <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
@@ -6743,7 +6790,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       style={{ ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }), borderRadius:4, background:champ?'var(--bg1)':'transparent', border:champ?`3px solid ${COST_COLORS[champ.cost]}`:'1px solid var(--border)', cursor:champ?'pointer':'default', position:'relative', overflow:'hidden', opacity:champ&&gold<champ.cost?0.4:1 }}>
                       {champ && (
                         <React.Fragment>
-                          <img src={shopIcon(champ.id)} onError={(e)=>{ if(!e.target.dataset.fb){ e.target.dataset.fb='1'; e.target.src=champIcon(champ.id); } }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }}/>
+                          <img src={shopIcon(champ.id)} onError={(e)=>{ if(!e.target.dataset.fb){ e.target.dataset.fb='1'; e.target.src=champIcon(champ.id); } }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center center', pointerEvents:'none' }}/>
                           <div style={{ position:'absolute', inset:0, background:'linear-gradient(0deg, rgba(15,23,42,0.95) 0%, transparent 45%, rgba(15,23,42,0.7) 100%)' }}></div>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:26, height:6, background:COST_COLORS[champ.cost], borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
 <div style={{ position:'absolute', top:12, left:6, display:'flex', flexDirection:'column', gap:3 }}>
