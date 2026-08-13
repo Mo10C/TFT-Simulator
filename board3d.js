@@ -180,6 +180,53 @@ function b3dMakeItemPips(items){
       rotY  : 向き（ラジアン。Math.PI で180度）
    例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
 const CHAMP_MODEL_TUNE = {
+  akali: { z:0.98 },   // アカリ
+  cinderling: { scale:0.35 },   // シンダーリング
+  karma: { scale:1.1 },   // カルマ
+  kobuko: { scale:0.71, x:0.4, z:0.01 },   // コブコ
+  leona: { z:-0.75 },   // レオナ
+  ornn: { z:-0.66 },   // オーン
+  pebbles: { scale:0.71, z:0.14 },   // 小石
+  rakan: { x:-0.27, z:-0.19 },   // ラカン
+  varus: { scale:1.2, y:-0.29, z:0.8 },   // ヴァルス
+  veigar: { scale:0.82 },   // ベイガー
+  xayah: { z:-0.3 },   // ザヤ
+  yorick: { scale:1.24, x:0.2, y:-0.17, z:-0.46 },   // ヨリック
+  gromp: { scale:0.69, x:-0.14, y:-0.24 },   // グロンプ
+  kayle: { x:0.1, rotY:-97 * Math.PI/180 },   // ケイル
+  leblanc: { scale:1.11, x:0.45, y:-0.2 },   // ルブラン
+  murkwolf: { scale:0.64, x:-0.27 },   // マークウルフ
+  scuttlecrab: { scale:0.7 },   // スカトルクラブ
+  sejuani: { scale:1.18, y:-0.13 },   // セジュアニ
+  teemo: { scale:0.7, x:0.22, z:0.07 },   // ティーモ
+  yunara: { x:0.1, y:-0.15 },   // ユナラ
+  azir: { scale:1.23, x:0.3, y:-0.29 },   // アジール
+  cassiopeia: { x:-1.55, z:0.18 },   // カシオペア
+  diana: { scale:1.12 },   // ダイアナ
+  fiddlesticks: { scale:1.05, x:0.07, y:-0.57, z:-0.34 },   // フィドルスティックス
+  hecarim: { scale:1.26 },   // ヘカリム
+  krug: { scale:0.76, x:0.04 },   // クルーグ
+  rammus: { z:-0.17 },   // ラムス
+  rengar: { scale:0.94, rotY:-87 * Math.PI/180 },   // レンガー
+  tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
+  ahri: { x:-0.81, z:-0.02 },   // アーリ
+  amumu: { x:-0.1, z:0.07 },   // アムム
+  aphelios: { scale:1.58, y:-1.5, z:1.17 },   // アフェリオス
+  brambleback: { scale:0.87, x:0.27, z:-0.1 },   // ブランブルバック
+  lillia: { scale:1.12 },   // リリア
+  morgana: { x:-0.17, z:0.24 },   // モルガナ
+  nidalee: { x:0.19, z:-0.24 },   // ニダリー
+  sentinel: { scale:0.8 },   // 古の番人
+  sett: { scale:0.97, x:0.01, z:-0.2 },   // セト
+  sivir: { scale:0.94, x:0.34, z:0.16 },   // シヴィア
+  soraka: { z:0.45 },   // ソラカ
+  zyra: { z:-0.18 },   // ザイラ
+  alune: { y:-0.45 },   // アルーン
+  gnar: { scale:0.55, z:0.27 },   // ナー
+  ivern: { rotY:-90 * Math.PI/180 },   // アイバーン
+  kennen: { scale:0.82, x:-0.17, z:0.04 },   // ケネン
+  lux: { z:0.6 },   // ラックス
+  maokai: { z:0.77 },   // マオカイ
 };
 
 /* 足元（下から25%）の重心を求める。武器やエフェクトが横に張り出したモデルでも
