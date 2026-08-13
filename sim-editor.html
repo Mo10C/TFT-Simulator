@@ -1598,16 +1598,26 @@ function m3dApplyTo(id) {
   const holder = m3dPieces.get(id); if (!holder) return;
   const m = holder.userData.model; if (!m) return;
   const t = m3dGet(id);
-  m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
-  m.rotation.y = (t.rotY || 0) * Math.PI / 180;
-  const box = new THREE.Box3().setFromObject(m), size = new THREE.Vector3(); box.getSize(size);
-  m.scale.setScalar((M3D_BASE_HEIGHT * (t.scale || 1)) / (size.y || 1));
-  m.updateMatrixWorld(true);
-  const foot = m3dFootprint(m);
-  const b2 = new THREE.Box3().setFromObject(m);
-  m.position.x = -foot.x + (t.x || 0);
-  m.position.z = -foot.z + (t.z || 0);
-  m.position.y = M3D_TOP - b2.min.y + (t.y || 0);
+  // ⚠ 位置の計算はワールド座標で行われるため、マスが原点にある状態で測る。
+  //    そうしないと「並んでいる位置」が混ざり、x/z がマスからのズレを表さなくなる。
+  //    こうすることで board3d.js（駒を置く前に計算）とまったく同じ結果になる。
+  const home = holder.position.clone();
+  holder.position.set(0, 0, 0); holder.updateMatrixWorld(true);
+  try {
+    m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
+    m.rotation.y = (t.rotY || 0) * Math.PI / 180;
+    m.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(m), size = new THREE.Vector3(); box.getSize(size);
+    m.scale.setScalar((M3D_BASE_HEIGHT * (t.scale || 1)) / (size.y || 1));
+    m.updateMatrixWorld(true);
+    const foot = m3dFootprint(m);                 // 足元の重心（マス中心が原点）
+    const b2 = new THREE.Box3().setFromObject(m);
+    m.position.x = -foot.x + (t.x || 0);          // x/z = マス中心からのズレ
+    m.position.z = -foot.z + (t.z || 0);
+    m.position.y = M3D_TOP - b2.min.y + (t.y || 0);
+  } finally {
+    holder.position.copy(home); holder.updateMatrixWorld(true);
+  }
 }
 
 /* ── 一覧 ── */
