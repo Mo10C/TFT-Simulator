@@ -261,6 +261,7 @@ const CHAMP_MODEL_TUNE = {
   veigar: { scale:0.82 },   // ベイガー
   xayah: { z:-0.3 },   // ザヤ
   yorick: { scale:1.24, x:0.2, y:-0.17, z:-0.46 },   // ヨリック
+  caitlyn: { scale:0.87 },   // ケイトリン
   elise: { x:-0.14, z:0.19 },   // エリス
   gromp: { scale:0.69, x:-0.14, y:-0.24 },   // グロンプ
   kayle: { x:-0.01, y:-0.48, rotY:-21 * Math.PI/180 },   // ケイル
