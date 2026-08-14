@@ -299,6 +299,7 @@ const CHAMP_MODEL_TUNE = {
   alune: { y:-0.45 },   // アルーン
   ashe: { scale:1.13, y:-0.09, z:-0.39 },   // アッシュ
   draven: { x:-0.1 },   // ドレイヴン
+  elderdragon: { scale:1.07, x:-1.03, y:-0.83, z:-0.23, rotY:-4 * Math.PI/180 },   // エルダードラゴン
   gnar: { scale:0.55, z:0.27 },   // ナー
   ivern: { x:-0.16 },   // アイバーン
   kennen: { scale:0.82, x:-0.17, z:0.04 },   // ケネン
