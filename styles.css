@@ -137,12 +137,12 @@ html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sa
   .round-dots { gap: 6px; }
 
   /* サイドバー系の幅を縮小 */
-  .sp-left-trait  { width: 110px !important; padding: 4px !important; }
-  .sp-left-item   { width: 44px !important; padding: 4px !important; }
+  .sp-left-trait  { width: 128px !important; padding: 4px !important; }
+  .sp-left-item   { width: 52px !important; padding: 4px !important; }
   .sp-right-aug   { width: 72px !important; padding: 8px 3px !important; }
 
   /* ベンチスロットを小さく */
-  .sp-bench-slot  { width: 42px !important; height: 42px !important; }
+  .sp-bench-slot  { width: 52px !important; height: 52px !important; }
 
   /* ショップエリアを低く */
   .sp-shop-area   { height: 134px !important; }

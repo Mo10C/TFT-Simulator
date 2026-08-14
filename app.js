@@ -494,6 +494,12 @@ const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
+/* 🖼️ ホーム・メニュー系の背景画像。セットが変わったらここ（または sim-config.js の homeBackground）を差し替える。
+   ── 1箇所にまとめてあるので、9画面ぶんを個別に直す必要はない。 */
+const HOME_BG_URL = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.homeBackground)
+  || 'https://cdn.metatft.com/file/metatft/setsplashes/set18.png';
+const homeBg = (dim = 0.78) => `linear-gradient(rgba(0,0,0,${dim}), rgba(0,0,0,${dim})), url("${HOME_BG_URL}")`;
+
 // 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
 const CURRENT_SET = SET_ID;
 const SET_PREFIX = `tft${SET_NO}_`;
@@ -1124,7 +1130,7 @@ function AccountScreen({ account, onChangeAccount, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16, overflowY: 'auto',
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundImage: homeBg(0.75),
       backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,28px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)' }}>
         👤 アカウント連携 {admin && <span style={{ fontSize: 13, color: '#ffd76e', letterSpacing: 1 }}>🛡️ 管理者</span>}
@@ -2294,7 +2300,7 @@ function AugmentPickerScreen({ augData, value, onChange, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundImage: homeBg(0.82),
       backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🎯 オーグメントを指定</div>
 
@@ -2404,7 +2410,7 @@ function DropPickerScreen({ ov, setOvKey, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundImage: homeBg(0.82),
       backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>📦 ドロップを指定</div>
 
@@ -2551,7 +2557,7 @@ function ShopPickerScreen({ ov, setOvKey, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundImage: homeBg(0.82),
       backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🛍️ ショップを指定</div>
 
@@ -2650,7 +2656,7 @@ function EncChampPickerScreen({ ov, setOvKey, onBack }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
-      backgroundImage: `linear-gradient(rgba(0,0,0,0.82), rgba(0,0,0,0.82)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`,
+      backgroundImage: homeBg(0.82),
       backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🎁 配布チャンピオンを指定</div>
 
@@ -2851,7 +2857,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
   }
 
   return (
-    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, backgroundImage:`linear-gradient(rgba(0,0,0,0.78), rgba(0,0,0,0.78)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:16, animation:'fadeIn 0.6s ease' }}>
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, backgroundImage:homeBg(0.78), backgroundSize:'cover', backgroundPosition:'center', padding:16, animation:'fadeIn 0.6s ease' }}>
       <div style={{ fontFamily:'Orbitron', fontSize:'clamp(20px,4.5vw,36px)', fontWeight:900, color:'#fff', letterSpacing:6, textShadow:'0 0 10px rgba(0,0,0,0.9), 0 0 20px var(--gold)' }}>
         ⚙️ 設定
       </div>
@@ -3166,7 +3172,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
     } catch (e) { window.prompt('共有URL', url); }
   };
 
-  const BG = `linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.75)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`;
+  const BG = homeBg(0.75);
   const selRec = items.find(i => recKey(i) === selKey) || null;
 
   return (
@@ -3590,7 +3596,7 @@ function Main() {
     return (
       <React.Fragment>
       {globalStatsDrawer}
-      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:`linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
+      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:homeBg(0.6), backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
         {/* 🌗 テーマ切替（右上・小さめの丸ボタン） */}
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
@@ -3668,7 +3674,7 @@ function Main() {
     return (
       <React.Fragment>
         {globalStatsDrawer}
-        <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:26, backgroundImage:`linear-gradient(rgba(0,0,0,0.62), rgba(0,0,0,0.62)), url("https://assets.st-note.com/production/uploads/images/263587712/rectangle_large_type_2_386d7257054746a6649e14bdb1432725.jpeg?width=4000&height=4000&fit=bounds&format=jpg&quality=90")`, backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 0.6s ease' }}>
+        <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:26, backgroundImage:homeBg(0.62), backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 0.6s ease' }}>
           {/* 🌗 テーマ切替（右上・小さめの丸ボタン） */}
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
@@ -4033,6 +4039,25 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
   // 🌟 タッチドラッグ＆ピンチズーム用
   const [boardZoom, setBoardZoom] = useState(1.0);
+  // 📐 2Dの盤面を、盤面エリアいっぱいに広げる倍率。
+  //    以前は 0.9 固定で頭打ちだったため、画面が広くても余白が残っていた。
+  const [boardFit, setBoardFit] = useState(1.0);
+  const boardGridRef = useRef(null);
+  useEffect(() => {
+    const calc = () => {
+      // 3D表示中は 2D の盤面が無いので何もしない
+      const area = boardContainerRef.current, inner = boardGridRef.current;
+      if (!area || !inner) return;
+      const aw = area.clientWidth, ah = area.clientHeight;
+      const gw = inner.offsetWidth, gh = inner.offsetHeight;
+      if (!aw || !ah || !gw || !gh) return;
+      setBoardFit(Math.max(0.4, Math.min(2.2, Math.min(aw / gw, ah / gh) * 0.97)));
+    };
+    calc();
+    const t = setTimeout(calc, 120);
+    window.addEventListener('resize', calc);
+    return () => { clearTimeout(t); window.removeEventListener('resize', calc); };
+  });
   const touchDragRef = useRef(null); // { src, ghostEl }
   const pinchRef = useRef(null); // { startDist, startZoom }
   const boardContainerRef = useRef(null);
@@ -4141,7 +4166,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
 
   const [showMfPopup, setShowMfPopup] = useState(false);
-  const [use3D, setUse3D] = useState(false);   // 🧊 盤面 2D/3D 切替
+  // 🧊 盤面 2D/3D 切替。既定は3D（sim-config.js の default2D: true で2D起動に戻せる）
+  const [use3D, setUse3D] = useState(() => !(SIM_CFG && SIM_CFG.default2D));
   const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
   const [freeView, setFreeView] = useState(false); // 🎥 3D: 自由視点 ON/OFF（OFFで既定の視点に固定）
   // 📌 3D盤面の既定アングル
@@ -4207,6 +4233,20 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     if (view3DApi.current) view3DApi.current.fitToScreen();
     setFreeView(false);
     showMsg('↩️ 既定のアングルを解除しました（自動フィットに戻ります）');
+  };
+
+  // 🔄 指定した既定アングルを完全に解除して、自動フィット（画面いっぱい）に戻す
+  const resetView3D = () => {
+    try { localStorage.removeItem(view3DKey); } catch (e) {}
+    setSavedView3D(null);
+    setFreeView(false);
+    if (view3DApi.current) view3DApi.current.fitToScreen();
+    showMsg(<div style={{ lineHeight:1.5 }}>
+      🔄 既定のアングルをリセットしました（自動フィット）<br/>
+      {view3DLockedByConfig && <span style={{ fontSize:10, color:'var(--textdim)' }}>
+        ※ sim-config.js の board3dView は残っています。全員に反映するにはその行を消してください。
+      </span>}
+    </div>);
   };
 
   // 🧊 3D操作は 2D と同じ hDrop / dragSrc を再利用する（ロジック二重化を避けるため）
@@ -6363,6 +6403,12 @@ const handleAugmentPick = (aug, historyContext) => {
               </button>
             </React.Fragment>
           )}
+          {use3D && is3DAdmin && savedView3D && (
+            <button onClick={resetView3D} title="指定した既定アングルを解除して、画面いっぱいの自動表示に戻す"
+              style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
+              {isLandscapeMobile ? '🔄' : '🔄 既定リセット'}
+            </button>
+          )}
           {use3D && is3DAdmin && !freeView && savedView3D && (
             <button onClick={clearView3D} title="既定のアングルを解除"
               style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--textdim)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
@@ -6394,7 +6440,7 @@ const handleAugmentPick = (aug, historyContext) => {
       <div className="sp-main-area" style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
         <div className="sp-left-side" style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0, paddingLeft:'env(safe-area-inset-left)' }}>
-          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 110 : 150, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
+          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 128 : 190, padding: isLandscapeMobile ? 4 : 10, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
             
 
@@ -6407,7 +6453,7 @@ const handleAugmentPick = (aug, historyContext) => {
             {inactiveTraits.map(([t,c]) => <TraitRow key={t} t={t} c={c} active={false} />)}
           </div>
           {/* アイテム欄 */}
-          <div className="sp-left-item" style={{ width: isLandscapeMobile ? 44 : 56, padding: isLandscapeMobile ? 4 : 8, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 8 }}>
+          <div className="sp-left-item" style={{ width: isLandscapeMobile ? 52 : 74, padding: isLandscapeMobile ? 4 : 10, overflowY:'auto', display:'flex', flexDirection:'column', alignItems:'center', gap: isLandscapeMobile ? 4 : 10 }}>
             <div style={{ fontSize:9, color:'var(--gold)', fontFamily:'Noto Sans JP', fontWeight:900, textAlign:'center' }}>アイテム</div>
             {inventory.map((it, i) => (
               <div
@@ -6420,7 +6466,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 onDragOver={e => e.preventDefault()}
                 onDrop={hDrop('inventory', i)}
                 title={it ? getJaName(it) : ""}
-                style={{ width:36, height:36, background:'#1e293b', borderRadius:6, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
+                style={{ width:52, height:52, background:'#1e293b', borderRadius:8, border:`1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':(it?.type==='completed'?'var(--gold)':'var(--border)'))}`, cursor:'grab', display:'flex', alignItems:'center', justifyContent:'center', overflow:'visible', flexShrink:0, boxShadow:it?.type==='artifact'?'0 0 10px rgba(220,53,69,0.5)':(it?.type==='radiant'?'0 0 10px rgba(212,175,55,0.5)':(it?.type==='completed'?'0 0 10px rgba(200,169,110,0.3)':'none')), position:'relative' }}>
                 {it?.name ? (<img src={getMetaTFTItemUrl(it)} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none', borderRadius:4 }} />) : (<span style={{ fontSize:18, pointerEvents:'none' }}>{it?.icon}</span>)}
                 
                 {/* 🌟 除去装置のスタック数を左上にバッジ表示 */}
@@ -6451,8 +6497,8 @@ const handleAugmentPick = (aug, historyContext) => {
               onDropOutside={handle3DDropOutside} onHoverSlot={handle3DHoverSlot}
               onDomDrop={handle3DDomDrop} itemIcon={getMetaTFTItemUrl} champs={CHAMPS} />
           ) : (
-          <div style={{ transform: `scale(${isLandscapeMobile ? Math.min(0.62, boardZoom) : Math.min(0.9, boardZoom)})`, transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
-            <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+          <div style={{ transform: `scale(${boardFit * boardZoom})`, transformOrigin:'center center', transition: pinchRef.current ? 'none' : 'transform 0.15s' }}>
+            <div ref={boardGridRef} style={{ display:'flex', flexDirection:'column', gap:2 }}>
               {[0,1,2,3].map(row => (
                 <div key={row} style={{ display:'flex', gap:2, marginLeft:row%2===1?39:0 }}>
                   {[0,1,2,3,4,5,6].map(col => {
@@ -6555,8 +6601,8 @@ const handleAugmentPick = (aug, historyContext) => {
           <div 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 52 : 72, 
+              height: isLandscapeMobile ? 52 : 72, 
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: `3px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
@@ -6588,8 +6634,8 @@ const handleAugmentPick = (aug, historyContext) => {
             onDrop={hDrop('bench', i)} 
             className="sp-bench-slot"
             style={{ 
-              width: isLandscapeMobile ? 42 : 54, 
-              height: isLandscapeMobile ? 42 : 54, 
+              width: isLandscapeMobile ? 52 : 72, 
+              height: isLandscapeMobile ? 52 : 72, 
               borderRadius:8, 
               background:'var(--bg-hex)', 
               border: champ ? `3px solid ${COST_COLORS[champ.cost]}` : `1px solid var(--border)`,
