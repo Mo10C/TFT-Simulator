@@ -145,7 +145,7 @@ html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sa
   .sp-bench-slot  { width: 42px !important; height: 42px !important; }
 
   /* ショップエリアを低く */
-  .sp-shop-area   { height: 108px !important; }
+  .sp-shop-area   { height: 134px !important; }
   .sp-shop-header { height: 20px !important; }
 
   /* NEXTボタンエリアを細く */
@@ -313,7 +313,7 @@ body.dark {
 
 /* 左：特性 ＋ アイテム欄（本家と同じく画面左に縦並び） */
 .b3d-full .sp-left-side {
-  top: 12px !important; left: 12px !important; bottom: 168px !important;
+  top: 12px !important; left: 12px !important; bottom: 214px !important;
   align-items: stretch;
   overflow: hidden;
 }
@@ -321,7 +321,7 @@ body.dark {
 
 /* 右：オーグメント（チート側の縦列と同じ位置） */
 .b3d-full .sp-right-aug {
-  top: 12px !important; right: 12px !important; bottom: 168px !important;
+  top: 12px !important; right: 12px !important; bottom: 214px !important;
   border-left: none !important;
 }
 
@@ -370,11 +370,11 @@ body.dark {
 /* 画面が狭いときはパネルを小さくして盤面を確保 */
 @media screen and (max-height: 700px) {
   .b3d-full .sp-left-side,
-  .b3d-full .sp-right-aug { bottom: 132px; }
+  .b3d-full .sp-right-aug { bottom: 178px; }
 }
 @media screen and (max-height: 500px) and (orientation: landscape) {
   .b3d-full .sp-left-side,
-  .b3d-full .sp-right-aug { top: 6px; bottom: 118px; }
+  .b3d-full .sp-right-aug { top: 6px; bottom: 146px; }
   .b3d-full .sp-left-side { left: 6px; }
   .b3d-full .sp-right-aug { right: 6px; }
   .b3d-full .sp-shop-area { left: 6px; right: 6px; bottom: 6px; }

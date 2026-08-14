@@ -165,55 +165,81 @@ function b3dMakeStars(star){
   const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStarTexture(star),transparent:true}));
   spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*1.7; return spr;
 }
-/* 🎒 装備アイテムは駒の頭上に並べる（本家と同じく3つまで） */
-const B3D_ITEM_Y = 1.5;        // 頭上の表示高さ
-const B3D_ITEM_SIZE = 0.34;    // アイコン1個の大きさ
-const B3D_ITEM_GAP = 0.38;     // 横の間隔
+/* 🎒 装備アイテムは駒の頭上に表示する。
+   ⚠ WebGLのテクスチャに外部画像を使うにはCDN側のCORS対応が必要で、現状は通らない
+     （そのため以前は画像が出ずに文字だけになっていた）。
+     ここではHTMLのアイコンを3D画面に重ねて、3D座標に追従させる方式にしている。 */
+const B3D_ITEM_Y = 1.8;        // 頭上の表示高さ（ワールド単位）
+const B3D_ITEM_PX = 34;        // アイコン1個の大きさ（画面上のピクセル）
+const B3D_ITEM_GAP_PX = 4;     // アイコン同士の間隔
 
-function b3dItemTexture(item, itemIcon){
-  const cv=document.createElement('canvas'); cv.width=cv.height=96; const g=cv.getContext('2d');
-  const border = item?.type==='artifact' ? '#dc3545'
-    : item?.type==='radiant' ? '#f0d074'
-    : item?.type==='consumable' ? '#7fd0ff'
-    : item?.type==='comp' ? '#9fb0c8' : '#d4af37';
-  const draw=(img)=>{
-    g.clearRect(0,0,96,96);
-    g.fillStyle='#0c1626'; b3dRoundRect(g,3,3,90,90,14); g.fill();
-    if(img){ g.save(); b3dRoundRect(g,6,6,84,84,12); g.clip(); g.drawImage(img,6,6,84,84); g.restore(); }
-    else { g.fillStyle=border; g.font='900 46px "Noto Sans JP", sans-serif'; g.textAlign='center'; g.textBaseline='middle';
-      g.fillText((item?.jaName||item?.name||'?')[0], 48, 50); }
-    g.lineWidth=5; g.strokeStyle=border; b3dRoundRect(g,3,3,90,90,14); g.stroke();
-    tex.needsUpdate=true;
-  };
-  const tex=new THREE.CanvasTexture(cv); b3dSetSRGB(tex); draw(null);
-  try{
-    const url = itemIcon && itemIcon(item);
-    if(url){ const im=new Image(); im.crossOrigin='anonymous'; im.onload=()=>draw(im); im.onerror=()=>{}; im.src=url; }
-  }catch(e){}
-  return tex;
-}
-function b3dMakeItemPips(items, itemIcon){
-  const list=(items||[]).filter(Boolean).slice(0,3);
-  if(!list.length) return null;
-  const grp=new THREE.Group(); grp.userData.b3dItems=true;
-  list.forEach((it,i)=>{
-    const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dItemTexture(it,itemIcon),transparent:true,depthTest:false}));
-    spr.renderOrder=10;
-    spr.scale.set(B3D_ITEM_SIZE,B3D_ITEM_SIZE,1);
-    spr.position.set((i-(list.length-1)/2)*B3D_ITEM_GAP, B3D_ITEM_Y, 0);
-    grp.add(spr);
-  });
-  return grp;
-}
-/* 装備の増減は駒を作り直さず、頭上の表示だけ差し替える（モデルの再読込を避けるため） */
+const B3D_ITEM_BORDER = (it) =>
+  it?.type==='artifact' ? '#dc3545'
+  : it?.type==='radiant' ? '#f0d074'
+  : it?.type==='consumable' ? '#7fd0ff'
+  : it?.type==='comp' ? '#9fb0c8' : '#d4af37';
+
 function b3dItemsSig(u){ return (u && u.items || []).filter(Boolean).map(it=>it.id||it.name||'?').join(','); }
-function b3dRefreshItems(g, u, itemIcon){
-  const sig=b3dItemsSig(u);
+
+/* 駒の頭上に出すアイコン列（HTML）を作り直す */
+function b3dBuildItemDom(S, key, u, itemIcon){
+  if(!S || !S.itemLayer) return;
+  let box = S.itemDom.get(key);
+  if(!box){
+    box = document.createElement('div');
+    box.style.cssText = 'position:absolute;display:flex;gap:'+B3D_ITEM_GAP_PX+'px;transform:translate(-50%,-50%);pointer-events:none;will-change:transform;';
+    S.itemLayer.appendChild(box);
+    S.itemDom.set(key, box);
+  }
+  const list = (u && u.items || []).filter(Boolean).slice(0,3);
+  box.innerHTML = list.map(it => {
+    const url = (itemIcon && itemIcon(it)) || '';
+    const col = B3D_ITEM_BORDER(it);
+    const label = String(it.jaName || it.name || '?').slice(0,1);
+    return '<div title="'+String(it.jaName||it.name||'').replace(/"/g,'')+'" style="width:'+B3D_ITEM_PX+'px;height:'+B3D_ITEM_PX+'px;border-radius:7px;'
+      + 'border:2px solid '+col+';background:#0c1626;box-shadow:0 2px 6px rgba(0,0,0,.5);overflow:hidden;'
+      + 'display:flex;align-items:center;justify-content:center;color:'+col+';font:900 15px \'Noto Sans JP\',sans-serif">'
+      + (url ? '<img src="'+url+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'">' : label)
+      + '</div>';
+  }).join('');
+  box.style.display = list.length ? 'flex' : 'none';
+}
+
+/* 装備の増減は駒を作り直さず、頭上の表示だけ差し替える（モデルの再読込を避けるため） */
+function b3dRefreshItems(g, u, itemIcon, S, key){
+  const sig = b3dItemsSig(u);
   if(g.userData.itemsSig === sig) return;
   g.userData.itemsSig = sig;
-  g.children.filter(c=>c.userData && c.userData.b3dItems).forEach(c=>{ g.remove(c); b3dDispose(c); });
-  const pips=b3dMakeItemPips(u.items, itemIcon); if(pips) g.add(pips);
+  if(S && key) b3dBuildItemDom(S, key, u, itemIcon);
 }
+
+/* 毎フレーム、3Dの駒の頭上に来るようアイコンの位置を合わせる */
+function b3dSyncItemDom(S){
+  if(!S || !S.itemLayer || !S.itemDom.size) return;
+  const el = S.renderer.domElement;
+  const w = el.clientWidth || 1, h = el.clientHeight || 1;
+  const v = new THREE.Vector3();
+  S.itemDom.forEach((box, key) => {
+    const g = S.pieces.get(key);
+    if(!g || !g.parent){ box.style.display='none'; return; }
+    if(box.childElementCount === 0){ box.style.display='none'; return; }
+    v.set(0, B3D_ITEM_Y, 0);
+    g.localToWorld(v);
+    v.project(S.camera);
+    if(v.z > 1){ box.style.display='none'; return; }   // カメラの後ろ
+    box.style.display = 'flex';
+    box.style.left = ((v.x + 1) / 2 * w) + 'px';
+    box.style.top  = ((-v.y + 1) / 2 * h) + 'px';
+  });
+}
+
+/* 駒が消えたときにアイコンも片付ける */
+function b3dRemoveItemDom(S, key){
+  if(!S || !S.itemDom) return;
+  const box = S.itemDom.get(key);
+  if(box){ box.remove(); S.itemDom.delete(key); }
+}
+
 /* 🎯 チャンピオンごとの3Dモデル微調整
    ── 自動の中心合わせでズレる場合はここに書く。キーは champ.id。
       x / z : 六角形中心からの左右・前後のズレ補正
@@ -222,7 +248,7 @@ function b3dRefreshItems(g, u, itemIcon){
       rotY  : 向き（ラジアン。Math.PI で180度）
    例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
 const CHAMP_MODEL_TUNE = {
-  akali: { scale:0.89, z:0.98 },   // アカリ
+  akali: { z:0.98 },   // アカリ
   cinderling: { scale:0.35 },   // シンダーリング
   karma: { scale:1.1 },   // カルマ
   kobuko: { scale:0.71, x:0.4, z:0.01 },   // コブコ
@@ -235,11 +261,10 @@ const CHAMP_MODEL_TUNE = {
   veigar: { scale:0.82 },   // ベイガー
   xayah: { z:-0.3 },   // ザヤ
   yorick: { scale:1.24, x:0.2, y:-0.17, z:-0.46 },   // ヨリック
-  elise: { x:-0.14, z:0.19 },   // エリス
   gromp: { scale:0.69, x:-0.14, y:-0.24 },   // グロンプ
-  kayle: { x:-0.01, y:-0.48, rotY:-21 * Math.PI/180 },   // ケイル
+  kayle: { x:0.1, rotY:-97 * Math.PI/180 },   // ケイル
   leblanc: { scale:1.11, x:0.45, y:-0.2 },   // ルブラン
-  murkwolf: { scale:0.49, x:-0.19, rotY:2 * Math.PI/180 },   // マークウルフ
+  murkwolf: { scale:0.64, x:-0.27 },   // マークウルフ
   scuttlecrab: { scale:0.7 },   // スカトルクラブ
   sejuani: { scale:1.18, y:-0.13 },   // セジュアニ
   teemo: { scale:0.7, x:0.22, z:0.07 },   // ティーモ
@@ -252,28 +277,24 @@ const CHAMP_MODEL_TUNE = {
   khazix: { scale:0.84, x:-0.19, z:0.22 },   // カ＝ジックス
   kogmaw: { scale:0.64 },   // コグ＝マウ
   krug: { scale:0.76, x:0.04 },   // クルーグ
-  mamabeak: { scale:0.6 },   // ラプター
   rammus: { z:-0.17 },   // ラムス
-  rengar: { scale:0.94, x:0.13, z:-0.17, rotY:10 * Math.PI/180 },   // レンガー
+  rengar: { scale:0.94, rotY:-87 * Math.PI/180 },   // レンガー
   tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
   ahri: { x:-0.81, z:-0.02 },   // アーリ
   amumu: { x:-0.1, z:0.07 },   // アムム
   aphelios: { scale:1.58, y:-1.5, z:1.17 },   // アフェリオス
-  brambleback: { scale:0.79, x:-0.2, z:0.3, rotY:-111 * Math.PI/180 },   // ブランブルバック
+  brambleback: { scale:0.87, x:0.27, z:-0.1 },   // ブランブルバック
   lillia: { scale:1.12 },   // リリア
-  malphite: { x:-0.15, z:-0.15 },   // マルファイト
   morgana: { x:-0.17, z:0.24 },   // モルガナ
   nidalee: { x:0.19, z:-0.24 },   // ニダリー
   sentinel: { scale:0.8 },   // 古の番人
-  sett: { scale:0.97, x:0.01, z:-0.05 },   // セト
+  sett: { scale:0.97, x:0.01, z:-0.2 },   // セト
   sivir: { scale:0.94, x:0.34, z:0.16 },   // シヴィア
   soraka: { z:0.45 },   // ソラカ
-  zyra: { scale:0.98, z:-0.18 },   // ザイラ
+  zyra: { z:-0.18 },   // ザイラ
   alune: { y:-0.45 },   // アルーン
-  ashe: { scale:1.13, y:-0.09, z:-0.39 },   // アッシュ
-  draven: { x:-0.1 },   // ドレイヴン
   gnar: { scale:0.55, z:0.27 },   // ナー
-  ivern: { x:-0.16 },   // アイバーン
+  ivern: { rotY:-90 * Math.PI/180 },   // アイバーン
   kennen: { scale:0.82, x:-0.17, z:0.04 },   // ケネン
   lux: { z:0.6 },   // ラックス
   maokai: { z:0.77 },   // マオカイ
@@ -638,8 +659,9 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     g.userData.home=home; g.userData.kind=w.kind; g.userData.idx=w.idx;
     moved.set(key,g);
     if(S.mixers && S.mixers.has(fromKey)){ const mx=S.mixers.get(fromKey); S.mixers.delete(fromKey); S.mixers.set(key,mx); }
+    b3dRemoveItemDom(S, fromKey); g.userData.itemsSig=null;
   });
-  moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w) b3dRefreshItems(g, w.u, itemIcon); });
+  moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w) b3dRefreshItems(g, w.u, itemIcon, S, key); });
 
   // ── 4) 残り（新規作成・削除）を処理
   slots.forEach(h=>{
@@ -651,11 +673,12 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     const modelUrl = w ? w.modelUrl : '';
     const sig = w ? w.sig : null;
     const cur=pieces.get(key);
-    if(cur && cur.userData.sig===sig){ if(u) b3dRefreshItems(cur, u, itemIcon); return; }
+    if(cur && cur.userData.sig===sig){ if(u) b3dRefreshItems(cur, u, itemIcon, S, key); return; }
     if(cur){ 
        boardGroup.remove(cur); 
        b3dDispose(cur); 
        pieces.delete(key); 
+       b3dRemoveItemDom(S, key);
        if (S.mixers.has(key)) {
           S.mixers.get(key).stopAllAction();
           S.mixers.delete(key); // 🌟 ミキサーを削除
@@ -690,7 +713,7 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
       g.add(b3dMakeStandee(u,boardIcon));
     }
     g.add(b3dMakeStars(u.star));
-    b3dRefreshItems(g, u, itemIcon);
+    g.userData.itemsSig = null; b3dRefreshItems(g, u, itemIcon, S, key);
     g.userData.spawnT=0;
     boardGroup.add(g); pieces.set(key,g);
     if(S.spawning) S.spawning.add(g);
@@ -758,6 +781,10 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       else if (THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.physicallyCorrectLights = false;
       mount.appendChild(renderer.domElement);
+      // 装備アイテムのアイコンを3Dの上に重ねる層（CORS不要でCDN画像をそのまま出せる）
+      const itemLayer=document.createElement('div');
+      itemLayer.style.cssText='position:absolute;inset:0;pointer-events:none;overflow:hidden;';
+      mount.appendChild(itemLayer);
 
       const controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true; controls.dampingFactor = 0.08;
@@ -904,6 +931,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
          }
          controls.update(); 
          renderer.render(scene,camera);
+         b3dSyncItemDom(S.current);   // 装備アイコンを駒の頭上へ追従させる
       }; loop();
        
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
@@ -916,6 +944,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         } }); ro.observe(mount);
 
       s={ scene, camera, renderer, controls, boardGroup, hexes, benchSlots, slots, selMarker, freeView:false, onDragOver, onDomDropEv,
+         itemLayer, itemDom:new Map(),
          viewSize:{w:W,h:H}, insets:insetsRef.current||{left:0,right:0,top:0,bottom:0}, 
          pieces:new Map(), 
          spawning:new Set(), // 出現アニメ中の駒
@@ -933,7 +962,9 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       cancelAnimationFrame(x.raf);
       cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
       const el=x.renderer.domElement; el.removeEventListener('dragover',x.onDragOver); el.removeEventListener('drop',x.onDomDropEv); el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
-      x.pieces.forEach(g=>b3dDispose(g)); try{ x.renderer.dispose(); }catch(e){}
+      x.pieces.forEach(g=>b3dDispose(g));
+      if(x.itemDom){ x.itemDom.forEach(b=>b.remove()); x.itemDom.clear(); }
+      if(x.itemLayer && x.itemLayer.parentNode) x.itemLayer.parentNode.removeChild(x.itemLayer); try{ x.renderer.dispose(); }catch(e){}
       if(el.parentNode) el.parentNode.removeChild(el); S.current=null; };
   }, []);
 

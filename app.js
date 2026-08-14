@@ -6634,7 +6634,7 @@ const handleAugmentPick = (aug, historyContext) => {
       {/* ショップ */}
       {/* ショップエリア */}
      {/* 🌟 ショップ・NEXTボタン エリア 🌟 */}
-      <div className="sp-shop-area" style={{ height: isLandscapeMobile ? 108 : 140, background:'var(--bg-panel)', borderTop:'2px solid var(--border)', display:'flex', flexShrink:0, position: 'relative', paddingLeft:'env(safe-area-inset-left)', paddingRight:'env(safe-area-inset-right)' }}>
+      <div className="sp-shop-area" style={{ height: isLandscapeMobile ? 134 : 186, background:'var(--bg-panel)', borderTop:'2px solid var(--border)', display:'flex', flexShrink:0, position: 'relative', paddingLeft:'env(safe-area-inset-left)', paddingRight:'env(safe-area-inset-right)' }}>
         
         {/* 左側〜中央：ショップ内容（ドロップ判定はここに残す） */}
         <div onDragOver={e => e.preventDefault()} onDrop={hDrop('shop', -1)} style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
