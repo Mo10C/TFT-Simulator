@@ -209,7 +209,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
       <button onclick="document.getElementById('item-file').click()">📂 手動でファイルを選ぶ</button>
     </div>
     <div class="row">
-      <label>種類:</label><select id="item-type-filter" onchange="renderItems()"><option value="all">全て</option><option value="comp">素材</option><option value="completed">完成品</option><option value="artifact">アーティファクト</option></select>
+      <label>種類:</label><select id="item-type-filter" onchange="renderItems()"><option value="all">全て</option><option value="comp">素材</option><option value="completed">完成アイテム</option><option value="radiant">レディアント</option><option value="artifact">アーティファクト</option><option value="consumable">消費アイテム</option></select>
       <label>表示:</label><select id="item-vis-filter" onchange="renderItems()"><option value="all">全て</option><option value="visible">表示中のみ</option><option value="hidden">非表示のみ</option></select>
       <label>SET:</label><span id="item-set-btns"></span>
       <label>検索:</label><input type="text" id="item-search" style="width:150px" oninput="renderItems()">
@@ -586,13 +586,14 @@ function stripManagedBlock(text) {
   return (text.slice(0, i) + text.slice(j === -1 ? text.length : j + MB_END.length)).replace(/\n{3,}$/,'\n');
 }
 function parseManagedBlock(text) {
-  const out = { hidden: [], tags: {}, added: [], addedJa: {} };
+  const out = { hidden: [], tags: {}, added: [], addedJa: {}, edits: {} };
   const i = text.indexOf(MB_START);
   if (i === -1) return out;
   const seg = text.slice(i, text.indexOf(MB_END, i) + 1);
   const grab = (name, fb) => { const m = seg.match(new RegExp('const ' + name + ' = ([\\s\\S]*?);\\n')); try { return m ? JSON.parse(m[1]) : fb; } catch(e) { return fb; } };
   out.hidden = grab('HIDDEN', []); out.tags = grab('TAGS', {});
   out.added = grab('ADDED', []); out.addedJa = grab('ADDED_JA', {});
+  out.edits = grab('EDITS', {});
   return out;
 }
 function buildManagedBlock(kind, state) {
@@ -616,9 +617,20 @@ function buildManagedBlock(kind, state) {
   (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(setJa);
   (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(setJa);
   if (typeof ITEM_JA !== 'undefined') Object.assign(ITEM_JA, ADDED_JA);
+  // エディタで変更した id / 日本語名 / 種類を元データへ反映する（画像URLは id と種類から作られる）
+  const applyEdit = (it) => { if (!it || !it.id) return; const e = EDITS[it.id]; if (!e) return;
+    if (e.jaName) it.jaName = e.jaName;
+    if (e.type) it.type = e.type;
+    if (e.id && e.id !== it.id) it.id = e.id; };
+  (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(applyEdit);
+  Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(applyEdit);
+  Object.values(typeof CONSUMABLES !== 'undefined' ? CONSUMABLES : {}).forEach(applyEdit);
+  (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(applyEdit);
+  (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(applyEdit);
   ADDED.forEach(it => { if (it.type === 'comp' && typeof ITEMS !== 'undefined') ITEMS.push(it);
-    else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it); });`;
-  return `\n\n${MB_START}\n(function(){\n  const HIDDEN = ${JSON.stringify(state.hidden)};\n  const TAGS = ${JSON.stringify(state.tags)};\n  const ADDED = ${JSON.stringify(state.added)};\n  const ADDED_JA = ${JSON.stringify(state.addedJa || {})};\n${apply}\n})();\n${MB_END}\n`;
+    else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it);
+    else if (it.type === 'radiant' && typeof RADIANT_ITEMS !== 'undefined') RADIANT_ITEMS.push(it); });`;
+  return `\n\n${MB_START}\n(function(){\n  const HIDDEN = ${JSON.stringify(state.hidden)};\n  const TAGS = ${JSON.stringify(state.tags)};\n  const ADDED = ${JSON.stringify(state.added)};\n  const ADDED_JA = ${JSON.stringify(state.addedJa || {})};\n  const EDITS = ${JSON.stringify(state.edits || {})};\n${apply}\n})();\n${MB_END}\n`;
 }
 
 /* ═══════ 🦸 チャンピオン（フル編集：CHAMPS配列を丸ごと再生成） ═══════ */
@@ -1079,14 +1091,22 @@ function loadItemText(text) {
     const got = new Function(itemText + `;
       return { ITEMS: typeof ITEMS!=='undefined'?ITEMS:[], ITEM_RECIPES: typeof ITEM_RECIPES!=='undefined'?ITEM_RECIPES:{},
                ARTIFACTS: typeof ARTIFACTS!=='undefined'?ARTIFACTS:[], ITEM_JA: typeof ITEM_JA!=='undefined'?ITEM_JA:{},
-               RADIANT_ITEMS: typeof RADIANT_ITEMS!=='undefined'?RADIANT_ITEMS:[], PSIONIC_ITEMS: typeof PSIONIC_ITEMS!=='undefined'?PSIONIC_ITEMS:[] };`)();
+               RADIANT_ITEMS: typeof RADIANT_ITEMS!=='undefined'?RADIANT_ITEMS:[], CONSUMABLES: typeof CONSUMABLES!=='undefined'?CONSUMABLES:{}, PSIONIC_ITEMS: typeof PSIONIC_ITEMS!=='undefined'?PSIONIC_ITEMS:[] };`)();
     // 日本語名は各アイテムの jaName が基本。ITEM_JA は旧形式のデータ用の受け皿として残す
     const ja = (n, it) => itemMB.addedJa[n] || (it && it.jaName) || (got.ITEM_JA || {})[n] || n;
+    // 保存済みの編集（id / 日本語名 / 種類）を一覧にも反映する。srcId は元のidで、編集を紐づける鍵。
+    const ed = itemMB.edits || {};
+    const row = (it, type) => { const e = ed[it.id] || {};
+      return { srcId: it.id, id: e.id || it.id, name: it.name,
+               ja: e.jaName || ja(it.name, it), type: e.type || type, imgName: it.imgName,
+               grantedTrait: it.grantedTrait }; };
     itemList = [
-      ...got.ITEMS.map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: it.type || 'comp', imgName: it.imgName })),
-      ...Object.values(got.ITEM_RECIPES).map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: 'completed', imgName: it.imgName })),
-      ...got.ARTIFACTS.map(it => ({ id: it.id, name: it.name, ja: ja(it.name, it), type: 'artifact', imgName: it.imgName })),
-      ...itemMB.added.map(it => ({ id: it.id, name: it.name, ja: itemMB.addedJa[it.name] || it.jaName || it.name, type: it.type, imgName: it.imgName, isAdded: true })),
+      ...got.ITEMS.map(it => row(it, it.type || 'comp')),
+      ...Object.values(got.ITEM_RECIPES).map(it => row(it, 'completed')),
+      ...(got.RADIANT_ITEMS || []).map(it => row(it, 'radiant')),
+      ...got.ARTIFACTS.map(it => row(it, 'artifact')),
+      ...Object.values(got.CONSUMABLES || {}).map(it => row(it, 'consumable')),
+      ...itemMB.added.map(it => ({ srcId: it.id, id: it.id, name: it.name, ja: itemMB.addedJa[it.name] || it.jaName || it.name, type: it.type, imgName: it.imgName, isAdded: true })),
     ];
 
     // 🇯🇵 記録タブ・集計用：英名→日本語の変換マップ（表記ゆれに強いよう小文字・記号除去キーでも引ける）
@@ -1159,10 +1179,16 @@ function renderItems() {
     if (itemSetFilter !== 'all' && itemSetFilter !== 'none' && tag !== itemSetFilter) return '';
     if (q && !it.ja.toLowerCase().includes(q) && !(it.name||'').toLowerCase().includes(q) && !(it.id||'').toLowerCase().includes(q)) return '';
     return `<tr style="${isHidden ? 'opacity:.5' : ''}">
-      <td><img class="champ-img" src="${itemIconUrl(it)}" onerror="this.style.opacity=.15"></td>
-      <td style="font-family:Rajdhani;color:var(--blue)">${esc(it.id)}${it.isAdded ? ' <span class="badge" style="background:#e5f0fb;color:#0066cc;border:1px solid #a9cdf0">新規</span>' : ''}</td>
-      <td style="font-weight:700">${esc(it.ja)} <span class="note">${esc(it.name||'')}</span></td>
-      <td>${typeJa[it.type] || esc(it.type)}</td>
+      <td><img class="champ-img" id="itemimg-${esc(it.srcId)}" src="${itemIconUrl(it)}" onerror="this.style.opacity=.15"></td>
+      <td><input type="text" value="${esc(it.id)}" style="width:130px;font-family:Rajdhani;color:var(--blue)"
+            title="IDを変えると画像も変わります" oninput="setItemField('${esc(it.srcId)}','id',this.value)">
+          ${it.isAdded ? ' <span class="badge" style="background:#e5f0fb;color:#0066cc;border:1px solid #a9cdf0">新規</span>' : ''}</td>
+      <td><input type="text" value="${esc(it.ja)}" style="width:150px;font-weight:700"
+            oninput="setItemField('${esc(it.srcId)}','jaName',this.value)">
+          <div class="note">${esc(it.name||'')}</div></td>
+      <td><select style="width:120px" onchange="setItemField('${esc(it.srcId)}','type',this.value)">
+        ${ITEM_TYPES.map(t => `<option value="${t.v}" ${it.type===t.v?'selected':''}>${t.label}</option>`).join('')}
+      </select></td>
       <td><select onchange="setItemTag('${esc(it.id)}', this.value);renderItems()">
         <option value="">なし</option>
         ${SET_TAGS.map(t => `<option value="${t}" ${(itemMB.tags[it.id]||'')===t?'selected':''}>${t}</option>`).join('')}
@@ -1172,6 +1198,32 @@ function renderItems() {
     </tr>`;
   }).join('') || '<tr><td colspan="6" class="note">該当なし</td></tr>';
 }
+/* 種類の選択肢。画像URLの作り方がここで決まる（app.js の getMetaTFTItemUrl と対応） */
+const ITEM_TYPES = [
+  { v:'comp',       label:'素材' },
+  { v:'completed',  label:'完成アイテム' },
+  { v:'radiant',    label:'レディアント' },
+  { v:'artifact',   label:'アーティファクト' },
+  { v:'consumable', label:'消費アイテム' },
+];
+/* 既存アイテムの id / 日本語名 / 種類 を書き換える。srcId（元のid）を鍵に保存する */
+function setItemField(srcId, key, value) {
+  value = String(value == null ? '' : value).trim();
+  itemMB.edits = itemMB.edits || {};
+  const e = itemMB.edits[srcId] || (itemMB.edits[srcId] = {});
+  const row = itemList.find(x => x.srcId === srcId);
+  if (key === 'id') { if (value && value !== srcId) e.id = value; else delete e.id; if (row) row.id = value || srcId; }
+  if (key === 'jaName') { if (value) e.jaName = value; else delete e.jaName; if (row) row.ja = value; }
+  if (key === 'type') { if (value) e.type = value; else delete e.type; if (row) row.type = value; }
+  if (!Object.keys(e).length) delete itemMB.edits[srcId];
+  // 画像は id と種類から作られるので、その場で差し替えて結果を確認できるようにする
+  const img = document.getElementById('itemimg-' + srcId);
+  if (img && row) { img.style.opacity = 1; img.src = itemIconUrl(row); }
+}
+
+/* 検証・デバッグ用に主要処理を公開 */
+Object.assign(window, { setItemField, get itemList(){ return itemList; }, get itemMB(){ return itemMB; } });
+
 function toggleItemHidden(id) {
   const k = itemMB.hidden.indexOf(id);
   if (k === -1) itemMB.hidden.push(id); else itemMB.hidden.splice(k, 1);
