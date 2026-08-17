@@ -4268,19 +4268,21 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     </div>);
   };
 
-  // 🔄 視点リセット：保存した見え方を消して、画面いっぱいに収まる初期状態へ戻す
+  // 🔄 視点リセット：ゲーム開始時とまったく同じ見え方に戻す。
+  //    起動時は sim-config.js の board3dView（あれば）→ 無ければ自動フィット、の順で決まるので
+  //    リセットもその順番を再現する。ここを自動フィット固定にすると開始時と食い違う。
   const resetView3D = () => {
     try { localStorage.removeItem(view3DKey); } catch (e) {}
-    setSavedView3D(null);
     setFreeView(false);
-    // 状態の反映を待たずにその場で戻す（保存値が残っていると自動フィットが効かないため）
-    if (view3DApi.current) { view3DApi.current.applyView(null); view3DApi.current.fitToScreen(); }
-    showMsg(<div style={{ lineHeight:1.5 }}>
-      🔄 視点を初期状態に戻しました<br/>
-      {view3DLockedByConfig && <span style={{ fontSize:10, color:'var(--textdim)' }}>
-        ※ sim-config.js の board3dView は残っています。全員に反映するにはその行を消してください。
-      </span>}
-    </div>);
+    const boot = (SIM_CFG.board3dView && SIM_CFG.board3dView.pos) ? SIM_CFG.board3dView : null;
+    setSavedView3D(boot);
+    // 状態の反映を待たず、その場で戻す
+    if (view3DApi.current) {
+      view3DApi.current.applyView(null);                       // 端末に保存した見え方を解除
+      if (boot) view3DApi.current.applyView(boot);             // 起動時と同じ視点へ
+      else view3DApi.current.fitToScreen();                    // 共通設定が無ければ自動フィット
+    }
+    showMsg(boot ? '🔄 ゲーム開始時の視点に戻しました' : '🔄 視点を初期状態（自動フィット）に戻しました');
   };
 
   // 🧊 3D操作は 2D と同じ hDrop / dragSrc を再利用する（ロジック二重化を避けるため）
