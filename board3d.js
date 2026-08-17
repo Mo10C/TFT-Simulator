@@ -280,6 +280,7 @@ const CHAMP_MODEL_TUNE = {
   kogmaw: { scale:0.64 },   // コグ＝マウ
   krug: { scale:0.76, x:0.04 },   // クルーグ
   mamabeak: { scale:0.6 },   // ラプター
+  masteryi: { x:0.08, z:-0.55 },   // マスター・イー
   rammus: { z:-0.17 },   // ラムス
   rengar: { scale:0.94, x:0.13, z:-0.17, rotY:10 * Math.PI/180 },   // レンガー
   tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
@@ -287,6 +288,7 @@ const CHAMP_MODEL_TUNE = {
   amumu: { x:-0.1, z:0.07 },   // アムム
   aphelios: { scale:1.58, y:-1.5, z:1.17 },   // アフェリオス
   brambleback: { scale:0.79, x:-0.2, z:0.3, rotY:-111 * Math.PI/180 },   // ブランブルバック
+  ezreal: { x:-0.14, z:0.01 },   // エズリアル
   lillia: { scale:1.12 },   // リリア
   malphite: { x:-0.15, z:-0.15 },   // マルファイト
   morgana: { x:-0.17, z:0.24 },   // モルガナ
