@@ -792,6 +792,8 @@ function replArrBlock(text, startMark, body) {
 }
 // オブジェクトブロック（const X = { … \n}; ）を差し替え。無ければ insertAfter ブロックの直後に挿入
 function replObjBlock(text, startMark, body, insertAfter) {
+  // 中身が空で、元ファイルにもそのブロックが無い場合は作らない（空の定義を増やさない）
+  if (!String(body || '').trim() && text.indexOf(startMark) === -1) return null;
   const si = text.indexOf(startMark);
   if (si !== -1) { const ei = text.indexOf('\n};', si); if (ei !== -1) return text.slice(0, si) + startMark + '\n' + body + text.slice(ei); }
   if (insertAfter) { const ai = text.indexOf(insertAfter); if (ai !== -1) { const ce = text.indexOf('\n};', ai); if (ce !== -1) { const p = ce + 3; return text.slice(0, p) + '\n\n' + startMark + '\n' + body + '\n};' + text.slice(p); } } }
@@ -834,10 +836,13 @@ function downloadChamps() {
   let out = replArrBlock(champText, 'const CHAMPS=[', lines.join('\n'));
   if (out == null) return showMsg('const CHAMPS=[ が見つからない/閉じ（改行 + ]; ）が不正です。元ファイルの形式を確認してください', true);
   const tb = buildTraitBodies();
+  // ⚠ 挿入の起点は「必ず存在するブロック」を指すこと。
+  //    以前は TRAIT_DESCS を起点にしていたが、元ファイルに TRAIT_DESCS が無いと
+  //    TRAIT_ICONS（特性アイコンの例外URL）が丸ごと書き出されず、設定が消えていた。
   out = replObjBlock(out, 'const TRAIT_JA = {', tb.ja, null) || out;
-  out = replObjBlock(out, 'const TRAIT_DESCS = {', tb.desc, null) || out;
-  out = replObjBlock(out, 'const TRAIT_TIERS_DATA = {', tb.tiers, 'const TRAIT_DESCS = {') || out;
-  out = replObjBlock(out, 'const TRAIT_ICONS = {', tb.icons, 'const TRAIT_DESCS = {') || out;
+  out = replObjBlock(out, 'const TRAIT_DESCS = {', tb.desc, 'const TRAIT_JA = {') || out;
+  out = replObjBlock(out, 'const TRAIT_TIERS_DATA = {', tb.tiers, 'const TRAIT_JA = {') || out;
+  out = replObjBlock(out, 'const TRAIT_ICONS = {', tb.icons, 'const TRAIT_JA = {') || out;
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
   a.download = 'data-champions.js'; a.click();
