@@ -118,8 +118,10 @@ const ITEM_RECIPES = {
   'unbuildable_anima': {id:'emblem_anima', name:'animasquad Emblem', jaName: 'アニマの紋章', icon:'🛡️', imgId: 101, grantedTrait: 'Anima'},
   'unbuildable_psionic': {id:'emblem_psionic', name:'Psyops Emblem', jaName: 'サイオニックの紋章', icon:'🔮', imgId: 102, grantedTrait: 'Psionic'},
   'unbuildable_sniper': {id:'emblem_sniper', name:'rangedtrait Emblem', jaName: 'スナイパーの紋章', icon:'🏹', imgId: 103, grantedTrait: 'Sniper'}
+
+  */
 };
-*/
+
 
 /* ── 消費アイテム ── */
 const CONSUMABLES = {
