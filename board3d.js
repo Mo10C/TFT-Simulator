@@ -651,6 +651,8 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
 
   // ── 3) 移動：同じ駒が別スロットに現れたら、作り直さずそのまま動かす（モデル再読込のちらつき防止）
   const moved=new Map();
+  const movedMixers=new Map();   // 移動後のキー → ミキサー
+  const movedFromKeys=[];       // 移動元のキー（あとでまとめて消す）
   want.forEach((w,key)=>{
     const cur=pieces.get(key);
     if(cur && cur.userData.sig===w.sig) return;           // 変化なし
@@ -667,9 +669,17 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     g.position.set(home.x,home.y,home.z);
     g.userData.home=home; g.userData.kind=w.kind; g.userData.idx=w.idx;
     moved.set(key,g);
-    if(S.mixers && S.mixers.has(fromKey)){ const mx=S.mixers.get(fromKey); S.mixers.delete(fromKey); S.mixers.set(key,mx); }
+    // ⚠ ここで S.mixers を直接書き換えると、駒を入れ替えたときに
+    //    先に移した側のミキサーを後の移動が上書きして消してしまい、待機アニメが止まる。
+    //    いったん控えておき、全部の移動を決めてから反映する。
+    if(S.mixers && S.mixers.has(fromKey)) movedMixers.set(key, S.mixers.get(fromKey));
+    movedFromKeys.push(fromKey);
     b3dRemoveItemDom(S, fromKey); g.userData.itemsSig=null;
   });
+  if(S.mixers){
+    movedFromKeys.forEach(k=>S.mixers.delete(k));
+    movedMixers.forEach((mx,key)=>S.mixers.set(key,mx));
+  }
   moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w) b3dRefreshItems(g, w.u, itemIcon, S, key); });
 
   // ── 4) 残り（新規作成・削除）を処理
