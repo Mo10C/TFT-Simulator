@@ -186,7 +186,7 @@ const RADIANT_ITEMS = [
   const TAGS = {"emblem_darkstar":"set17","emblem_timebreaker":"set17","emblem_stargazer":"set17","emblem_spacegroove":"set17","emblem_meeple":"set17","emblem_arbiter":"set17","emblem_primordian":"set17","emblem_nova":"set17","emblem_marauder":"set17","emblem_voyager":"set17","emblem_challenger":"set17","emblem_shepherd":"set17","emblem_bastion":"set17","emblem_rogue":"set17","emblem_anima":"set17","emblem_psionic":"set17","emblem_sniper":"set17","ahris_aura":"set17","evelynns_intuition":"set17","varuss_tenacity":"set17","threshs_lantern":"set17","sorakas_miracle":"set17","yasuos_bladework":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
-  const EDITS = {"archangelstaff":{"id":"archangelsstaff"},"dragonclaw":{"id":"dragonsclaw"},"warmogarmor":{"id":"warmogsarmor"},"thiefssparringglovess":{"id":"thiefsgloves"},"r_archangel":{"id":"r_archangelsstaff"}};
+  const EDITS = {"archangelstaff":{"id":"archangelsstaff"},"dragonclaw":{"id":"dragonsclaw"},"warmogarmor":{"id":"warmogsarmor"},"thiefssparringglovess":{"id":"thiefsgloves"},"r_archangel":{"id":"r_archangelsstaff"},"trinityforce":{"imgUrl":"https://tftips.b-cdn.net/item/4_ornninfinityforce.avif?v=1"},"statikkshiv_artifact":{"id":"statikkshiv"},"snipersfocus":{"imgUrl":"https://tftips.b-cdn.net/item/9_ornnhorizonfocus.avif?v=1"},"flickerblade":{"id":"navoriflickerblade"},"rapidfirecannon_artifact":{"id":"rapidfirecannon"},"unendingdespair":{"id":"theindomitable"},"everlastingpact":{"id":"eternalpact"},"dusksblessing":{"id":"aegisofdusk"},"dawnsblessing":{"id":"aegisofdawn"},"hatjuice":{"id":"cappajuice"},"crown_of_demacia":{"imgUrl":"https://tftips.b-cdn.net/item/9_crownofdemacia.avif?v=1","type":"completed"}};
   const mark = (it) => { if (!it || !it.id) return;
     if (HIDDEN.includes(it.id)) it.hidden = true;
     if (TAGS[it.id]) it.setTag = TAGS[it.id]; };
@@ -205,6 +205,7 @@ const RADIANT_ITEMS = [
   const applyEdit = (it) => { if (!it || !it.id) return; const e = EDITS[it.id]; if (!e) return;
     if (e.jaName) it.jaName = e.jaName;
     if (e.type) it.type = e.type;
+    if (e.imgUrl) it.imgUrl = e.imgUrl;   // 画像URLの例外指定（規則から外れるものはこれで上書き）
     if (e.id && e.id !== it.id) it.id = e.id; };
   (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(applyEdit);
   Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(applyEdit);
