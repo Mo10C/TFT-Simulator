@@ -574,12 +574,34 @@ const getJaName = (name) => resolveItemJa(name); // getJaName は resolveItemJa 
 /* ✨ レディアントアイテムの画像URL。
    ── 実ファイル名は imgName から導ける: tft5_item_jeweledgauntletradiant → 5_jeweledgauntletradiant.avif
    ── id（r_shojin 等）から作ると、完成アイテム側のid整理とズレて404になるため imgName を使う。 */
+const RADIANT_SET_NO = (item) => (String((item && item.imgName) || '').match(/^tft(\d+)_/) || [, '5'])[1];
+/* 第一候補：id 由来（例 r_thiefsgloves → 5_thiefsglovesradiant.avif） */
 const radiantIconUrl = (item) => {
-  const img = item && item.imgName;
-  if (img) return `https://tftips.b-cdn.net/item/${String(img).replace(/^tft/, '').replace('_item_', '_')}.avif?v=1`;
-  // imgName が無い場合の保険（旧来の作り方）
-  return `https://tftips.b-cdn.net/item/${String(item && item.id || '').replace(/^r_/, '')}_radiant.avif?v=1`;
+  const base = String((item && item.id) || '').replace(/^r_/, '');
+  if (base) return `https://tftips.b-cdn.net/item/${RADIANT_SET_NO(item)}_${base}radiant.avif?v=1`;
+  return radiantIconUrlAlt(item);
 };
+/* 第二候補：imgName 由来。id と実ファイル名が食い違う数件のための保険 */
+const radiantIconUrl2 = (item) => {
+  const img = item && item.imgName;
+  return img ? `https://tftips.b-cdn.net/item/${String(img).replace(/^tft/, '').replace('_item_', '_')}.avif?v=1` : '';
+};
+const radiantIconUrlAlt = radiantIconUrl2;
+/* 🖼️ レディアント画像が404のとき、もう一方の候補へ自動で切り替える。
+   ── 各 <img> に onError を書いて回らなくて済むよう、1箇所でまとめて面倒を見る。 */
+if (typeof document !== 'undefined' && !window.__radiantFallbackHooked) {
+  window.__radiantFallbackHooked = true;
+  document.addEventListener('error', (e) => {
+    const el = e.target;
+    if (!el || el.tagName !== 'IMG' || el.dataset.radFb) return;
+    const m = String(el.src || '').match(/\/item\/(\d+)_(.+)radiant\.avif/);
+    if (!m) return;
+    el.dataset.radFb = '1';
+    const alt = (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : [])
+      .find(r => String(r.id).replace(/^r_/, '') === m[2]);
+    if (alt) el.src = radiantIconUrl2(alt);
+  }, true);
+}
 
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";

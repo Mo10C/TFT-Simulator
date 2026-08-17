@@ -1137,6 +1137,12 @@ document.getElementById('item-file').addEventListener('change', async ev => {
 });
 const SET_TAGS = ['set17', 'set18', 'set19', 'set20'];  // 🏷️ セット管理ボタン
 // アイテム画像URL（app.js の getMetaTFTItemUrl と同じロジック）
+/* レディアントの画像URL。id 由来が第一候補、imgName 由来が第二候補（実ファイル名が食い違う数件の保険） */
+const radiantSetNo = (it) => (String((it && it.imgName) || '').match(/^tft(\d+)_/) || [, '5'])[1];
+const radiantUrl1 = (it) => `https://tftips.b-cdn.net/item/${radiantSetNo(it)}_${String(it.id||'').replace(/^r_/,'')}radiant.avif?v=1`;
+const radiantUrl2 = (it) => it && it.imgName
+  ? `https://tftips.b-cdn.net/item/${String(it.imgName).replace(/^tft/,'').replace('_item_','_')}.avif?v=1` : '';
+
 const itemIconUrl = (it) => {
   // ゲーム（app.js の getMetaTFTItemUrl）と同じ判定順・同じURL規則
   if (!it) return '';
@@ -1144,9 +1150,7 @@ const itemIconUrl = (it) => {
   const name = String(it.name || '');
   const type = it.type || '';
   if (type === 'artifact') return `https://tftips.b-cdn.net/item/artifact_${id}.avif?v=1`;
-  if (type === 'radiant')  return it.imgName
-    ? `https://tftips.b-cdn.net/item/${String(it.imgName).replace(/^tft/, '').replace('_item_', '_')}.avif?v=1`
-    : `https://tftips.b-cdn.net/item/${id.replace(/^r_/, '')}_radiant.avif?v=1`;
+  if (type === 'radiant') return radiantUrl1(it);
   if (type === 'consumable') return `https://tftips.b-cdn.net/item/${id}.avif?v=1`;
   if (it.grantedTrait) {
     const t = String(it.grantedTrait).toLowerCase().replace(/\s+/g, '');
@@ -1181,7 +1185,9 @@ function renderItems() {
     if (itemSetFilter !== 'all' && itemSetFilter !== 'none' && tag !== itemSetFilter) return '';
     if (q && !it.ja.toLowerCase().includes(q) && !(it.name||'').toLowerCase().includes(q) && !(it.id||'').toLowerCase().includes(q)) return '';
     return `<tr style="${isHidden ? 'opacity:.5' : ''}">
-      <td><img class="champ-img" id="itemimg-${esc(it.srcId)}" src="${itemIconUrl(it)}" onerror="this.style.opacity=.15"></td>
+      <td><img class="champ-img" id="itemimg-${esc(it.srcId)}" src="${itemIconUrl(it)}"
+            data-fb2="${it.type === 'radiant' ? esc(radiantUrl2(it)) : ''}"
+            onerror="if(this.dataset.fb2&&!this.dataset.tried){this.dataset.tried='1';this.src=this.dataset.fb2;}else{this.style.opacity=.15}"></td>
       <td><input type="text" value="${esc(it.id)}" style="width:130px;font-family:Rajdhani;color:var(--blue)"
             title="IDを変えると画像も変わります" oninput="setItemField('${esc(it.srcId)}','id',this.value)">
           ${it.isAdded ? ' <span class="badge" style="background:#e5f0fb;color:#0066cc;border:1px solid #a9cdf0">新規</span>' : ''}</td>
