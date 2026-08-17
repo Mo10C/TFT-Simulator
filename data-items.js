@@ -143,40 +143,40 @@ const ARTIFACTS = [
 const RADIANT_ITEMS = [
   { id: 'r_deathblade', name: 'Luminous Deathblade', jaName: 'レディアント デスブレード', type: 'radiant', imgName: 'tft5_item_deathbladeradiant' },
   { id: 'r_giantslayer', name: 'Demonslayer', jaName: 'レディアント ジャイアントスレイヤー', type: 'radiant', imgName: 'tft5_item_giantslayerradiant' },
-  { id: 'r_gunblade', name: 'Hextech Lifeblade', jaName: 'レディアント ヘクステックガンブレード', type: 'radiant', imgName: 'tft5_item_hextechgunbladeradiant' },
-  { id: 'r_shojin', name: 'Spear of Hirana', jaName: 'レディアント ショウジンの矛', type: 'radiant', imgName: 'tft5_item_spearofshojinradiant' },
-  { id: 'r_edgeofnight', name: 'Brink of Dawn', jaName: 'レディアント ナイトエッジ', type: 'radiant', imgName: 'tft5_item_guardianangelradiant' },
+  { id: 'r_hextechgunblade', name: 'Hextech Lifeblade', jaName: 'レディアント ヘクステックガンブレード', type: 'radiant', imgName: 'tft5_item_hextechgunbladeradiant' },
+  { id: 'r_spearofshojin', name: 'Spear of Hirana', jaName: 'レディアント ショウジンの矛', type: 'radiant', imgName: 'tft5_item_spearofshojinradiant' },
+  { id: 'r_guardianangel', name: 'Brink of Dawn', jaName: 'レディアント ナイトエッジ', type: 'radiant', imgName: 'tft5_item_guardianangelradiant' },
   { id: 'r_bloodthirster', name: 'Blessed Bloodthirster', jaName: 'レディアント ブラッドサースター', type: 'radiant', imgName: 'tft5_item_bloodthirsterradiant' },
   { id: 'r_steraksgage', name: "Sterak's Megashield", jaName: 'レディアント ステラックの篭手', type: 'radiant', imgName: 'tft5_item_steraksgageradiant' },
   { id: 'r_infinityedge', name: 'Zenith Edge', jaName: 'レディアント インフィニティエッジ', type: 'radiant', imgName: 'tft5_item_infinityedgeradiant' },
   { id: 'r_rapidfirecannon', name: 'Crest of Cinders', jaName: 'レディアント レッドバフ', type: 'radiant', imgName: 'tft5_item_rapidfirecannonradiant' }, 
-  { id: 'r_guinsoo', name: "Guinsoo's Reckoning", jaName: 'レディアント グインソー レイジブレード', type: 'radiant', imgName: 'tft5_item_guinsoosragebladeradiant' },
-  { id: 'r_statikk', name: "Statikk's Favor", jaName: 'レディアント ヴォイドスタッフ', type: 'radiant', imgName: 'tft5_item_statikkshivradiant' },
-  { id: 'r_titans', name: "Titan's Vow", jaName: 'レディアント 巨人の誓い', type: 'radiant', imgName: 'tft5_item_titansresolveradiant' },
-  { id: 'r_runaan', name: "Runaan's Tempest", jaName: 'レディアント クラーケンの怒り', type: 'radiant', imgName: 'tft5_item_runaanshurricaneradiant' },
-  { id: 'r_nashor', name: "Baron's Gift", jaName: 'レディアント ナッシャー トゥース', type: 'radiant', imgName: 'tft5_item_leviathanradiant' },
+  { id: 'r_guinsoosrageblade', name: "Guinsoo's Reckoning", jaName: 'レディアント グインソー レイジブレード', type: 'radiant', imgName: 'tft5_item_guinsoosragebladeradiant' },
+  { id: 'r_statikkshiv', name: "Statikk's Favor", jaName: 'レディアント ヴォイドスタッフ', type: 'radiant', imgName: 'tft5_item_statikkshivradiant' },
+  { id: 'r_titansresolve', name: "Titan's Vow", jaName: 'レディアント 巨人の誓い', type: 'radiant', imgName: 'tft5_item_titansresolveradiant' },
+  { id: 'r_runaanshurricane', name: "Runaan's Tempest", jaName: 'レディアント クラーケンの怒り', type: 'radiant', imgName: 'tft5_item_runaanshurricaneradiant' },
+  { id: 'r_leviathan', name: "Baron's Gift", jaName: 'レディアント ナッシャー トゥース', type: 'radiant', imgName: 'tft5_item_leviathanradiant' },
   { id: 'r_lastwhisper', name: 'Eternal Whisper', jaName: 'レディアント ラストウィスパー', type: 'radiant', imgName: 'tft5_item_lastwhisperradiant' },
-  { id: 'r_rabadon', name: "Rabadon's Ascended Deathcap", jaName: 'レディアント ラバドンデスキャップ', type: 'radiant', imgName: 'tft5_item_rabadonsdeathcapradiant' },
+  { id: 'r_rabadonsdeathcap', name: "Rabadon's Ascended Deathcap", jaName: 'レディアント ラバドンデスキャップ', type: 'radiant', imgName: 'tft5_item_rabadonsdeathcapradiant' },
   { id: 'r_archangel', name: "Urf-Angel's Staff", jaName: 'レディアント アークエンジェルスタッフ', type: 'radiant', imgName: 'tft5_item_archangelsstaffradiant' },
   { id: 'r_crownguard', name: 'Royal Crownshield', jaName: 'レディアント クラウンガード', type: 'radiant', imgName: 'tft5_item_crownguardradiant' },
-  { id: 'r_ionic', name: 'Covalent Spark', jaName: 'レディアント アイオニックスパーク', type: 'radiant', imgName: 'tft5_item_ionicsparkradiant' },
-  { id: 'r_morello', name: 'More More-ellonomicon', jaName: 'レディアント モレロノミコン', type: 'radiant', imgName: 'tft5_item_morellonomiconradiant' },
-  { id: 'r_jeweled', name: 'Glamorous Gauntlet', jaName: 'レディアント ジュエル ガントレット', type: 'radiant', imgName: 'tft5_item_jeweledgauntletradiant' },
+  { id: 'r_ionicspark', name: 'Covalent Spark', jaName: 'レディアント アイオニックスパーク', type: 'radiant', imgName: 'tft5_item_ionicsparkradiant' },
+  { id: 'r_morellonomicon', name: 'More More-ellonomicon', jaName: 'レディアント モレロノミコン', type: 'radiant', imgName: 'tft5_item_morellonomiconradiant' },
+  { id: 'r_jeweledgauntlet', name: 'Glamorous Gauntlet', jaName: 'レディアント ジュエル ガントレット', type: 'radiant', imgName: 'tft5_item_jeweledgauntletradiant' },
   { id: 'r_bluebuff', name: 'Blue Blessing', jaName: 'レディアント ブルーバフ', type: 'radiant', imgName: 'tft5_item_bluebuffradiant' },
-  { id: 'r_vow', name: "Bulwark's Oath", jaName: 'レディアント プロテクターの誓い', type: 'radiant', imgName: 'tft5_item_frozenheartradiant' },
-  { id: 'r_adaptive', name: 'Jaksho the Protean', jaName: 'レディアント アダプティブヘルム', type: 'radiant', imgName: 'tft5_item_adaptivehelmradiant' },
+  { id: 'r_frozenheart', name: "Bulwark's Oath", jaName: 'レディアント プロテクターの誓い', type: 'radiant', imgName: 'tft5_item_frozenheartradiant' },
+  { id: 'r_adaptivehelm', name: 'Jaksho the Protean', jaName: 'レディアント アダプティブヘルム', type: 'radiant', imgName: 'tft5_item_adaptivehelmradiant' },
   { id: 'r_redemption', name: 'Absolution', jaName: 'レディアント スピリット ビサージュ', type: 'radiant', imgName: 'tft5_item_redemptionradiant' },
-  { id: 'r_hoj', name: 'Fist of Fairness', jaName: 'レディアント ハンド オブ ジャスティス', type: 'radiant', imgName: 'tft5_item_handofjusticeradiant' },
-  { id: 'r_bramble', name: 'Rosethorn Vest', jaName: 'レディアント ブランブルベスト', type: 'radiant', imgName: 'tft5_item_bramblevestradiant' },
-  { id: 'r_gargoyle', name: 'Dvarapala Stoneplate', jaName: 'レディアント ガーゴイルストーンプレート', type: 'radiant', imgName: 'tft5_item_gargoylestoneplateradiant' },
-  { id: 'r_sunfire', name: 'Sunlight Cape', jaName: 'レディアント サンファイアケープ', type: 'radiant', imgName: 'tft5_item_sunfirecaperadiant' },
-  { id: 'r_steadfast', name: 'Legacy of the Colossus', jaName: 'レディアント 揺るがぬ心', type: 'radiant', imgName: 'tft5_item_nightharvesterradiant' },
-  { id: 'r_dragon', name: "Dragon's Will", jaName: 'レディアント ドラゴン クロウ', type: 'radiant', imgName: 'tft5_item_dragonsclawradiant' },
-  { id: 'r_evenshroud', name: 'Equinox', jaName: 'レディアント イーブンシュラウド', type: 'radiant', imgName: 'tft5_item_spectralgauntletradiant' },
+  { id: 'r_unstableconcoction', name: 'Fist of Fairness', jaName: 'レディアント ハンド オブ ジャスティス', type: 'radiant', imgName: 'tft5_item_handofjusticeradiant' },
+  { id: 'r_bramblevest', name: 'Rosethorn Vest', jaName: 'レディアント ブランブルベスト', type: 'radiant', imgName: 'tft5_item_bramblevestradiant' },
+  { id: 'r_gargoylestoneplate', name: 'Dvarapala Stoneplate', jaName: 'レディアント ガーゴイルストーンプレート', type: 'radiant', imgName: 'tft5_item_gargoylestoneplateradiant' },
+  { id: 'r_redbuff', name: 'Sunlight Cape', jaName: 'レディアント サンファイアケープ', type: 'radiant', imgName: 'tft5_item_sunfirecaperadiant' },
+  { id: 'r_nightharvester', name: 'Legacy of the Colossus', jaName: 'レディアント 揺るがぬ心', type: 'radiant', imgName: 'tft5_item_nightharvesterradiant' },
+  { id: 'r_dragonsclaw', name: "Dragon's Will", jaName: 'レディアント ドラゴン クロウ', type: 'radiant', imgName: 'tft5_item_dragonsclawradiant' },
+  { id: 'r_spectralgauntlet', name: 'Equinox', jaName: 'レディアント イーブンシュラウド', type: 'radiant', imgName: 'tft5_item_spectralgauntletradiant' },
   { id: 'r_quicksilver', name: 'Quickestsilver', jaName: 'レディアント クイックシルバー', type: 'radiant', imgName: 'tft5_item_quicksilverradiant' },
-  { id: 'r_warmog', name: "Warmog's Pride", jaName: 'レディアント ワーモグ アーマー', type: 'radiant', imgName: 'tft5_item_warmogsarmorradiant' },
-  { id: 'r_guardbreaker', name: 'Willbreaker', jaName: 'レディアント ストライカー フレイル', type: 'radiant', imgName: 'tft5_item_trapclawradiant' },
-  { id: 'r_thiefs', name: "Rascal's sparringglovess", jaName: 'レディアント 盗賊のグローブ', type: 'radiant', imgName: 'tft5_item_thiefssparringglovessradiant' }
+  { id: 'r_warmogsarmor', name: "Warmog's Pride", jaName: 'レディアント ワーモグ アーマー', type: 'radiant', imgName: 'tft5_item_warmogsarmorradiant' },
+  { id: 'r_powergauntlet', name: 'Willbreaker', jaName: 'レディアント ストライカー フレイル', type: 'radiant', imgName: 'tft5_item_trapclawradiant' },
+  { id: 'r_thiefsgloves', name: "Rascal's sparringglovess", jaName: 'レディアント 盗賊のグローブ', type: 'radiant', imgName: 'tft5_item_thiefssparringglovessradiant' }
 ];
 
 
@@ -186,6 +186,7 @@ const RADIANT_ITEMS = [
   const TAGS = {"emblem_darkstar":"set17","emblem_timebreaker":"set17","emblem_stargazer":"set17","emblem_spacegroove":"set17","emblem_meeple":"set17","emblem_arbiter":"set17","emblem_primordian":"set17","emblem_nova":"set17","emblem_marauder":"set17","emblem_voyager":"set17","emblem_challenger":"set17","emblem_shepherd":"set17","emblem_bastion":"set17","emblem_rogue":"set17","emblem_anima":"set17","emblem_psionic":"set17","emblem_sniper":"set17","ahris_aura":"set17","evelynns_intuition":"set17","varuss_tenacity":"set17","threshs_lantern":"set17","sorakas_miracle":"set17","yasuos_bladework":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
+  const EDITS = {"archangelstaff":{"id":"archangelsstaff"},"dragonclaw":{"id":"dragonsclaw"},"warmogarmor":{"id":"warmogsarmor"},"thiefssparringglovess":{"id":"thiefsgloves"},"r_archangel":{"id":"r_archangelsstaff"}};
   const mark = (it) => { if (!it || !it.id) return;
     if (HIDDEN.includes(it.id)) it.hidden = true;
     if (TAGS[it.id]) it.setTag = TAGS[it.id]; };
@@ -200,7 +201,18 @@ const RADIANT_ITEMS = [
   (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(setJa);
   (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(setJa);
   if (typeof ITEM_JA !== 'undefined') Object.assign(ITEM_JA, ADDED_JA);
+  // エディタで変更した id / 日本語名 / 種類を元データへ反映する（画像URLは id と種類から作られる）
+  const applyEdit = (it) => { if (!it || !it.id) return; const e = EDITS[it.id]; if (!e) return;
+    if (e.jaName) it.jaName = e.jaName;
+    if (e.type) it.type = e.type;
+    if (e.id && e.id !== it.id) it.id = e.id; };
+  (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(applyEdit);
+  Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(applyEdit);
+  Object.values(typeof CONSUMABLES !== 'undefined' ? CONSUMABLES : {}).forEach(applyEdit);
+  (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).forEach(applyEdit);
+  (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).forEach(applyEdit);
   ADDED.forEach(it => { if (it.type === 'comp' && typeof ITEMS !== 'undefined') ITEMS.push(it);
-    else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it); });
+    else if (it.type === 'artifact' && typeof ARTIFACTS !== 'undefined') ARTIFACTS.push(it);
+    else if (it.type === 'radiant' && typeof RADIANT_ITEMS !== 'undefined') RADIANT_ITEMS.push(it); });
 })();
 /* ═══ SIM-EDITOR MANAGED BLOCK END ═══ */
