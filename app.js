@@ -516,7 +516,17 @@ const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
       ここでは縦横比を保ったまま縮小だけ行い、切り抜きは CSS の object-fit に一本化する。 */
 const shopIcon=(id, opts='width=512,format=auto')=>
   `https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/championsplashes/tft${SET_NO}_${String(id).toLowerCase()}.png`;
-const getTraitIconUrl = (name) => { const key = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS[name]) ? TRAIT_ICONS[name] : name; return `https://tftips.b-cdn.net/trait/${key.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`; };
+/* 🔰 特性アイコン
+   ── 既定: https://cdn.metatft.com/file/metatft/traits/da_<セット番号>_<英名>.png
+   ── 例外: data-champions.js の TRAIT_ICONS に指定する。
+        ・完全なURL（http〜）を書けばそのまま使う
+        ・名前だけ書けば da_<セット番号>_<その名前>.png になる */
+const getTraitIconUrl = (name) => {
+  const ex = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS) ? TRAIT_ICONS[name] : '';
+  if (ex && /^https?:\/\//.test(ex)) return ex;                       // 例外：URL直接指定
+  const key = String(ex || name).toLowerCase().replace(/[^a-z0-9]/g, '');
+  return `https://cdn.metatft.com/file/metatft/traits/da_${SET_NO}_${key}.png`;
+};
 
 // 🇯🇵 アイテム英名→日本語名（新しいデータ構造から検索）
 // ── 表記ゆれ（大文字小文字・空白・アポストロフィ・TFT_Item_ 接頭辞・id/imgName違い）でも

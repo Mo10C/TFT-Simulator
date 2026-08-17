@@ -156,10 +156,10 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
       <button onclick="addTrait()" id="trait-add" disabled>＋ 新規特性追加</button>
       <button class="gold" onclick="downloadChamps()" id="trait-dl" disabled>⬇ data-champions.js をダウンロード</button>
     </div>
-    <div class="note">特性データ（TRAIT_JA / TRAIT_DESCS / TRAIT_TIERS_DATA / TRAIT_ICONS）はチャンピオンと同じ data-champions.js 内。ダウンロードでこの4つと CHAMPS をまとめて再生成します。<br>しきい値はカンマ区切り（例: <b>2,4,6</b>）。アイコン名は空欄なら英名から自動。<b>英名(キー)</b>はチャンピオンの「特性」欄と一致させること（変更すると紐付けが切れます）。効果はゲーム内表示テキストです（このシムは戦闘計算をしないため表示のみ）。</div>
+    <div class="note">特性データ（TRAIT_JA / TRAIT_DESCS / TRAIT_TIERS_DATA / TRAIT_ICONS）はチャンピオンと同じ data-champions.js 内。ダウンロードでこの4つと CHAMPS をまとめて再生成します。<br>しきい値はカンマ区切り（例: <b>2,4,6</b>）。アイコンは空欄なら英名から自動（da_18_英名.png）。別名を書けばその名前で、http から始まるURLを書けばそのまま使います。<b>英名(キー)</b>はチャンピオンの「特性」欄と一致させること（変更すると紐付けが切れます）。効果はゲーム内表示テキストです（このシムは戦闘計算をしないため表示のみ）。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>英名(キー)</th><th>日本語名</th><th>しきい値</th><th>アイコン名(空=自動)</th><th>効果説明</th><th></th></tr></thead>
+    <table><thead><tr><th></th><th>英名(キー)</th><th>日本語名</th><th>しきい値</th><th>アイコン（空=自動 / 名前 / URL）</th><th>効果説明</th><th></th></tr></thead>
     <tbody id="trait-body"><tr><td colspan="7" class="note">チャンピオンタブで読み込み待ち…</td></tr></tbody></table>
   </div>
 </div>
@@ -846,9 +846,12 @@ function downloadChamps() {
 
 /* ═══════ 🔰 特性（日本語名・しきい値・アイコン・効果説明） ═══════ */
 function traitIconUrl(icon, key) {
-  // ゲーム（app.js の getTraitIconUrl）と同じ tftips 方式
-  const raw = (icon && icon.trim()) ? icon.trim() : (key || '');
-  return `https://tftips.b-cdn.net/trait/${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`;
+  // ゲーム（app.js の getTraitIconUrl）と同じ規則
+  //   既定: .../traits/da_<セット番号>_<英名>.png ／ 例外: URL直接指定 or 別名
+  const ex = (icon && icon.trim()) ? icon.trim() : '';
+  if (/^https?:\/\//.test(ex)) return ex;
+  const raw = ex || key || '';
+  return `https://cdn.metatft.com/file/metatft/traits/da_${setNoOf()}_${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
 }
 function renderTraits() {
   const el = document.getElementById('trait-body'); if (!el) return;
