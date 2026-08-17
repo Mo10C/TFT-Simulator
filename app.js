@@ -4252,46 +4252,31 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const saveView3D = () => {
     const api = view3DApi.current; if (!api) return;
     const v = api.getView(); if (!v) return;
-    // 共通設定が有効なときは端末に保存しない（全ユーザーの見え方を1箇所で管理するため）
+    // 今のカメラ位置をそのまま既定にする（引き寄せ・引き戻しはしない）
     if (!view3DLockedByConfig) { try { localStorage.setItem(view3DKey, JSON.stringify(v)); } catch (e) {} }
     setSavedView3D(v);
-    setFreeView(false);   // 固定視点に戻して、その場で結果を確認できるように
+    setFreeView(false);   // 固定して、その場で結果を確認できるように
     const snippet = `board3dView: ${JSON.stringify(v)},`;
     if (navigator.clipboard) navigator.clipboard.writeText(snippet).catch(()=>{});
     showMsg(<div style={{ lineHeight:1.5 }}>
-      📌 この視点を確認用に反映しました<br/>
+      📌 今の見え方を既定にしました<br/>
       <span style={{ fontSize:10, color:'var(--textdim)' }}>
-        全ユーザーに固定するには sim-config.js の board3dView を差し替え（コピー済み）:<br/>{snippet}<br/>
+        全ユーザーに反映するには sim-config.js の board3dView を差し替え（コピー済み）:<br/>{snippet}<br/>
         {view3DLockedByConfig ? '※ 現在は sim-config.js の設定が有効です。貼り替えるまで全員のアングルは変わりません。'
                               : '※ 貼り付けるまでは、この端末だけに保存されます。'}
       </span>
     </div>);
   };
-  // 既定のアングルを解除して自動フィットに戻す（管理者用・この端末のみ）
-  const clearView3D = () => {
-    try { localStorage.removeItem(view3DKey); } catch (e) {}
-    if (view3DLockedByConfig) {
-      // 共通設定は消さない。プレビューを共通設定の値に戻すだけ
-      setSavedView3D(SIM_CFG.board3dView);
-      if (view3DApi.current) view3DApi.current.applyView(SIM_CFG.board3dView);
-      setFreeView(false);
-      showMsg('↩️ sim-config.js の共通アングルに戻しました');
-      return;
-    }
-    setSavedView3D(null);
-    if (view3DApi.current) view3DApi.current.fitToScreen();
-    setFreeView(false);
-    showMsg('↩️ 既定のアングルを解除しました（自動フィットに戻ります）');
-  };
 
-  // 🔄 指定した既定アングルを完全に解除して、自動フィット（画面いっぱい）に戻す
+  // 🔄 視点リセット：保存した見え方を消して、画面いっぱいに収まる初期状態へ戻す
   const resetView3D = () => {
     try { localStorage.removeItem(view3DKey); } catch (e) {}
     setSavedView3D(null);
     setFreeView(false);
-    if (view3DApi.current) view3DApi.current.fitToScreen();
+    // 状態の反映を待たずにその場で戻す（保存値が残っていると自動フィットが効かないため）
+    if (view3DApi.current) { view3DApi.current.applyView(null); view3DApi.current.fitToScreen(); }
     showMsg(<div style={{ lineHeight:1.5 }}>
-      🔄 既定のアングルをリセットしました（自動フィット）<br/>
+      🔄 視点を初期状態に戻しました<br/>
       {view3DLockedByConfig && <span style={{ fontSize:10, color:'var(--textdim)' }}>
         ※ sim-config.js の board3dView は残っています。全員に反映するにはその行を消してください。
       </span>}
@@ -6440,29 +6425,17 @@ const handleAugmentPick = (aug, historyContext) => {
               {isLandscapeMobile ? '👁' : `VIEW ${freeView ? 'ON' : 'OFF'}`}
             </button>
           )}
-          {use3D && is3DAdmin && freeView && (
+          {use3D && is3DAdmin && (
             <React.Fragment>
-              <button onClick={() => view3DApi.current && view3DApi.current.nudge(0.5)} title="盤面を上げる"
-                style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 7px', fontSize:12, color:'var(--text-main)', fontWeight:900, cursor:'pointer' }}>▲</button>
-              <button onClick={() => view3DApi.current && view3DApi.current.nudge(-0.5)} title="盤面を下げる"
-                style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 7px', fontSize:12, color:'var(--text-main)', fontWeight:900, cursor:'pointer' }}>▼</button>
-              <button onClick={saveView3D} title="今の視点を既定として保存"
+              <button onClick={resetView3D} title="盤面の見え方を、画面いっぱいに収まる初期状態に戻す"
+                style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
+                {isLandscapeMobile ? '🔄' : '🔄 視点リセット'}
+              </button>
+              <button onClick={saveView3D} title="今の見え方（角度・大きさ）をそのまま既定にする"
                 style={{ background:'rgba(94,74,22,0.9)', border:'1px solid var(--gold)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'#ffd76e', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
-                {isLandscapeMobile ? '📌' : '📌 既定に'}
+                {isLandscapeMobile ? '📌' : '📌 今の大きさで固定'}
               </button>
             </React.Fragment>
-          )}
-          {use3D && is3DAdmin && savedView3D && (
-            <button onClick={resetView3D} title="指定した既定アングルを解除して、画面いっぱいの自動表示に戻す"
-              style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--text-main)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
-              {isLandscapeMobile ? '🔄' : '🔄 既定リセット'}
-            </button>
-          )}
-          {use3D && is3DAdmin && !freeView && savedView3D && (
-            <button onClick={clearView3D} title="既定のアングルを解除"
-              style={{ background:'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4, padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color:'var(--textdim)', fontWeight:900, cursor:'pointer', whiteSpace:'nowrap' }}>
-              {isLandscapeMobile ? '↩️' : '↩️ 既定解除'}
-            </button>
           )}
 
           <button 

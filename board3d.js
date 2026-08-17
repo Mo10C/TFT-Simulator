@@ -562,45 +562,13 @@ function b3dApplySavedView(S, savedView){
   const ok = (a) => Array.isArray(a) && a.length === 3 && a.every(n => typeof n === 'number' && isFinite(n));
   if(!S || !S.camera || !S.controls || !savedView || !ok(savedView.pos) || !ok(savedView.target)) return false;
   const { camera, controls } = S;
-  const target = new THREE.Vector3(savedView.target[0], savedView.target[1], savedView.target[2]);
-  const pos = new THREE.Vector3(savedView.pos[0], savedView.pos[1], savedView.pos[2]);
-  const place = (p) => {
-    camera.position.copy(p); controls.target.copy(target); camera.lookAt(target);
-    camera.updateMatrixWorld(true); camera.updateProjectionMatrix(); controls.update();
-  };
-  place(pos);
-
-  // 保存時と画面比が違うと端が切れることがあるので、角度はそのままに距離だけ引いて収める
-  if(S.boardGroup){
-    const box = new THREE.Box3().setFromObject(S.boardGroup);
-    if(!box.isEmpty()){
-      box.max.y += 2.3;
-      const corners = [
-        new THREE.Vector3(box.min.x,box.min.y,box.min.z), new THREE.Vector3(box.max.x,box.min.y,box.min.z),
-        new THREE.Vector3(box.min.x,box.max.y,box.min.z), new THREE.Vector3(box.max.x,box.max.y,box.min.z),
-        new THREE.Vector3(box.min.x,box.min.y,box.max.z), new THREE.Vector3(box.max.x,box.min.y,box.max.z),
-        new THREE.Vector3(box.min.x,box.max.y,box.max.z), new THREE.Vector3(box.max.x,box.max.y,box.max.z),
-      ];
-      const m = new THREE.Matrix4();
-      const fitsAt = (d) => {
-        place(target.clone().addScaledVector(dir, d));
-        m.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-        return corners.every(c => { const p=c.clone().applyMatrix4(m);
-          return Math.abs(p.x)<=0.995 && Math.abs(p.y)<=0.995 && p.z<1; });
-      };
-      const dir = pos.clone().sub(target);
-      const d0 = dir.length() || 1;
-      dir.normalize();
-      if(!fitsAt(d0)){
-        let lo = d0, hi = d0;
-        for(let i=0;i<12 && !fitsAt(hi);i++) hi *= 1.5;   // 収まる距離まで下がる
-        for(let i=0;i<32;i++){ const mid=(lo+hi)/2; if(fitsAt(mid)) hi=mid; else lo=mid; }
-        fitsAt(hi);
-      } else {
-        place(pos);
-      }
-    }
-  }
+  // ⚠ 保存された位置をそのまま使う。
+  //    以前は「盤面全体が収まるまで引く」補正を入れていたが、
+  //    寄せて保存したい場合まで引き戻されてしまうため廃止した。
+  camera.position.set(savedView.pos[0], savedView.pos[1], savedView.pos[2]);
+  controls.target.set(savedView.target[0], savedView.target[1], savedView.target[2]);
+  camera.lookAt(controls.target);
+  camera.updateMatrixWorld(true); camera.updateProjectionMatrix(); controls.update();
   S.defaultCam = { pos: camera.position.clone(), target: controls.target.clone() };
   return true;
 }
@@ -765,7 +733,9 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
     if(!viewApi) return;
     viewApi.current = {
       getView: () => b3dReadView(S.current),
-      applyView: (v) => b3dApplySavedView(S.current, v),
+      // v に null を渡すと「保存された見え方」を解除する（視点リセット用）
+      applyView: (v) => { if(v == null){ savedViewRef.current = null; if(S.current) S.current.defaultCam = null; return true; }
+        return b3dApplySavedView(S.current, v); },
       fitToScreen: () => { if(S.current) b3dFitCamera(S.current); },
       // 画面座標 → 盤面/ベンチのマス。2D側からのドラッグ（アイテム装備など）で使う
       slotAt: (clientX, clientY) => {
