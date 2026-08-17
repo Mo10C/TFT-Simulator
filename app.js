@@ -1628,10 +1628,13 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
   const allCraftable = Object.values(ITEM_RECIPES).filter(it => !it.hidden);
   const realCompleted = allCraftable.filter(it => !it.grantedTrait && it.id !== 'tacticians_crown').map(it => ({...it, type: 'completed'}));
   const realEmblems = allCraftable.filter(it => it.grantedTrait || it.id === 'tacticians_crown').map(it => ({...it, type: 'completed'}));
-  const consumablesList = Object.values(CONSUMABLES);
-  const silverAugs = AUGMENTS_DATA.silver;
-  const goldAugs = AUGMENTS_DATA.gold;
-  const prismaticAugs = AUGMENTS_DATA.prismatic;
+  const consumablesList = Object.values(CONSUMABLES).filter(it => !it.hidden);
+  // 🏷️ エディタで非表示にしたものはチートの一覧にも出さない（素材・完成品と同じ扱い）
+  const artifactList = (typeof ARTIFACTS !== 'undefined' ? ARTIFACTS : []).filter(it => !it.hidden);
+  const radiantList = (typeof RADIANT_ITEMS !== 'undefined' ? RADIANT_ITEMS : []).filter(it => !it.hidden);
+  const silverAugs = AUGMENTS_DATA.silver.filter(a => !a.hidden);
+  const goldAugs = AUGMENTS_DATA.gold.filter(a => !a.hidden);
+  const prismaticAugs = AUGMENTS_DATA.prismatic.filter(a => !a.hidden);
   
   const renderAssetItem = (it, type, borderColor = 'var(--border)') => (
     <div 
@@ -1715,11 +1718,11 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
         </div>
         <div className="drawer-section-title">アーティファクト</div>
         <div className="drawer-grid">
-          {ARTIFACTS.map(it => renderAssetItem(it, 'drawer_item', 'var(--red)'))}
+          {artifactList.map(it => renderAssetItem(it, 'drawer_item', 'var(--red)'))}
         </div>
         <div className="drawer-section-title">レディアント</div>
         <div className="drawer-grid">
-          {RADIANT_ITEMS.map(it => renderAssetItem(it, 'drawer_item', 'var(--gold2)'))}
+          {radiantList.map(it => renderAssetItem(it, 'drawer_item', 'var(--gold2)'))}
         </div>
         <div className="drawer-section-title">金床</div>
         <div className="drawer-grid">
