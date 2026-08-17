@@ -169,7 +169,7 @@ function b3dMakeStars(star){
    ⚠ WebGLのテクスチャに外部画像を使うにはCDN側のCORS対応が必要で、現状は通らない
      （そのため以前は画像が出ずに文字だけになっていた）。
      ここではHTMLのアイコンを3D画面に重ねて、3D座標に追従させる方式にしている。 */
-const B3D_ITEM_Y = 1.8;        // 頭上の表示高さ（ワールド単位）
+const B3D_ITEM_Y = 2.5;        // 頭上の表示高さ（ワールド単位）
 const B3D_ITEM_PX = 34;        // アイコン1個の大きさ（画面上のピクセル）
 const B3D_ITEM_GAP_PX = 4;     // アイコン同士の間隔
 
