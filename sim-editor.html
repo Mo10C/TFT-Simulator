@@ -219,8 +219,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     <div class="note">「非表示」でドロップ・金床・指定リストから除外されます。合成レシピの素材を非表示にすると完成品が作れなくなる点に注意。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>ID</th><th>名前</th><th>種類</th><th>SETタグ</th><th>表示</th></tr></thead>
-    <tbody id="item-body"><tr><td colspan="6" class="note">読み込み中…</td></tr></tbody></table>
+    <table><thead><tr><th></th><th>ID</th><th>名前</th><th>種類</th><th>画像URL（例外）</th><th>SETタグ</th><th>表示</th></tr></thead>
+    <tbody id="item-body"><tr><td colspan="7" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -621,6 +621,7 @@ function buildManagedBlock(kind, state) {
   const applyEdit = (it) => { if (!it || !it.id) return; const e = EDITS[it.id]; if (!e) return;
     if (e.jaName) it.jaName = e.jaName;
     if (e.type) it.type = e.type;
+    if (e.imgUrl) it.imgUrl = e.imgUrl;   // 画像URLの例外指定（規則から外れるものはこれで上書き）
     if (e.id && e.id !== it.id) it.id = e.id; };
   (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(applyEdit);
   Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(applyEdit);
@@ -1099,7 +1100,7 @@ function loadItemText(text) {
     const row = (it, type) => { const e = ed[it.id] || {};
       return { srcId: it.id, id: e.id || it.id, name: it.name,
                ja: e.jaName || ja(it.name, it), type: e.type || type, imgName: it.imgName,
-               grantedTrait: it.grantedTrait }; };
+               imgUrl: e.imgUrl || it.imgUrl || '', grantedTrait: it.grantedTrait }; };
     itemList = [
       ...got.ITEMS.map(it => row(it, it.type || 'comp')),
       ...Object.values(got.ITEM_RECIPES).map(it => row(it, 'completed')),
@@ -1146,6 +1147,7 @@ const radiantUrl2 = (it) => it && it.imgName
 const itemIconUrl = (it) => {
   // ゲーム（app.js の getMetaTFTItemUrl）と同じ判定順・同じURL規則
   if (!it) return '';
+  if (it.imgUrl) return it.imgUrl;   // 例外指定があれば最優先
   const id = String(it.id || '');
   const name = String(it.name || '');
   const type = it.type || '';
@@ -1197,6 +1199,9 @@ function renderItems() {
       <td><select style="width:120px" onchange="setItemField('${esc(it.srcId)}','type',this.value)">
         ${ITEM_TYPES.map(t => `<option value="${t.v}" ${it.type===t.v?'selected':''}>${t.label}</option>`).join('')}
       </select></td>
+      <td><input type="text" value="${esc(it.imgUrl||'')}" placeholder="(規則どおり)" style="width:230px;font-size:10.5px"
+            title="規則から外れる画像はここにURLを直接入れる。空欄なら自動生成。"
+            oninput="setItemField('${esc(it.srcId)}','imgUrl',this.value)"></td>
       <td><select onchange="setItemTag('${esc(it.id)}', this.value);renderItems()">
         <option value="">なし</option>
         ${SET_TAGS.map(t => `<option value="${t}" ${(itemMB.tags[it.id]||'')===t?'selected':''}>${t}</option>`).join('')}
@@ -1204,7 +1209,7 @@ function renderItems() {
       <td><label style="cursor:pointer"><input type="checkbox" ${!isHidden ? 'checked' : ''} onchange="toggleItemHidden('${esc(it.id)}')"> 表示</label>
         ${it.isAdded ? ` <button class="danger" style="padding:3px 8px;font-size:10.5px" onclick="removeAddedItem(${i})">削除</button>` : ''}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="6" class="note">該当なし</td></tr>';
+  }).join('') || '<tr><td colspan="7" class="note">該当なし</td></tr>';
 }
 /* 種類の選択肢。画像URLの作り方がここで決まる（app.js の getMetaTFTItemUrl と対応） */
 const ITEM_TYPES = [
@@ -1223,6 +1228,7 @@ function setItemField(srcId, key, value) {
   if (key === 'id') { if (value && value !== srcId) e.id = value; else delete e.id; if (row) row.id = value || srcId; }
   if (key === 'jaName') { if (value) e.jaName = value; else delete e.jaName; if (row) row.ja = value; }
   if (key === 'type') { if (value) e.type = value; else delete e.type; if (row) row.type = value; }
+  if (key === 'imgUrl') { if (value) e.imgUrl = value; else delete e.imgUrl; if (row) row.imgUrl = value; }
   if (!Object.keys(e).length) delete itemMB.edits[srcId];
   // 画像は id と種類から作られるので、その場で差し替えて結果を確認できるようにする
   const img = document.getElementById('itemimg-' + srcId);

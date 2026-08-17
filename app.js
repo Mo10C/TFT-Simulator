@@ -605,6 +605,8 @@ if (typeof document !== 'undefined' && !window.__radiantFallbackHooked) {
 
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
+  // 🖼️ 例外指定：規則から外れる画像は data-items.js の imgUrl で直接指定できる（エディタで編集可）
+  if (typeof item === 'object' && item.imgUrl) return item.imgUrl;
 
   // 引数がオブジェクトで imgName がある場合は、直接URLを生成して返す
   if (typeof item === 'object' && item.imgName) {
