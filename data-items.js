@@ -64,26 +64,43 @@ const ITEM_RECIPES = {
   'giantsbelt_giantsbelt':{id:'warmogarmor', name:"Warmog's Armor", jaName: 'ワーモグ アーマー', icon:'🌿', imgId: 77}, 
   'giantsbelt_sparringgloves':{id:'powergauntlet', name:'powergauntlet', jaName: 'ストライカー フレイル', icon:'🔨', imgId: 79}, 
   'sparringgloves_sparringgloves':{id:'thiefssparringglovess', name:"Thief's sparringglovess", jaName: '盗賊のグローブ', icon:'🧤', imgId: 99},
-  'spatula_bf':{id:'emblem_darkstar', name:'Dark Star Emblem', jaName: 'ダークスターの紋章', icon:'🛡️', imgId: 81, grantedTrait: 'Dark Star'}, 
-  'spatula_recurvebow':{id:'emblem_timebreaker', name:'pulsefire Emblem', jaName: 'タイムブレイカーの紋章', icon:'🏹', imgId: 82, grantedTrait: 'Timebreaker'},
-  'spatula_needlesslylargerod':{id:'emblem_stargazer', name:'Stargazer Emblem', jaName: '星の観測者の紋章', icon:'🔮', imgId: 83, grantedTrait: 'Stargazer'}, 
-  'spatula_tearofthegoddess':{id:'emblem_spacegroove', name:'SpaceGroove Emblem', jaName: 'スペースグルーヴの紋章', icon:'💧', imgId: 84, grantedTrait: 'Space Groove'},
-  'spatula_chainvest':{id:'emblem_meeple', name:'astronaut Emblem', jaName: 'ミィプルの紋章', icon:'🛡️', imgId: 85, grantedTrait: 'Meeple'}, 
-  'spatula_negatroncloak':{id:'emblem_arbiter', name:'favored Emblem', jaName: 'アービターの紋章', icon:'🧥', imgId: 86, grantedTrait: 'Arbiter'},
-  'spatula_giantsbelt':{id:'emblem_primordian', name:'Primordian Emblem', jaName: 'プリモーディアンの紋章', icon:'💖', imgId: 87, grantedTrait: 'Primordian'}, 
-  'spatula_sparringgloves':{id:'emblem_nova', name:'drx Emblem', jaName: 'N.O.V.A.の紋章', icon:'🥊', imgId: 89, grantedTrait: 'N.O.V.A.'},
-  'spatula_spatula':{id:'tacticians_crown', name:"forceofnature", jaName: 'タクティシャンの王冠', icon:'👑', imgId: 88, teamSizeBonus: 1},
-  'fryingpan_bf':{id:'emblem_marauder', name:'meleetrait Emblem', jaName: '略奪者の紋章', icon:'🛡️', imgId: 91, grantedTrait: 'Marauder'},
-  'fryingpan_recurvebow':{id:'emblem_challenger', name:'astrait Emblem', jaName: 'チャレンジャーの紋章', icon:'🏹', imgId: 92, grantedTrait: 'Challenger'},
-  'fryingpan_needlesslylargerod':{id:'emblem_voyager', name:'flextrait Emblem', jaName: 'ボイジャーの紋章', icon:'🔮', imgId: 93, grantedTrait: 'Voyager'},
-  'fryingpan_tearofthegoddess':{id:'emblem_shepherd', name:'summontrait Emblem', jaName: '導き手の紋章', icon:'💧', imgId: 94, grantedTrait: 'Shepherd'},
-  'fryingpan_chainvest':{id:'emblem_bastion', name:'resisttank Emblem', jaName: 'バスティオンの紋章', icon:'🛡️', imgId: 95, grantedTrait: 'Bastion'},
-  'fryingpan_negatroncloak':{id:'emblem_vanguard', name:'shieldtank Emblem', jaName: 'ヴァンガードの紋章', icon:'🧥', imgId: 96, grantedTrait: 'Vanguard'},
-  'fryingpan_giantsbelt':{id:'emblem_brawler', name:'hptank Emblem', jaName: 'ブローラーの紋章', icon:'💖', imgId: 97, grantedTrait: 'Brawler'},
-  'fryingpan_sparringgloves':{id:'emblem_rogue', name:'assassintrait Emblem', jaName: 'ローグの紋章', icon:'🥊', imgId: 98, grantedTrait: 'Rogue'},
-  'unbuildable_anima': {id:'emblem_anima', name:'animasquad Emblem', jaName: 'アニマの紋章', icon:'🛡️', imgId: 101, grantedTrait: 'Anima'},
-  'unbuildable_psionic': {id:'emblem_psionic', name:'Psyops Emblem', jaName: 'サイオニックの紋章', icon:'🔮', imgId: 102, grantedTrait: 'Psionic'},
-  'unbuildable_sniper': {id:'emblem_sniper', name:'rangedtrait Emblem', jaName: 'スナイパーの紋章', icon:'🏹', imgId: 103, grantedTrait: 'Sniper'}
+  'spatula_bfsword':{id:'emblem_attuned', name:'Attuned Emblem', jaName: '同調の紋章', icon:'🛡️', grantedTrait: 'Attuned'},
+  'spatula_recurvebow':{id:'emblem_blossom', name:'Blossom Emblem', jaName: 'ブロッサムの紋章', icon:'🏹', grantedTrait: 'Blossom'},
+  'spatula_needlesslylargerod':{id:'emblem_bountyseeker', name:'Bounty Seeker Emblem', jaName: '賞金探しの紋章', icon:'🔮', grantedTrait: 'Bounty Seeker'},
+  'spatula_tearofthegoddess':{id:'emblem_coven', name:'Coven Emblem', jaName: '盟約の魔女の紋章', icon:'💧', grantedTrait: 'Coven'},
+  'spatula_chainvest':{id:'emblem_elderwood', name:'Elderwood Emblem', jaName: 'エルダーウッドの紋章', icon:'🛡️', grantedTrait: 'Elderwood'},
+  'spatula_negatroncloak':{id:'emblem_fae', name:'Fae Emblem', jaName: 'フェイの紋章', icon:'🧥', grantedTrait: 'Fae'},
+  'spatula_giantsbelt':{id:'emblem_florafatalis', name:'Flora Fatalis Emblem', jaName: 'フローラ・ファターリスの紋章', icon:'💖', grantedTrait: 'Flora Fatalis'},
+  'spatula_sparringgloves':{id:'emblem_greenfather', name:'Greenfather Emblem', jaName: '翠の父の紋章', icon:'🥊', grantedTrait: 'Greenfather'},
+  'spatula_spatula':{id:'tacticians_crown', name:'Tacticians Crown', jaName: 'タクティシャンの王冠', icon:'👑', teamSizeBonus: 1},
+  'fryingpan_bfsword':{id:'emblem_inferno', name:'Inferno Emblem', jaName: 'インフェルノの紋章', icon:'🛡️', grantedTrait: 'Inferno'},
+  'fryingpan_recurvebow':{id:'emblem_lunar', name:'Lunar Emblem', jaName: 'ルナーの紋章', icon:'🏹', grantedTrait: 'Lunar'},
+  'fryingpan_needlesslylargerod':{id:'emblem_primal', name:'Primal Emblem', jaName: 'プライマルの紋章', icon:'🔮', grantedTrait: 'Primal'},
+  'fryingpan_tearofthegoddess':{id:'emblem_riftbeast', name:'Riftbeast Emblem', jaName: 'リフトビーストの紋章', icon:'💧', grantedTrait: 'Riftbeast'},
+  'fryingpan_chainvest':{id:'emblem_rival', name:'Rival Emblem', jaName: 'ライバルの紋章', icon:'🛡️', grantedTrait: 'Rival'},
+  'fryingpan_negatroncloak':{id:'emblem_solar', name:'Solar Emblem', jaName: 'ソーラーの紋章', icon:'🧥', grantedTrait: 'Solar'},
+  'fryingpan_giantsbelt':{id:'emblem_sprykin', name:'Sprykin Emblem', jaName: 'スプライキンの紋章', icon:'💖', grantedTrait: 'Sprykin'},
+  'fryingpan_sparringgloves':{id:'emblem_thornmaiden', name:'Thornmaiden Emblem', jaName: 'ソーンメイデンの紋章', icon:'🥊', grantedTrait: 'Thornmaiden'},
+  'unbuildable_adaptor': {id:'emblem_adaptor', name:'Adaptor Emblem', jaName: 'アダプターの紋章', icon:'🔰', grantedTrait: 'Adaptor'},
+  'unbuildable_apexpredator': {id:'emblem_apexpredator', name:'Apex Predator Emblem', jaName: '捕食者の頂点の紋章', icon:'🔰', grantedTrait: 'Apex Predator'},
+  'unbuildable_avatar': {id:'emblem_avatar', name:'Avatar Emblem', jaName: 'アバターの紋章', icon:'🔰', grantedTrait: 'Avatar'},
+  'unbuildable_blackthorn': {id:'emblem_blackthorn', name:'Blackthorn Emblem', jaName: 'エルドリッチの紋章', icon:'🔰', grantedTrait: 'Blackthorn'},
+  'unbuildable_brawler': {id:'emblem_brawler', name:'Brawler Emblem', jaName: '喧嘩屋の紋章', icon:'🔰', grantedTrait: 'Brawler'},
+  'unbuildable_caustic': {id:'emblem_caustic', name:'Caustic Emblem', jaName: '腐敗の紋章', icon:'🔰', grantedTrait: 'Caustic'},
+  'unbuildable_defender': {id:'emblem_defender', name:'Defender Emblem', jaName: 'ディフェンダーの紋章', icon:'🔰', grantedTrait: 'Defender'},
+  'unbuildable_emeraldaspect': {id:'emblem_emeraldaspect', name:'Emerald Aspect Emblem', jaName: 'エメラルドの神髄の紋章', icon:'🔰', grantedTrait: 'Emerald Aspect'},
+  'unbuildable_executioner': {id:'emblem_executioner', name:'Executioner Emblem', jaName: 'エクセキューショナーの紋章', icon:'🔰', grantedTrait: 'Executioner'},
+  'unbuildable_hunter': {id:'emblem_hunter', name:'Hunter Emblem', jaName: 'ハンターの紋章', icon:'🔰', grantedTrait: 'Hunter'},
+  'unbuildable_invoker': {id:'emblem_invoker', name:'Invoker Emblem', jaName: 'インヴォーカーの紋章', icon:'🔰', grantedTrait: 'Invoker'},
+  'unbuildable_juggernaut': {id:'emblem_juggernaut', name:'Juggernaut Emblem', jaName: 'ジャガーノートの紋章', icon:'🔰', grantedTrait: 'Juggernaut'},
+  'unbuildable_monolith': {id:'emblem_monolith', name:'Monolith Emblem', jaName: 'モノリスの紋章', icon:'🔰', grantedTrait: 'Monolith'},
+  'unbuildable_oldgrowth': {id:'emblem_oldgrowth', name:'Old Growth Emblem', jaName: '原生林の紋章', icon:'🔰', grantedTrait: 'Old Growth'},
+  'unbuildable_rapidfire': {id:'emblem_rapidfire', name:'Rapidfire Emblem', jaName: 'ラピッドファイアの紋章', icon:'🔰', grantedTrait: 'Rapidfire'},
+  'unbuildable_ravager': {id:'emblem_ravager', name:'Ravager Emblem', jaName: 'ラヴィジャーの紋章', icon:'🔰', grantedTrait: 'Ravager'},
+  'unbuildable_spellweaver': {id:'emblem_spellweaver', name:'Spellweaver Emblem', jaName: 'スペルウィーバーの紋章', icon:'🔰', grantedTrait: 'Spellweaver'},
+  'unbuildable_summoner': {id:'emblem_summoner', name:'Summoner Emblem', jaName: 'サモナーの紋章', icon:'🔰', grantedTrait: 'Summoner'},
+  'unbuildable_vanguard': {id:'emblem_vanguard', name:'Vanguard Emblem', jaName: 'ヴァンガードの紋章', icon:'🔰', grantedTrait: 'Vanguard'},
+  'unbuildable_eclipse': {id:'emblem_eclipse', name:'Eclipse Emblem', jaName: 'エクリプスの紋章', icon:'🔰', grantedTrait: 'Eclipse'}
 };
 
 /* ── 消費アイテム ── */
@@ -186,7 +203,7 @@ const RADIANT_ITEMS = [
   const TAGS = {"emblem_darkstar":"set17","emblem_timebreaker":"set17","emblem_stargazer":"set17","emblem_spacegroove":"set17","emblem_meeple":"set17","emblem_arbiter":"set17","emblem_primordian":"set17","emblem_nova":"set17","emblem_marauder":"set17","emblem_voyager":"set17","emblem_challenger":"set17","emblem_shepherd":"set17","emblem_bastion":"set17","emblem_rogue":"set17","emblem_anima":"set17","emblem_psionic":"set17","emblem_sniper":"set17","ahris_aura":"set17","evelynns_intuition":"set17","varuss_tenacity":"set17","threshs_lantern":"set17","sorakas_miracle":"set17","yasuos_bladework":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
-  const EDITS = {"archangelstaff":{"id":"archangelsstaff"},"dragonclaw":{"id":"dragonsclaw"},"warmogarmor":{"id":"warmogsarmor"},"thiefssparringglovess":{"id":"thiefsgloves"},"r_archangel":{"id":"r_archangelsstaff"},"trinityforce":{"imgUrl":"https://tftips.b-cdn.net/item/4_ornninfinityforce.avif?v=1"},"statikkshiv_artifact":{"id":"statikkshiv"},"snipersfocus":{"imgUrl":"https://tftips.b-cdn.net/item/9_ornnhorizonfocus.avif?v=1"},"flickerblade":{"id":"navoriflickerblade"},"rapidfirecannon_artifact":{"id":"rapidfirecannon"},"unendingdespair":{"id":"theindomitable"},"everlastingpact":{"id":"eternalpact"},"dusksblessing":{"id":"aegisofdusk"},"dawnsblessing":{"id":"aegisofdawn"},"hatjuice":{"id":"cappajuice"},"crown_of_demacia":{"imgUrl":"https://tftips.b-cdn.net/item/9_crownofdemacia.avif?v=1","type":"completed"},"tacticians_crown":{"id":"forceofnature"}};
+  const EDITS = {"archangelstaff":{"id":"archangelsstaff"},"dragonclaw":{"id":"dragonsclaw"},"warmogarmor":{"id":"warmogsarmor"},"thiefssparringglovess":{"id":"thiefsgloves"},"r_archangel":{"id":"r_archangelsstaff"}};
   const mark = (it) => { if (!it || !it.id) return;
     if (HIDDEN.includes(it.id)) it.hidden = true;
     if (TAGS[it.id]) it.setTag = TAGS[it.id]; };
@@ -205,7 +222,6 @@ const RADIANT_ITEMS = [
   const applyEdit = (it) => { if (!it || !it.id) return; const e = EDITS[it.id]; if (!e) return;
     if (e.jaName) it.jaName = e.jaName;
     if (e.type) it.type = e.type;
-    if (e.imgUrl) it.imgUrl = e.imgUrl;   // 画像URLの例外指定（規則から外れるものはこれで上書き）
     if (e.id && e.id !== it.id) it.id = e.id; };
   (typeof ITEMS !== 'undefined' ? ITEMS : []).forEach(applyEdit);
   Object.values(typeof ITEM_RECIPES !== 'undefined' ? ITEM_RECIPES : {}).forEach(applyEdit);

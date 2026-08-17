@@ -1157,8 +1157,10 @@ const itemIconUrl = (it) => {
   if (type === 'artifact') return `https://tftips.b-cdn.net/item/artifact_${id}.avif?v=1`;
   if (type === 'radiant') return radiantUrl1(it);
   if (type === 'consumable') return `https://tftips.b-cdn.net/item/${id}.avif?v=1`;
+  if (id === 'tacticians_crown') return `https://tftips.b-cdn.net/item/${setNoOf()}_emblemtacticianscrown.avif?v=1`;
   if (it.grantedTrait) {
-    const t = String(it.grantedTrait).toLowerCase().replace(/\s+/g, '');
+    // 記号も除去する（例 N.O.V.A. → nova）。ゲーム側と同じ規則
+    const t = String(it.grantedTrait).toLowerCase().replace(/[^a-z0-9]/g, '');
     return `https://tftips.b-cdn.net/item/${setNoOf()}_emblem${t}.avif?v=1`;
   }
   if (type === 'comp') return `https://tftips.b-cdn.net/item/component_${id.toLowerCase().replace(/['.\s]/g, '')}.avif?v=1`;

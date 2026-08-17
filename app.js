@@ -647,10 +647,13 @@ const getMetaTFTItemUrl = (item) => {
   }
 
   // 1.5 紋章専用のURLフォーマット
-  if (nameInput.includes('Emblem') || idInput.startsWith('emblem_')) {
+  if (nameInput.includes('Emblem') || idInput.startsWith('emblem_') || idInput === 'tacticians_crown') {
     const recipe = Object.values(ITEM_RECIPES).find(r => r.name === nameInput || r.id === idInput);
+    // 王冠は付与トレイトを持たないので専用の名前で引く
+    if (recipe && recipe.id === 'tacticians_crown') return `https://tftips.b-cdn.net/item/${SET_NO}_emblemtacticianscrown.avif?v=1`;
     if (recipe && recipe.grantedTrait) {
-      const traitName = recipe.grantedTrait.toLowerCase().replace(/\s+/g, '');
+      // 空白だけでなく記号も除去する（例 N.O.V.A. → nova）。トレイトアイコン側と規則を揃える
+      const traitName = recipe.grantedTrait.toLowerCase().replace(/[^a-z0-9]/g, '');
       return `https://tftips.b-cdn.net/item/${SET_NO}_emblem${traitName}.avif?v=1`;
     }
   }
