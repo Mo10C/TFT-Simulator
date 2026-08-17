@@ -78,10 +78,9 @@ const CHAMPS=[
 
 /* ── 特性（トレイト）日本語名 ── 公式クライアント表記（Set 18 資料より） ── */
 const TRAIT_JA = {
-  "unselected": "未選択",
-  "Attuned": "同調",
+  "aluneuniquetrait18": "同調",
   "Blossom": "ブロッサム",
-  "Bounty Seeker": "賞金探し",
+  "Bounty Seeker": "バウンティーシーカー",
   "Coven": "盟約の魔女",
   "Elderwood": "エルダーウッド",
   "Fae": "フェイ",
@@ -107,10 +106,10 @@ const TRAIT_JA = {
   "Hunter": "ハンター",
   "Invoker": "インヴォーカー",
   "Juggernaut": "ジャガーノート",
-  "Monolith": "モノリス",
-  "Old Growth": "原生林",
+  "battlemage": "モノリス",
+  "maokai_uniquetrait": "原生林",
   "Rapidfire": "ラピッドファイア",
-  "Ravager": "ラヴィジャー",
+  "slayer": "ラヴィジャー",
   "Spellweaver": "スペルウィーバー",
   "Summoner": "サモナー",
   "Vanguard": "ヴァンガード",
@@ -119,7 +118,7 @@ const TRAIT_JA = {
 
 /* ── 特性（トレイト）発動しきい値 ── Set 18 資料より読み取り ── */
 const TRAIT_TIERS_DATA = {
-  "Attuned": [1],
+  "aluneuniquetrait18": [1],
   "Blossom": [3,5,7,9,11],
   "Bounty Seeker": [1],
   "Coven": [3,4,5,7],
@@ -147,10 +146,10 @@ const TRAIT_TIERS_DATA = {
   "Hunter": [2,3,4,5],
   "Invoker": [2,3,4,5],
   "Juggernaut": [2,4,6],
-  "Monolith": [1],
-  "Old Growth": [1],
+  "battlemage": [1],
+  "maokai_uniquetrait": [1],
   "Rapidfire": [2,3,4,5],
-  "Ravager": [2,4,6],
+  "slayer": [2,4,6],
   "Spellweaver": [2,4,6],
   "Summoner": [2,3],
   "Vanguard": [2,4,6],
