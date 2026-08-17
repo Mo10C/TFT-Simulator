@@ -147,7 +147,7 @@ function b3dStandeeTexture(unit, boardIcon){
   return tex;
 }
 function b3dStarTexture(star){
-  const cv=document.createElement('canvas'); cv.width=192; cv.height=90; const g=cv.getContext('2d');
+  const cv=document.createElement('canvas'); cv.width=192; cv.height=48; const g=cv.getContext('2d');
   g.font='900 40px Orbitron, sans-serif'; g.textAlign='center'; g.textBaseline='middle';
   g.fillStyle=star>=3?'#f4c04a':(star>=2?'#d7dbe2':'#c98b52');
   g.strokeStyle='rgba(0,0,0,.8)'; g.lineWidth=5;
