@@ -163,7 +163,7 @@ function b3dMakeStandee(unit, boardIcon){
 }
 function b3dMakeStars(star){
   const R=B3D.R; const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:b3dStarTexture(star),transparent:true}));
-  spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*1.7; return spr;
+  spr.scale.set(R*1.1,R*0.28,1); spr.position.y=B3D.TOP+0.14+R*3.0; return spr;
 }
 /* 🎒 装備アイテムは駒の頭上に表示する。
    ⚠ WebGLのテクスチャに外部画像を使うにはCDN側のCORS対応が必要で、現状は通らない
