@@ -89,12 +89,11 @@ const ITEM_RECIPES = {
   'fryingpan_fryingpan': { id: 'tacticians_shield', name: "Tactician's Shield", jaName: 'タクティシャン シールド', icon: '🛡️', imgId: 99,  teamSizeBonus: 1 },
 
   // --- 作成不能（Unbuildable）紋章例 ---
+   
   'unbuildable_coven': { id: 'emblem_coven', name: 'Coven Emblem', jaName: '盟約の魔女の紋章', icon: '🔮', imgId: 101, grantedTrait: 'Coven' },
-  'unbuildable_solar': { id: 'emblem_solar', name: 'Solar Emblem', jaName: 'ソーラーの紋章', icon: '☀️', imgId: 102, grantedTrait: 'Solar' },
   'unbuildable_defender': { id: 'emblem_defender', name: 'Defender Emblem', jaName: 'ディフェンダーの紋章', icon: '🛡️', imgId: 103, grantedTrait: 'Defender' },
   'unbuildable_juggernaut': { id: 'emblem_juggernaut', name: 'Juggernaut Emblem', jaName: 'ジャガーノートの紋章', icon: '🦏', imgId: 104, grantedTrait: 'Juggernaut' },
-  'unbuildable_summoner': { id: 'emblem_summoner', name: 'Summoner Emblem', jaName: 'サモナーの紋章', icon: '📖', imgId: 105, grantedTrait: 'Summoner' },
-  'unbuildable_eclipse': { id: 'emblem_eclipse', name: 'Eclipse Emblem', jaName: 'エクリプスの紋章', icon: '🌘', imgId: 106, grantedTrait: 'Eclipse' },
+  'unbuildable_florafatalis': { id: 'emblem_florafatalis', name: 'Florafatalis Emblem', jaName: 'フローラ・ファターリスの紋章', icon: '📖', imgId: 105, grantedTrait: 'florafatalis' },
 
 
    /*SET17
