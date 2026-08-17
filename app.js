@@ -571,6 +571,16 @@ const resolveItemJa = (name) => {
   return name;
 };
 const getJaName = (name) => resolveItemJa(name); // getJaName は resolveItemJa のラッパーとして機能
+/* ✨ レディアントアイテムの画像URL。
+   ── 実ファイル名は imgName から導ける: tft5_item_jeweledgauntletradiant → 5_jeweledgauntletradiant.avif
+   ── id（r_shojin 等）から作ると、完成アイテム側のid整理とズレて404になるため imgName を使う。 */
+const radiantIconUrl = (item) => {
+  const img = item && item.imgName;
+  if (img) return `https://tftips.b-cdn.net/item/${String(img).replace(/^tft/, '').replace('_item_', '_')}.avif?v=1`;
+  // imgName が無い場合の保険（旧来の作り方）
+  return `https://tftips.b-cdn.net/item/${String(item && item.id || '').replace(/^r_/, '')}_radiant.avif?v=1`;
+};
+
 const getMetaTFTItemUrl = (item) => {
   if (!item) return "";
 
@@ -581,8 +591,7 @@ const getMetaTFTItemUrl = (item) => {
       return `https://tftips.b-cdn.net/item/artifact_${item.id}.avif?v=1`;
     }
     if (item.type === 'radiant') {
-      const baseName = item.id.substring(2);
-      return `https://tftips.b-cdn.net/item/${baseName}_radiant.avif?v=1`;
+      return radiantIconUrl(item);
     }
     // それ以外（主にオーグメント）は現状維持
     return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${item.imgName}.png`;
@@ -599,8 +608,8 @@ const getMetaTFTItemUrl = (item) => {
   // アーティファクトとレディアントを結合して検索（日本語名でも引けるようにする）
   const specialItem = [...ARTIFACTS, ...RADIANT_ITEMS].find(a => a.name === nameInput || a.id === idInput || a.imgName === nameInput || a.jaName === nameInput);
   if (specialItem) {
-    const baseName = specialItem.id.startsWith('r_') ? specialItem.id.substring(2) + '_radiant' : 'artifact_' + specialItem.id;
-    return `https://tftips.b-cdn.net/item/${baseName}.avif?v=1`;
+    if (String(specialItem.id).startsWith('r_')) return radiantIconUrl(specialItem);
+    return `https://tftips.b-cdn.net/item/artifact_${specialItem.id}.avif?v=1`;
   }
 
   // 1.5 紋章専用のURLフォーマット

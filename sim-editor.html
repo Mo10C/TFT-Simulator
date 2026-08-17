@@ -1144,7 +1144,9 @@ const itemIconUrl = (it) => {
   const name = String(it.name || '');
   const type = it.type || '';
   if (type === 'artifact') return `https://tftips.b-cdn.net/item/artifact_${id}.avif?v=1`;
-  if (type === 'radiant')  return `https://tftips.b-cdn.net/item/${id.replace(/^r_/, '')}_radiant.avif?v=1`;
+  if (type === 'radiant')  return it.imgName
+    ? `https://tftips.b-cdn.net/item/${String(it.imgName).replace(/^tft/, '').replace('_item_', '_')}.avif?v=1`
+    : `https://tftips.b-cdn.net/item/${id.replace(/^r_/, '')}_radiant.avif?v=1`;
   if (type === 'consumable') return `https://tftips.b-cdn.net/item/${id}.avif?v=1`;
   if (it.grantedTrait) {
     const t = String(it.grantedTrait).toLowerCase().replace(/\s+/g, '');
