@@ -64,6 +64,40 @@ const ITEM_RECIPES = {
   'giantsbelt_giantsbelt':{id:'warmogarmor', name:"Warmog's Armor", jaName: 'ワーモグ アーマー', icon:'🌿', imgId: 77}, 
   'giantsbelt_sparringgloves':{id:'powergauntlet', name:'powergauntlet', jaName: 'ストライカー フレイル', icon:'🔨', imgId: 79}, 
   'sparringgloves_sparringgloves':{id:'thiefssparringglovess', name:"Thief's sparringglovess", jaName: '盗賊のグローブ', icon:'🧤', imgId: 99},
+   
+   // --- ヘラ（Spatula）合成 ---
+  'spatula_bfsword': { id: 'emblem_fae', name: 'Fae Emblem', jaName: 'フェイの紋章', icon: '🧚', imgId: 81, grantedTrait: 'Fae' },
+  'spatula_recurvebow': { id: 'emblem_inferno', name: 'Inferno Emblem', jaName: 'インフェルノの紋章', icon: '🔥', imgId: 82, grantedTrait: 'Inferno' },
+  'spatula_needlesslylargerod': { id: 'emblem_blossom', name: 'Blossom Emblem', jaName: 'ブロッサムの紋章', icon: '🌸', imgId: 83, grantedTrait: 'Blossom' },
+  'spatula_tearofthegoddess': { id: 'emblem_lunar', name: 'Lunar Emblem', jaName: 'ルナーの紋章', icon: '🌙', imgId: 84, grantedTrait: 'Lunar' },
+  'spatula_chainvest': { id: 'emblem_elderwood', name: 'Elderwood Emblem', jaName: 'エルダーウッドの紋章', icon: '🌲', imgId: 85, grantedTrait: 'Elderwood' },
+  'spatula_negatroncloak': { id: 'emblem_sprykin', name: 'Sprykin Emblem', jaName: 'スプライキンの紋章', icon: '🦌', imgId: 86, grantedTrait: 'Sprykin' },
+  'spatula_giantsbelt': { id: 'emblem_blackthorn', name: 'Blackthorn Emblem', jaName: 'ブラックソーンの紋章', icon: '🥀', imgId: 87, grantedTrait: 'Blackthorn' },
+  'spatula_sparringgloves': { id: 'emblem_primal', name: 'Primal Emblem', jaName: 'プライマルの紋章', icon: '🐾', imgId: 88, grantedTrait: 'Primal' },
+  'spatula_spatula':{id:'tacticians_crown', name:"forceofnature", jaName: 'タクティシャンの王冠', icon:'👑', imgId: 88, teamSizeBonus: 1},
+  'spatula_fryingpan': { id: 'tacticians_cape', name: "Tactician's Cape", jaName: 'タクティシャン ケープ', icon: '🧥', imgId: 90,  teamSizeBonus: 1},
+
+  // --- フライパン（Frying Pan）合成 ---
+  'fryingpan_bfsword': { id: 'emblem_hunter', name: 'Hunter Emblem', jaName: 'ハンターの紋章', icon: '🎯', imgId: 91, grantedTrait: 'Hunter' },
+  'fryingpan_recurvebow': { id: 'emblem_rapidfire', name: 'Rapidfire Emblem', jaName: 'ラピッドファイアの紋章', icon: '🏹', imgId: 92, grantedTrait: 'Rapidfire' },
+  'fryingpan_needlesslylargerod': { id: 'emblem_spellweaver', name: 'Spellweaver Emblem', jaName: 'スペルウィーバーの紋章', icon: '✨', imgId: 93, grantedTrait: 'Spellweaver' },
+  'fryingpan_tearofthegoddess': { id: 'emblem_invoker', name: 'Invoker Emblem', jaName: 'インヴォーカーの紋章', icon: '📜', imgId: 94, grantedTrait: 'Invoker' },
+  'fryingpan_chainvest': { id: 'emblem_vanguard', name: 'Vanguard Emblem', jaName: 'ヴァンガードの紋章', icon: '🛡️', imgId: 95, grantedTrait: 'Vanguard' },
+  'fryingpan_negatroncloak': { id: 'emblem_slayer', name: 'Slayer Emblem', jaName: 'ラヴィジャーの紋章', icon: '💀', imgId: 96, grantedTrait: 'slayer' },
+  'fryingpan_giantsbelt': { id: 'emblem_brawler', name: 'Brawler Emblem', jaName: 'ブローラーの紋章', icon: '🥊', imgId: 97, grantedTrait: 'Brawler' },
+  'fryingpan_sparringgloves': { id: 'emblem_executioner', name: 'Executioner Emblem', jaName: 'エクセキューショナーの紋章', icon: '🪓', imgId: 98, grantedTrait: 'Executioner' },
+  'fryingpan_fryingpan': { id: 'tacticians_shield', name: "Tactician's Shield", jaName: 'タクティシャン シールド', icon: '🛡️', imgId: 99,  teamSizeBonus: 1 },
+
+  // --- 作成不能（Unbuildable）紋章例 ---
+  'unbuildable_coven': { id: 'emblem_coven', name: 'Coven Emblem', jaName: '盟約の魔女の紋章', icon: '🔮', imgId: 101, grantedTrait: 'Coven' },
+  'unbuildable_solar': { id: 'emblem_solar', name: 'Solar Emblem', jaName: 'ソーラーの紋章', icon: '☀️', imgId: 102, grantedTrait: 'Solar' },
+  'unbuildable_defender': { id: 'emblem_defender', name: 'Defender Emblem', jaName: 'ディフェンダーの紋章', icon: '🛡️', imgId: 103, grantedTrait: 'Defender' },
+  'unbuildable_juggernaut': { id: 'emblem_juggernaut', name: 'Juggernaut Emblem', jaName: 'ジャガーノートの紋章', icon: '🦏', imgId: 104, grantedTrait: 'Juggernaut' },
+  'unbuildable_summoner': { id: 'emblem_summoner', name: 'Summoner Emblem', jaName: 'サモナーの紋章', icon: '📖', imgId: 105, grantedTrait: 'Summoner' },
+  'unbuildable_eclipse': { id: 'emblem_eclipse', name: 'Eclipse Emblem', jaName: 'エクリプスの紋章', icon: '🌘', imgId: 106, grantedTrait: 'Eclipse' },
+
+
+   /*SET17
   'spatula_bf':{id:'emblem_darkstar', name:'Dark Star Emblem', jaName: 'ダークスターの紋章', icon:'🛡️', imgId: 81, grantedTrait: 'Dark Star'}, 
   'spatula_recurvebow':{id:'emblem_timebreaker', name:'pulsefire Emblem', jaName: 'タイムブレイカーの紋章', icon:'🏹', imgId: 82, grantedTrait: 'Timebreaker'},
   'spatula_needlesslylargerod':{id:'emblem_stargazer', name:'Stargazer Emblem', jaName: '星の観測者の紋章', icon:'🔮', imgId: 83, grantedTrait: 'Stargazer'}, 
@@ -85,6 +119,7 @@ const ITEM_RECIPES = {
   'unbuildable_psionic': {id:'emblem_psionic', name:'Psyops Emblem', jaName: 'サイオニックの紋章', icon:'🔮', imgId: 102, grantedTrait: 'Psionic'},
   'unbuildable_sniper': {id:'emblem_sniper', name:'rangedtrait Emblem', jaName: 'スナイパーの紋章', icon:'🏹', imgId: 103, grantedTrait: 'Sniper'}
 };
+*/
 
 /* ── 消費アイテム ── */
 const CONSUMABLES = {
