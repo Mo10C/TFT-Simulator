@@ -141,7 +141,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     <div class="note" style="margin-top:6px">非表示のセットのチャンピオンは、シミュレーターのショップ・ドロップ・指定リストすべてから除外されます（データは残ります）。新しいセットが来たら「＋セット追加」→ そのタブに追加していってください。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>ID</th><th>英名</th><th>日本語名</th><th>コスト</th><th>特性（カンマ区切り）</th><th>画像名(img)</th><th>ロール</th><th>理想アイテム（最大8）</th><th></th></tr></thead>
+    <table><thead><tr><th></th><th>ID</th><th>英名</th><th>日本語名</th><th>コスト</th><th>特性（カンマ区切り）</th><th>3Dモデル(model)</th><th>ロール</th><th>理想アイテム（最大8）</th><th></th></tr></thead>
     <tbody id="champ-body"><tr><td colspan="10" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
@@ -420,8 +420,15 @@ const CURRENT_SET = (window.SIM_CONFIG && window.SIM_CONFIG.set) || 'set18';
 const setPrefix = set => `tft${String(set || CURRENT_SET).replace(/[^0-9]/g, '') || '18'}_`;
 // metatft 画像は cdn-cgi 経由・絶対オリジン指定が Set18 で確実（相対パスだと解決しないことがある）。
 const metaImg = (path, name, opts = 'width=64,format=auto') => `https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`;
-const champIcon   = (img, set) => img ? metaImg('champions',        setPrefix(set) + img.toLowerCase()) : '';
-const champSplash = (img, set) => img ? metaImg('championsplashes', setPrefix(set) + img.toLowerCase(), 'width=64,height=38,fit=cover,format=auto') : '';
+/* 🖼️ 画像URLはゲーム（app.js）と同じ生成規則に揃える。
+   ── チャンピオン: tftips の id ベース（旧 metatft の img ベースは廃止）
+   ── ここがズレるとエディタとゲームで違う絵が出てしまうので、変更時は app.js と対で直す。 */
+const setNoOf = (set) => String(set || CURRENT_SET || 'set18').replace(/[^0-9]/g, '') || '18';
+const champIcon   = (id, set) => id ? `https://tftips.b-cdn.net/champ/sm/${setNoOf(set)}_${String(id).toLowerCase()}.avif` : '';
+// ゲーム（app.js の shopIcon）と同じスプラッシュ画像
+const champSplash = (id, set) => id
+  ? `https://cdn.metatft.com/cdn-cgi/image/width=256,format=auto/https://cdn.metatft.com/file/metatft/championsplashes/tft${setNoOf(set)}_${String(id).toLowerCase()}.png`
+  : '';
 
 /* ═══════ 📊 記録データ ═══════ */
 const FB_CFG_KEY = 'sim_editor_fb_cfg';
@@ -625,7 +632,7 @@ function loadChampText(text) {
   try {
     const got = new Function(text + ';\nreturn { CHAMPS:(typeof CHAMPS!=="undefined"?CHAMPS:[]), TRAIT_JA:(typeof TRAIT_JA!=="undefined"?TRAIT_JA:{}), TRAIT_DESCS:(typeof TRAIT_DESCS!=="undefined"?TRAIT_DESCS:{}), TRAIT_TIERS_DATA:(typeof TRAIT_TIERS_DATA!=="undefined"?TRAIT_TIERS_DATA:{}), TRAIT_ICONS:(typeof TRAIT_ICONS!=="undefined"?TRAIT_ICONS:{}) };')();
     champs = (got.CHAMPS || []).map(c => ({ id: c.id || '', name: c.name || '', jaName: c.jaName || '', cost: c.cost || 1,
-      traits: (c.traits || []).join(', '), img: c.img || '', set: c.set || 'set17', hidden: !!c.hidden,
+      traits: (c.traits || []).join(', '), model: c.model || '', set: c.set || 'set18', hidden: !!c.hidden,
       role: c.role || '', idealItems: Array.isArray(c.idealItems) ? c.idealItems.slice(0, 8) : [] }));
     const ja = got.TRAIT_JA || {}, desc = got.TRAIT_DESCS || {}, tiers = got.TRAIT_TIERS_DATA || {}, icons = got.TRAIT_ICONS || {};
     const tk = [...new Set([...Object.keys(ja), ...Object.keys(desc), ...Object.keys(tiers), ...Object.keys(icons)])];
@@ -679,13 +686,13 @@ function renderChamps() {
   visBtn.style.background = allHidden ? '' : '#5e1616';
   visBtn.style.borderColor = allHidden ? '' : 'var(--red)';
   document.getElementById('champ-body').innerHTML = champs.map((c, i) => c.set !== activeChampSet ? '' : `<tr style="${c.hidden ? 'opacity:.5' : ''}">
-    <td><img class="champ-img" src="${champIcon(c.img, c.set)}" onerror="if(!this.dataset.fb&&'${champSplash(c.img, c.set)}'){this.dataset.fb='1';this.src='${champSplash(c.img, c.set)}'}else{this.style.opacity=.15}"></td>
+    <td><img class="champ-img" src="${champIcon(c.id, c.set)}" onerror="if(!this.dataset.fb){this.dataset.fb='1';this.src='${champSplash(c.id, c.set)}'}else{this.style.opacity=.15}"></td>
     <td><input type="text" value="${esc(c.id)}" style="width:90px;font-family:Rajdhani" oninput="champs[${i}].id=this.value"></td>
     <td><input type="text" value="${esc(c.name)}" style="width:110px" oninput="champs[${i}].name=this.value"></td>
     <td><input type="text" value="${esc(c.jaName)}" style="width:130px" oninput="champs[${i}].jaName=this.value"></td>
     <td><input type="number" min="1" max="5" value="${c.cost}" style="width:52px" oninput="champs[${i}].cost=Number(this.value)||1"></td>
     <td><input type="text" value="${esc(c.traits)}" style="width:220px" oninput="champs[${i}].traits=this.value"></td>
-    <td><input type="text" value="${esc(c.img)}" style="width:100px" oninput="champs[${i}].img=this.value" onchange="renderChamps()"></td>
+    <td><input type="text" value="${esc(c.model || '')}" placeholder="(id から自動)" title="3Dモデルの .glb パス。空欄なら id から自動生成" style="width:100px" oninput="champs[${i}].model=this.value"></td>
     <td><select style="width:158px" onchange="champs[${i}].role=this.value">
       <option value="">（未設定）</option>
       ${CHAMP_ROLES.map(r => `<option value="${esc(r)}" ${c.role === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}
@@ -808,7 +815,8 @@ function downloadChamps() {
     const traits = c.traits.split(',').map(t => t.trim()).filter(Boolean);
     const roleStr = c.role ? `, role:${JSON.stringify(c.role)}` : '';
     const idealStr = (c.idealItems && c.idealItems.length) ? `, idealItems:${JSON.stringify(c.idealItems.slice(0, 8))}` : '';
-    return `  {id:${JSON.stringify(c.id)}, name:${JSON.stringify(c.name)}, jaName:${JSON.stringify(c.jaName)}, cost:${c.cost}, traits:${JSON.stringify(traits)}, img:${JSON.stringify(c.img)}, set:${JSON.stringify(c.set || 'set17')}${roleStr}${idealStr}${c.hidden ? ', hidden:true' : ''}},`;
+    const modelStr = c.model ? `, model:${JSON.stringify(c.model)}` : '';
+    return `  {id:${JSON.stringify(c.id)}, name:${JSON.stringify(c.name)}, jaName:${JSON.stringify(c.jaName)}, cost:${c.cost}, traits:${JSON.stringify(traits)}, set:${JSON.stringify(c.set || 'set18')}${modelStr}${roleStr}${idealStr}${c.hidden ? ', hidden:true' : ''}},`;
   });
   let out = replArrBlock(champText, 'const CHAMPS=[', lines.join('\n'));
   if (out == null) return showMsg('const CHAMPS=[ が見つからない/閉じ（改行 + ]; ）が不正です。元ファイルの形式を確認してください', true);
@@ -825,8 +833,9 @@ function downloadChamps() {
 
 /* ═══════ 🔰 特性（日本語名・しきい値・アイコン・効果説明） ═══════ */
 function traitIconUrl(icon, key) {
+  // ゲーム（app.js の getTraitIconUrl）と同じ tftips 方式
   const raw = (icon && icon.trim()) ? icon.trim() : (key || '');
-  return `https://cdn.metatft.com/cdn-cgi/image/width=48,format=webp/file/metatft/traits/${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
+  return `https://tftips.b-cdn.net/trait/${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.avif?v=1`;
 }
 function renderTraits() {
   const el = document.getElementById('trait-body'); if (!el) return;
@@ -1109,14 +1118,22 @@ document.getElementById('item-file').addEventListener('change', async ev => {
 const SET_TAGS = ['set17', 'set18', 'set19', 'set20'];  // 🏷️ セット管理ボタン
 // アイテム画像URL（app.js の getMetaTFTItemUrl と同じロジック）
 const itemIconUrl = (it) => {
-  if (it.imgName) return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${it.imgName}.png`;
-  const n = it.name || '';
-  if (n.includes('Emblem')) {
-    const t = n.replace(' Emblem', '').toLowerCase().replace(/\s+/g, '').replace(/\./g, '');
-    return metaImg('items', `${setPrefix()}item_${t}emblemitem`);
+  // ゲーム（app.js の getMetaTFTItemUrl）と同じ判定順・同じURL規則
+  if (!it) return '';
+  const id = String(it.id || '');
+  const name = String(it.name || '');
+  const type = it.type || '';
+  if (type === 'artifact') return `https://tftips.b-cdn.net/item/artifact_${id}.avif?v=1`;
+  if (type === 'radiant')  return `https://tftips.b-cdn.net/item/${id.replace(/^r_/, '')}_radiant.avif?v=1`;
+  if (type === 'consumable') return `https://tftips.b-cdn.net/item/${id}.avif?v=1`;
+  if (it.grantedTrait) {
+    const t = String(it.grantedTrait).toLowerCase().replace(/\s+/g, '');
+    return `https://tftips.b-cdn.net/item/${setNoOf()}_emblem${t}.avif?v=1`;
   }
-  const f = n.toLowerCase().replace(/['.]/g, '').replace(/\s+/g, '');
-  return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/tft_item_${f}.png`;
+  if (type === 'comp') return `https://tftips.b-cdn.net/item/component_${id.toLowerCase().replace(/['.\s]/g, '')}.avif?v=1`;
+  if (id) return `https://tftips.b-cdn.net/item/${id}.avif?v=1`;
+  if (it.imgName) return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/items/${it.imgName}.png`;
+  return '';
 };
 // オーグメント画像URL（app.js の getAugmentIconUrl と同じロジック）
 const augIconUrl = (imgName) => !imgName ? '' : (imgName.startsWith('http') ? imgName : `https://cdn.metatft.com/cdn-gi/image/width=64,format=webp/file/metatft/augments/${imgName}.png`.replace('cdn-gi','cdn-cgi'));
