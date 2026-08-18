@@ -1015,7 +1015,9 @@ function b3dEncounterModelUrl(enc, champ){
   return b3dAutoModelUrl(id);
 }
 
-function EncounterModel3D({ url, color, width, height, onFail }){
+function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY = 0 }){
+  /* spin: 自転の速さ(rad/秒)。既定 0 ＝ 回さず正面を向いたまま。
+     faceY: 正面の向きが合わないモデル用の固定回転(ラジアン)。例) Math.PI で背面向きを直す。 */
   const mountRef = useRef3D(null);
   const failRef  = useRef3D(onFail);
   failRef.current = onFail;
@@ -1055,7 +1057,7 @@ function EncounterModel3D({ url, color, width, height, onFail }){
       );
       disc.rotation.x = -Math.PI/2; disc.position.y = 0.01; scene.add(disc);
 
-      const pivot = new THREE.Group(); scene.add(pivot);
+      const pivot = new THREE.Group(); pivot.rotation.y = faceY || 0; scene.add(pivot);
       let mixer = null;
       const clock = new THREE.Clock();
 
@@ -1086,7 +1088,7 @@ function EncounterModel3D({ url, color, width, height, onFail }){
         raf = requestAnimationFrame(tick);
         const dt = clock.getDelta();
         if(mixer) mixer.update(dt);
-        pivot.rotation.y += dt * 0.45;          // ゆっくり回す
+        if(spin) pivot.rotation.y += dt * spin;   // 既定は回さない（spin に数値を渡したときだけ回る）
         renderer.render(scene, camera);
       };
       tick();
@@ -1110,7 +1112,7 @@ function EncounterModel3D({ url, color, width, height, onFail }){
       giveUp(err && err.message);
       try{ if(renderer) renderer.dispose(); }catch(e){}
     }
-  }, [url, color]);
+  }, [url, color, spin, faceY]);
 
   return <div ref={mountRef} style={{ width: width || '100%', height: height || '100%', pointerEvents:'none' }} />;
 }
