@@ -121,9 +121,15 @@ const TRAIT_JA = {
    ここに書けば「別名」または「http〜の完全URL」で上書きできる。
    ユニーク特性はクライアント内部名でアイコンが配信されているため別名を指定する。 */
 const TRAIT_ICONS = {
-  "Attuned": "aluneuniquetrait18",
-  "Bounty Seeker": "bountyseeker",
+  "Attuned": "https://cdn.metatft.com/file/metatft/traits/da_aluneuniquetrait18.png",
+  "Bounty Seeker": "https://cdn.metatft.com/file/metatft/traits/da_dravenuniquetrait18.png",
+  "Flora Fatalis": "https://cdn.metatft.com/file/metatft/traits/da_florafatalis18.png",
+  "Primal": "https://cdn.metatft.com/file/metatft/traits/da_primal18.png",
+  "Riftbeast": "https://cdn.metatft.com/file/metatft/traits/da_riftbeast18.png",
+  "Thornmaiden": "https://cdn.metatft.com/file/metatft/traits/da_18_zyrauniquetrait.png",
   "Avatar": "luxuniquetrait",
+  "Emerald Aspect": "https://cdn.metatft.com/file/metatft/traits/da_emerald18.png",
+  "Juggernaut": "https://cdn.metatft.com/file/metatft/traits/da_juggernaut18.png",
   "Monolith": "battlemage",
   "Old Growth": "maokai_uniquetrait",
 };
