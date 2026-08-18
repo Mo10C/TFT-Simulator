@@ -3877,9 +3877,11 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   }, [rngEnc, gameOverrides]);
   const encounterAppliedRef = useRef(false);    // 1-1→1-2 の開始効果ガード
   const encounter21AppliedRef = useRef(false);  // 2-1 到達時の効果ガード
+  const [encModel3DFailed, setEncModel3DFailed] = useState(false);  // 🎭 遭遇の3Dが出せなければアイコン表示に戻す
   useEffect(() => {
     encounterAppliedRef.current = false;
     encounter21AppliedRef.current = false;
+    setEncModel3DFailed(false);
   }, [encounter]);
 
   // 3. 基本的なState（boardなど）を先に定義する 🌟重要
@@ -6277,6 +6279,9 @@ const handleAugmentPick = (aug, historyContext) => {
             encChamp = CHAMPS.find(c => c.jaName.replace(/[・=]/g, '') === encounter.champ.replace(/[・=]/g, ''));
           }
         }
+        // 🎭 遭遇のお披露目に出す .glb（遭遇の model → CHAMP_MODELS3D → 自動生成URL の順）
+        const encModelUrl = (encounter && typeof b3dEncounterModelUrl === 'function')
+          ? b3dEncounterModelUrl(encounter, encChamp) : '';
 
         return (
           <div
@@ -6297,19 +6302,42 @@ const handleAugmentPick = (aug, historyContext) => {
           >
             {encounter ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none', animation: 'fadeIn 0.6s ease' }}>
-                <div style={{ fontFamily: 'Orbitron', fontSize: 16, color: encounter.color, letterSpacing: 8, marginBottom: 20 }}>ENCOUNTER</div>
+                <div style={{ fontFamily: 'Orbitron', fontSize: 16, color: encounter.color, letterSpacing: 8, marginBottom: 16 }}>ENCOUNTER</div>
+                {/* 🎭 説明パネル（モデルの上）→ その下に3Dモデル。
+                    モデルが無いときは encModel3DFailed が立ち、従来のアイコン表示に戻る。 */}
                 <div style={{
-                  display: 'flex', alignItems: 'center', gap: 24, maxWidth: 550,
+                  textAlign: 'center', maxWidth: 620,
                   background: 'rgba(8,13,26,0.9)',
                   border: `2px solid ${encounter.color}55`,
-                  borderRadius: 16, padding: '24px 32px',
+                  borderRadius: 16, padding: '20px 32px',
                   boxShadow: `0 15px 40px rgba(0,0,0,0.6), 0 0 20px ${encounter.color}33`,
                   animation: 'popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards'
                 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 4 }}>{encounter.champ}</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 8 }}>{encounter.jaName}</div>
+                  <div style={{ fontSize: 15, color: 'var(--silver)', lineHeight: 1.6, opacity: 0.9 }}>{encounter.desc}</div>
+                  <div style={{ fontSize: 10, color: 'var(--textdim)', marginTop: 10, display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center' }}>
+                    <span>出現確率 {encounter.prob}%</span>
+                    {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
+                  </div>
+                </div>
+
+                {(!encModel3DFailed && typeof EncounterModel3D !== 'undefined' && encModelUrl) ? (
+                  <div style={{ marginTop: 6, filter: `drop-shadow(0 12px 30px ${encounter.color}55)` }}>
+                    <EncounterModel3D
+                      url={encModelUrl}
+                      color={encounter.color}
+                      width={Math.min(420, Math.round(window.innerWidth * 0.8))}
+                      height={Math.min(400, Math.round(window.innerHeight * 0.42))}
+                      onFail={() => setEncModel3DFailed(true)}
+                    />
+                  </div>
+                ) : (
                   <div style={{
-                    width: 80, height: 80, borderRadius: '50%', flexShrink: 0, fontSize: 40,
+                    marginTop: 26, width: 140, height: 140, borderRadius: '50%', fontSize: 66,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-                    background: `${encounter.color}22`, border: `2px solid ${encounter.color}`
+                    background: `${encounter.color}22`, border: `2px solid ${encounter.color}`,
+                    boxShadow: `0 0 30px ${encounter.color}44`
                   }}>
                     {encChamp ? (
                       <img src={boardIcon(encChamp.id)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -6317,17 +6345,9 @@ const handleAugmentPick = (aug, historyContext) => {
                       <span>{encounter.icon}</span>
                     )}
                   </div>
-                  <div style={{ textAlign: 'left', flex: 1 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: encounter.color, letterSpacing: 1, marginBottom: 4 }}>{encounter.champ}</div>
-                    <div style={{ fontSize: 20, fontWeight: 900, color: 'white', fontFamily: 'Noto Sans JP', marginBottom: 8 }}>{encounter.jaName}</div>
-                    <div style={{ fontSize: 14, color: 'var(--silver)', lineHeight: 1.5, opacity: 0.85 }}>{encounter.desc}</div>
-                    <div style={{ fontSize: 10, color: 'var(--textdim)', marginTop: 10, display: 'flex', gap: 10, alignItems: 'center' }}>
-                      <span>出現確率 {encounter.prob}%</span>
-                      {encounter.displayOnly && <span style={{ color: '#ff9f43', fontWeight: 700 }}>※このシミュレーターでは表示のみ</span>}
-                    </div>
-                  </div>
-                </div>
-                <div style={{ marginTop: 50, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite' }}>
+                )}
+
+                <div style={{ marginTop: 26, fontSize: '11px', color: 'var(--gold)', opacity: 0.6, animation: 'pulse 2s infinite' }}>
                   — CLICK ANYWHERE TO BEGIN —
                 </div>
               </div>

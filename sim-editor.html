@@ -236,11 +236,11 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
       <button onclick="addEncounter()" id="enc-add" disabled>＋ 新規遭遇追加</button>
       <button class="gold" onclick="downloadEncounters()" id="enc-dl" disabled>⬇ data-encounters.js をダウンロード</button>
     </div>
-    <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その遭遇はゲームの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。確率合計は表示中の遭遇だけで計算しています。</div>
+    <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その遭遇はゲームの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。確率合計は表示中の遭遇だけで計算しています。<br><b>3Dモデル</b>は1-1のお披露目画面に出す .glb のパスです。空欄なら <code>models/&lt;id&gt;_(tft_set_NN).glb</code> を自動で試し、見つからなければアイコン表示に戻ります。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>表示</th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
-    <tbody id="enc-body"><tr><td colspan="10" class="note">読み込み中…</td></tr></tbody></table>
+    <table><thead><tr><th></th><th>表示</th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>3Dモデル</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
+    <tbody id="enc-body"><tr><td colspan="11" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -917,7 +917,7 @@ function encFlagSummary(e) {
 }
 function renderEncounters() {
   const el = document.getElementById('enc-body'); if (!el) return;
-  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="10" class="note">読み込み待ち…</td></tr>'; return; }
+  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="11" class="note">読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('enc-search').value || '').toLowerCase().trim();
   /* 確率合計は「表示中」の遭遇だけで数える（非表示は抽選に出ないため） */
   const shown = encObjs.filter(e => !e.hidden);
@@ -934,6 +934,7 @@ function renderEncounters() {
     <td><input type="text" value="${esc(e.jaName || '')}" style="width:160px" oninput="encObjs[${i}].jaName=this.value"></td>
     <td><input type="number" step="0.1" value="${Number(e.prob) || 0}" style="width:62px" oninput="encObjs[${i}].prob=Number(this.value)||0" onchange="renderEncounters()"></td>
     <td><input type="text" value="${esc(e.color || '')}" style="width:78px" oninput="encObjs[${i}].color=this.value" onchange="renderEncounters()"><span style="display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-left:3px;border:1px solid var(--border);background:${esc(e.color || 'transparent')}"></span></td>
+    <td><input type="text" value="${esc(e.model || '')}" placeholder="(自動)" style="width:150px;font-family:Rajdhani;font-size:11px" title="遭遇の提示画面に出す .glb のパス。空なら models/<id>_(tft_set_NN).glb を試し、それも無ければアイコン表示になります" oninput="encObjs[${i}].model=this.value.trim()||undefined"></td>
     <td style="font-size:10px;color:var(--textdim);white-space:nowrap">${esc(encFlagSummary(e))}</td>
     <td><textarea style="width:300px;height:44px;font-size:11px" oninput="encObjs[${i}].desc=this.value">${esc(e.desc || '')}</textarea></td>
     <td><button style="color:var(--red)" onclick="deleteEncounter(${i})">🗑</button></td>

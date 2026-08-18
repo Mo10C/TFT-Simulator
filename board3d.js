@@ -994,3 +994,123 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
   );
   return <div ref={mountRef} style={{ position:'absolute', inset:0, borderRadius:12, overflow:'hidden' }} />;
 }
+
+/* ============================================================
+   🎭 遭遇の3Dお披露目（EncounterModel3D）
+   ── 1-1の遭遇提示で、アイコンの代わりにキャラクターの .glb を1体だけ大きく映す。
+   ── 盤面用のBoard3Dとは独立した小さなシーン。カメラ操作は無しで、
+      ゆっくり回転＋idleアニメーションだけを再生する。
+   ── モデルが用意されていない／three.jsが無い／WebGL不可のときは onFail() を呼ぶので、
+      呼び出し側で従来のアイコン表示に戻すこと（表示が消えることはない）。
+   ── URLの決まり方: 遭遇の model → CHAMP_MODELS3D[id] → models/<id>_(tft_set_NN).glb
+      遭遇のキャラはセットのチャンピオン一覧に居ないことが多いので、
+      sim-editor.html の遭遇タブで model を直接指定できるようにしてある。
+   ============================================================ */
+function b3dEncounterModelUrl(enc, champ){
+  if(!enc) return '';
+  if(enc.model) return enc.model;                                   // 遭遇に直接指定（最優先）
+  const id = (champ && champ.id) || enc.id;
+  if(!id) return '';
+  if(typeof CHAMP_MODELS3D !== 'undefined' && CHAMP_MODELS3D[id]) return CHAMP_MODELS3D[id];
+  return b3dAutoModelUrl(id);
+}
+
+function EncounterModel3D({ url, color, width, height, onFail }){
+  const mountRef = useRef3D(null);
+  const failRef  = useRef3D(onFail);
+  failRef.current = onFail;
+
+  useEffect3D(() => {
+    const giveUp = (why) => { if(failRef.current) failRef.current(why); };
+    if(typeof THREE === 'undefined' || !THREE.WebGLRenderer || !THREE.GLTFLoader){ giveUp('three.js なし'); return; }
+    if(!url){ giveUp('モデル未指定'); return; }
+    const mount = mountRef.current; if(!mount) return;
+
+    let raf = 0, disposed = false, renderer = null;
+    try{
+      const W = mount.clientWidth || width || 360, H = mount.clientHeight || height || 400;
+      const scene  = new THREE.Scene(); scene.background = null;
+      const camera = new THREE.PerspectiveCamera(32, W/H, 0.1, 100);
+      camera.position.set(0, 2.05, 6.4); camera.lookAt(0, 1.35, 0);
+
+      renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      renderer.setSize(W, H);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      if(THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
+      else if(THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
+      mount.appendChild(renderer.domElement);
+      renderer.domElement.style.cssText = 'width:100%;height:100%;display:block';
+
+      // 照明：正面から柔らかく当て、遭遇の色でリムライトを入れて浮かせる
+      const rim = new THREE.Color(color || '#7fd0ff');
+      scene.add(new THREE.HemisphereLight(0xdce8ff, 0x2a3550, 1.1));
+      scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+      const key = new THREE.DirectionalLight(0xffffff, 1.7); key.position.set(3, 6, 6); scene.add(key);
+      const back = new THREE.DirectionalLight(rim, 1.5); back.position.set(-4, 3, -5); scene.add(back);
+
+      // 足元の光の円（モデルが宙に浮いて見えないように）
+      const disc = new THREE.Mesh(
+        new THREE.CircleGeometry(1.5, 48),
+        new THREE.MeshBasicMaterial({ color: rim, transparent:true, opacity:0.16 })
+      );
+      disc.rotation.x = -Math.PI/2; disc.position.y = 0.01; scene.add(disc);
+
+      const pivot = new THREE.Group(); scene.add(pivot);
+      let mixer = null;
+      const clock = new THREE.Clock();
+
+      b3dLoadModelAny(url).then(gltf => {
+        if(disposed) return;
+        const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone)
+          ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
+        b3dFixMaterials(m);
+        // 高さ2.6になるよう正規化し、足元を原点に、中心を軸に合わせる
+        const box = new THREE.Box3().setFromObject(m);
+        const sz  = new THREE.Vector3(); box.getSize(sz);
+        const ctr = new THREE.Vector3(); box.getCenter(ctr);
+        const s = 2.6 / Math.max(sz.y || 1, 0.001);
+        m.scale.setScalar(s);
+        m.position.set(-ctr.x*s, -box.min.y*s, -ctr.z*s);
+        pivot.add(m);
+        if(gltf.animations && gltf.animations.length){
+          mixer = new THREE.AnimationMixer(m);
+          const clip = gltf.animations.find(c => c.name.toLowerCase().includes('idle1'))
+                    || gltf.animations.find(c => c.name.toLowerCase().includes('idle'))
+                    || gltf.animations[0];
+          mixer.clipAction(clip).play();
+        }
+      }).catch(() => { if(!disposed) giveUp('モデルを取得できません: ' + url); });
+
+      const tick = () => {
+        if(disposed) return;
+        raf = requestAnimationFrame(tick);
+        const dt = clock.getDelta();
+        if(mixer) mixer.update(dt);
+        pivot.rotation.y += dt * 0.45;          // ゆっくり回す
+        renderer.render(scene, camera);
+      };
+      tick();
+
+      const onResize = () => {
+        if(disposed || !mount) return;
+        const w = mount.clientWidth || W, h = mount.clientHeight || H;
+        renderer.setSize(w, h); camera.aspect = w/h; camera.updateProjectionMatrix();
+      };
+      window.addEventListener('resize', onResize);
+
+      return () => {
+        disposed = true;
+        cancelAnimationFrame(raf);
+        window.removeEventListener('resize', onResize);
+        try{ renderer.dispose(); }catch(e){}
+        if(renderer && renderer.domElement && renderer.domElement.parentNode)
+          renderer.domElement.parentNode.removeChild(renderer.domElement);
+      };
+    }catch(err){
+      giveUp(err && err.message);
+      try{ if(renderer) renderer.dispose(); }catch(e){}
+    }
+  }, [url, color]);
+
+  return <div ref={mountRef} style={{ width: width || '100%', height: height || '100%', pointerEvents:'none' }} />;
+}
