@@ -2014,7 +2014,7 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
       borderColor = TIER_COLORS[item.tier] || 'var(--border)';
     }
 
-    const size = isAug ? 48 : (isSmall ? 26 : 38); // 🌟 オーグメントは一番最初のサイズ(48px)に固定
+    const size = isAug ? 58 : (isSmall ? 36 : 50);   // 🌟 一覧で見やすいサイズ（狭い枠は isSmall で少し縮める）
     
     return (
       <div
@@ -2035,7 +2035,8 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
           flexShrink: 0,
           touchAction: 'none'
         }}
-      ><img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
+      >
+        {/* ⚠ 以前ここに同じ <img> が2枚あり、flex内で横に並んで画像が潰れて見えていた */}
         <img src={imgUrl} style={{ width: '100%', height: '100%', objectFit: isChamp ? 'cover' : 'contain' }} alt={title} onError={(e) => e.target.style.display='none'} />
       </div>
     );
@@ -2092,8 +2093,8 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
           const itemsInTier = (tiers[activeTabId] || { S: [], A: [], B: [], C: [], D: [] })[tierKey] || [];
           const isSmall = itemsInTier.length > 14; // 🌟 元の閾値に戻す
           return (
-            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 50 }}>
-              <div style={{ width: 40, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
+            <div key={tierKey} data-tier={tierKey} onDragOver={onDragOver} onDrop={(e) => onDrop(e, tierKey)} style={{ display: 'flex', background: 'var(--bg-hex)', borderRadius: 6, overflow: 'hidden', minHeight: 64 }}>
+              <div style={{ width: 44, background: TIER_COLORS_BG[tierKey], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#000', flexShrink: 0 }}>{tierKey}</div>
               <div style={{ flex: 1, padding: 6, display: 'flex', flexWrap: 'wrap', gap: 4, alignContent: 'flex-start' }}>{itemsInTier.map(id => { const item = allItems.find(x => x.id === id); return item ? renderItem(item, isSmall) : null; })}</div>
             </div>
           );

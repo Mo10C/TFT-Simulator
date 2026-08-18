@@ -159,10 +159,12 @@ html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sa
 
 /* ── ASSET DRAWER ── */
 .asset-drawer {
+    /* 幅は1箇所（--drawer-w）で管理。アイコンを大きくしたぶん既定を広げた */
+    --drawer-w: 420px;
     position: fixed;
     top: 0;
-    right: -340px;
-    width: 340px;
+    right: calc(-1 * var(--drawer-w));
+    width: var(--drawer-w);
     height: 100vh;
     background: var(--bg-panel);
     border-left: 1px solid var(--border);
@@ -173,6 +175,9 @@ html,body{height:100%;background:var(--bg0);overflow:hidden;font-family:'Noto Sa
     flex-direction: column;
 }
 .asset-drawer.open { right: 0; }
+/* 画面が狭い端末では画面幅に収める */
+@media screen and (max-width: 520px) { .asset-drawer { --drawer-w: 92vw; } }
+@media screen and (max-height: 500px) and (orientation: landscape) { .asset-drawer { --drawer-w: 60vw; } }
 .drawer-header {
     padding: 14px 18px;
     border-bottom: 1px solid var(--border);
