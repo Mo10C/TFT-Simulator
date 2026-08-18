@@ -113,7 +113,9 @@ const AUGMENTS_DATA = {
       desc: 'ランダムな完成アイテム1個を獲得。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
-        const recipes = Object.values(ITEM_RECIPES);
+        // タクティシャン系（王冠・ケープ・盾）と紋章はランダム完成アイテムから除外
+        const recipes = Object.values(ITEM_RECIPES).filter(r => !r.hidden && !r.grantedTrait
+          && !(typeof isTacticianItem === 'function' && isTacticianItem(r)));
         const item = {...recipes[Math.floor(rng() * recipes.length)], type:'completed'};
         helpers.addItem(item);
       }

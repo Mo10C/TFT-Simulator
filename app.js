@@ -822,6 +822,20 @@ const SPATULA_ID = findComponentId('spatula', '黄金のへら');
 const PAN_ID = findComponentId('fryingpan', 'pan', 'フライパン');
 const isSpecialComponent = (it) => !!it && (it.id === SPATULA_ID || it.id === PAN_ID);
 
+/* 👑 タクティシャン系（王冠・ケープ・盾）判定
+   ── 金床やランダム完成アイテムから出してはいけない。
+   ── id だけで弾くと data-items.js の EDITS で id が書き換わったとき（王冠→forceofnature）に
+      すり抜けるため、「チーム人数ボーナスを持つ」ことを主軸に、名前でも二重に判定する。 */
+const isTacticianItem = (it) => !!it && (
+  !!it.teamSizeBonus ||
+  /tactician/i.test(String(it.id || '')) ||
+  /tactician/i.test(String(it.name || '')) ||
+  String(it.jaName || '').includes('タクティシャン') ||
+  String(it.id || '') === 'tacticians_crown' ||
+  String(it.id || '') === 'forceofnature'
+);
+if (typeof window !== 'undefined') window.isTacticianItem = isTacticianItem;
+
 const CONSUMABLE_ID = (key) => {
   const c = (typeof CONSUMABLES !== 'undefined' && CONSUMABLES) ? CONSUMABLES[key] : null;
   return (c && c.id) || '';
@@ -4476,7 +4490,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
     } else if (anvilType === 'completed') {
       const recipes = Object.values(ITEM_RECIPES);
-      pool = recipes.filter(r => !r.grantedTrait && r.id !== 'tacticians_crown').map(r => ({...r, type: 'completed'}));
+      pool = recipes.filter(r => !r.grantedTrait && !r.hidden && !isTacticianItem(r)).map(r => ({...r, type: 'completed'}));
     } else if (anvilType === 'artifact') {
       pool = ARTIFACTS.filter(a => !a.hidden);
     } else if (anvilType === 'god_artifact') {
@@ -5608,7 +5622,8 @@ const handleAugmentPick = (aug, historyContext) => {
             }
             if (newItem.id === 'thiefs' || newItem.name === "Thief's Gloves") {
               unit.items.push(newItem);
-              const recipes = Object.values(ITEM_RECIPES);
+              // タクティシャン系・紋章はランダム完成アイテムの対象外
+              const recipes = Object.values(ITEM_RECIPES).filter(r => !r.hidden && !r.grantedTrait && !isTacticianItem(r));
               const randomFullItem = { 
                 ...recipes[Math.floor(rngMisc() * recipes.length)], 
                 type: 'completed',
