@@ -512,6 +512,19 @@ const SET_PREFIX = `tft${SET_NO}_`;
 const metaImg=(path,name,opts='width=96,format=auto')=>`https://cdn.metatft.com/cdn-cgi/image/${opts}/https://cdn.metatft.com/file/metatft/${path}/${name}.png`; // Fallback for old assets
 const champIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
 const boardIcon=(id)=>`https://tftips.b-cdn.net/champ/sm/${SET_NO}_${id}.avif`;
+/* 🖼️ crossOrigin 付きで読めなかった画像を、CORSなしで読み直す
+   ── 結果画面のベンチ・アイテムは「📸 画像をコピー」のために crossOrigin を付けているが、
+      CDNがCORSヘッダを返さない／CORSなしの応答が先にキャッシュされていると画像が出ない。
+      表示を最優先にして、失敗したら crossOrigin を外し別URL（?nocors=1）で再取得する。
+      コピー時は html2canvas 側の useCORS が改めて読み込むので影響しない。 */
+const imgCorsFallback = (e) => {
+  const el = e.currentTarget;
+  if (!el || el.dataset.nocors) { if (el) el.style.display = 'none'; return; }   // 2回目の失敗＝本当に無い画像
+  el.dataset.nocors = '1';
+  const src = el.src;
+  el.removeAttribute('crossorigin');
+  el.src = src + (src.includes('?') ? '&' : '?') + 'nocors=1';
+};
 /* 🛒 ショップ専用：チャンピオンのスプラッシュアート（metaTFT）。
    ── ショップだけ参照元が違うので他とは分けている。id から自動生成されるので個別指定は不要。
    ── 例) aphelios → .../championsplashes/tft18_aphelios.png
@@ -2093,7 +2106,9 @@ const TierListDrawer = ({ isOpen, onClose, showMsg }) => {
   );
 };
 
-/* ── オーグメント選択画面（操作ロック・スケール0.8版） ── */
+/* ── オーグメント選択画面（操作ロック・画面サイズに追従して自動拡大縮小） ── */
+/* 🃏 カード実寸。ここを変えると自動スケールの計算も追従する */
+const AUG_CARD_W = 300, AUG_CARD_H = 410;
 const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = false, forceTier = null, rerollBonus = 0, augmentPicks = null }) => {
   const maxRerolls = 1 + (rerollBonus || 0); // 各枠のリロール可能回数（タロンで+1）
   const [tier] = useState(() => {
@@ -2107,6 +2122,22 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
   });
 
   const [viewBoard, setViewBoard] = useState(false);
+
+  /* 🔍 画面サイズに合わせた自動スケール
+     ── 以前は固定 scale(0.8) だったため、大きな画面ほどカードが小さく見えていた。
+        カード3枚ぶんの実寸が収まる最大倍率を求め、広い画面では拡大・狭い画面では縮小する。 */
+  const [uiScale, setUiScale] = useState(1);
+  useEffect(() => {
+    const fit = () => {
+      const needW = AUG_CARD_W * 3 + 25 * 2 + 60;   // カード3枚＋隙間＋左右余白
+      const needH = AUG_CARD_H + 190;               // 見出し＋再抽選ボタン＋「盤面を確認する」
+      setUiScale(Math.max(0.45, Math.min(1.3, window.innerWidth / needW, window.innerHeight / needH)));
+    };
+    fit();
+    window.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', fit);
+    return () => { window.removeEventListener('resize', fit); window.removeEventListener('orientationchange', fit); };
+  }, []);
 
   const [augmentSetup] = useState(() => {
     const pool = AUGMENTS_DATA[tier].filter(a => !a.hidden);  // 🏷️ 非表示タグ付きは抽選から除外
@@ -2220,7 +2251,7 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
       {/* 🌟 盤面確認中はカード全体を非表示に */}
       {!viewBoard && (
         <div style={{ 
-          transform: 'scale(0.8)', 
+          transform: `scale(${uiScale})`, 
           transformOrigin: 'center center',
           display: 'flex',
           flexDirection: 'column',
@@ -2228,8 +2259,8 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
           gap: 30
         }}>
           <div style={{ textAlign: 'center', animation: 'fadeIn 0.4s ease' }}>
-            <div style={{ fontFamily: 'Orbitron', fontSize: '14px', color: TIER_COLORS[tier], letterSpacing: 4, marginBottom: 8, fontWeight: 900 }}>{tier.toUpperCase()} TIER</div>
-            <div style={{ fontFamily: 'Noto Sans JP,Orbitron', fontSize: '26px', fontWeight: 900, color: 'white', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>オーグメントを選択してください</div>
+            <div style={{ fontFamily: 'Orbitron', fontSize: '16px', color: TIER_COLORS[tier], letterSpacing: 4, marginBottom: 10, fontWeight: 900 }}>{tier.toUpperCase()} TIER</div>
+            <div style={{ fontFamily: 'Noto Sans JP,Orbitron', fontSize: '30px', fontWeight: 900, color: 'white', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>オーグメントを選択してください</div>
           </div>
 
           <div style={{ display: 'flex', gap: 25, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'flex-start', animation: 'fadeIn 0.6s ease' }}>
@@ -2237,7 +2268,7 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                  指定オーグメントが自然抽選の別枠と同一idになった時に key が衝突し、
                  リロール時にカードDOMが破棄されず残留して「4枚に見える」バグの原因になる） */}
             {choices.map((aug, i) => (
-              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 15, width: 250 }}>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 15, width: AUG_CARD_W }}>
                 <div
                   onClick={() => onPick(aug, { 
                     tier, 
@@ -2247,22 +2278,22 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                   })}
                   className={`aug-card-${aug.tier}`}
                   style={{
-                    height: 350, width: 250, background: 'var(--bg1)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
-                    borderRadius: 16, padding: '30px 20px', cursor: 'pointer', transition: 'all 0.2s',
+                    height: AUG_CARD_H, width: AUG_CARD_W, background: 'var(--bg1)', border: `2px solid ${TIER_COLORS[aug.tier]}`,
+                    borderRadius: 16, padding: '30px 24px', cursor: 'pointer', transition: 'all 0.2s',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, position: 'relative', boxSizing: 'border-box'
                   }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-8px)'; e.currentTarget.style.background = 'var(--bg3)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'var(--bg1)'; }}
                 >
-                  <div style={{ width: '100%', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0, boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
+                  <div style={{ width: '100%', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0, boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
                     {aug.imgName && (
                       <img src={getAugmentIconUrl(aug)} style={{ height: '85%', width: 'auto', objectFit: 'contain' }} />
                     )}
                   </div>
-                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '17px', fontWeight: 900, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.2, minHeight: '40px', display: 'flex', alignItems: 'center' }}>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '20px', fontWeight: 900, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.25, minHeight: '46px', display: 'flex', alignItems: 'center' }}>
                     {aug.name}
                   </div>
-                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '12px', color: 'var(--textdim)', lineHeight: 1.6, textAlign: 'center', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
+                  <div style={{ fontFamily: 'Noto Sans JP', fontSize: '14px', color: 'var(--textdim)', lineHeight: 1.65, textAlign: 'center', overflowY: 'auto', width: '100%', paddingRight: '4px' }}>
                     {aug.desc}
                   </div>
                 </div>
@@ -2274,8 +2305,8 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                     background: rerollUsed[i] >= maxRerolls ? 'rgba(30,45,74,.4)' : 'rgba(255,255,255,0.05)',
                     border: `1px solid ${rerollUsed[i] >= maxRerolls ? 'var(--border)' : TIER_COLORS[tier]}`,
                     color: rerollUsed[i] >= maxRerolls ? 'rgba(255,255,255,0.3)' : 'white',
-                    borderRadius: 8, padding: '10px', cursor: rerollUsed[i] >= maxRerolls ? 'default' : 'pointer',
-                    fontFamily: 'Noto Sans JP', fontSize: 12, fontWeight: 700, transition: 'all 0.2s'
+                    borderRadius: 8, padding: '12px', cursor: rerollUsed[i] >= maxRerolls ? 'default' : 'pointer',
+                    fontFamily: 'Noto Sans JP', fontSize: 14, fontWeight: 700, transition: 'all 0.2s'
                   }}
                 >
                   {rerollUsed[i] >= maxRerolls ? '再抽選済み' : (maxRerolls > 1 ? `再抽選 (残り${maxRerolls - rerollUsed[i]})` : '再抽選')}
@@ -5933,12 +5964,12 @@ const handleAugmentPick = (aug, historyContext) => {
         </div>
 
         {/* 🌟 キャプチャ対象エリア */}
-        <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding:24,display:'flex',flexDirection:'column',gap:20,maxWidth:900,width:'100%'}}>
+        <div ref={resultRef} id="result-capture" style={{background:'var(--bg0)',borderRadius:16,border:'1px solid var(--border)',padding:30,display:'flex',flexDirection:'column',gap:24,maxWidth:1240,width:'100%'}}>
           
           {/* ヘッダー */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid var(--border)',paddingBottom:16, flexWrap:'wrap', gap:10}}>
             <div>
-              <div style={{fontFamily:'Orbitron',fontSize:10,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET {SET_NO} — 1 STAGE RESULT</div>
+              <div style={{fontFamily:'Orbitron',fontSize:13,color:'var(--blue)',letterSpacing:4,marginBottom:4}}>TFT SET {SET_NO} — 1 STAGE RESULT</div>
 
             </div>
             
@@ -5973,7 +6004,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
               </div>
               
-              <div style={{fontFamily:'Orbitron',fontSize:11,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
+              <div style={{fontFamily:'Orbitron',fontSize:13,color:'var(--textdim)',textAlign:'right', borderLeft:'1px solid var(--border)', paddingLeft:16}}>
                 <div>SEED</div>
                 <div style={{color:'var(--text-main)',fontWeight:900}}>{seed}</div>
               </div>
@@ -5982,24 +6013,24 @@ const handleAugmentPick = (aug, historyContext) => {
 
           <div style={{display:'flex',gap:20,flexWrap:'wrap'}}>
             {/* 左カラム：ステータス */}
-            <div style={{display:'flex',flexDirection:'column',gap:10,minWidth:200,width:260,flexShrink:0}}>
+            <div style={{display:'flex',flexDirection:'column',gap:12,minWidth:260,width:330,flexShrink:0}}>
               
               {/* レベル・ゴールド */}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
                 <div style={{background:'rgba(26,159,255,0.08)',border:'1px solid rgba(26,159,255,0.2)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,color:'var(--blue)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終レベル</div>
-                  <div style={{fontSize:22,fontWeight:900,color:'var(--text-main)',fontFamily:'Orbitron'}}>LV {level}</div>
+                  <div style={{fontSize:11,color:'var(--blue)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終レベル</div>
+                  <div style={{fontSize:28,fontWeight:900,color:'var(--text-main)',fontFamily:'Orbitron'}}>LV {level}</div>
                 </div>
                 <div style={{background:'rgba(200,169,110,0.08)',border:'1px solid rgba(200,169,110,0.2)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,color:'var(--gold)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終ゴールド</div>
-                  <div style={{fontSize:22,fontWeight:900,color:'var(--text-main)',fontFamily:'Orbitron'}}>{gold}G</div>
+                  <div style={{fontSize:11,color:'var(--gold)',fontFamily:'Noto Sans JP',marginBottom:4}}>最終ゴールド</div>
+                  <div style={{fontSize:28,fontWeight:900,color:'var(--text-main)',fontFamily:'Orbitron'}}>{gold}G</div>
                 </div>
               </div>
 
               {/* オーグメント履歴 */}
               {augments.length > 0 && (
                 <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(155,89,245,0.3)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,color:'var(--purple)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>AUGMENT HISTORY</div>
+                  <div style={{fontSize:11,color:'var(--purple)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>AUGMENT HISTORY</div>
                   <div style={{display:'flex',flexDirection:'column',gap:12}}>
                     {augments.map((a, i) => (
                       <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'rgba(0,0,0,0.3)', padding: '10px 8px', borderRadius: 8, border: `1px solid ${TIER_COLORS[a.tier]}44` }}>
@@ -6020,16 +6051,16 @@ const handleAugmentPick = (aug, historyContext) => {
                                 {/* 🌟 リロールされた場合、元のオーグメントを名前付きで表示 */}
                                 {isRerolled && (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
-                                    <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} />
+                                    <img src={getAugmentIconUrl(initAug)} style={{ width: 28, height: 28, filter: 'grayscale(0.8)', opacity: 0.6 }} />
                                     {/* 👇 名前を表示し、取り消し線（line-through）を引く */}
-                                    <div style={{ fontSize: initAug?.name.length > 9 ? 7 : 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{initAug?.name}</div>
+                                    <div style={{ fontSize: initAug?.name.length > 9 ? 9 : 11, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{initAug?.name}</div>
                                     <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
                                   </div>
                                 )}
                                 
                                 {/* 最終的なオーグメント */}
-                                <img src={getAugmentIconUrl(finalAug)} style={{ width: 28, height: 28, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
-                                <div style={{ fontSize: finalAug.name.length > 9 ? 8 : 10, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{finalAug.name}</div>
+                                <img src={getAugmentIconUrl(finalAug)} style={{ width: 36, height: 36, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
+                                <div style={{ fontSize: finalAug.name.length > 9 ? 10 : 12, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{finalAug.name}</div>
                                 
                                 {/* 選んだものにはチェックマーク */}
                                 {isPicked && (
@@ -6048,13 +6079,13 @@ const handleAugmentPick = (aug, historyContext) => {
               {/* シナジー */}
               {activeTraits.length > 0 && (
                 <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(0,229,192,0.2)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:9,color:'var(--teal)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>ACTIVE TRAITS</div>
+                  <div style={{fontSize:11,color:'var(--teal)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>ACTIVE TRAITS</div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:4}}>
                     {activeTraits.map(([t, c]) => (
                       <div key={t} style={{display:'flex',alignItems:'center',gap:4,background:'rgba(200,169,110,0.12)',border:'1px solid rgba(200,169,110,0.3)',borderRadius:6,padding:'3px 6px',overflow:'hidden',whiteSpace:'nowrap'}}>
-                        <img src={getTraitIconUrl(t)} style={{width:12,height:12, filter: 'brightness(0) invert(1)', flexShrink:0}} onError={e => e.target.style.display='none'}/>
-                        <span style={{fontSize:10,color:'var(--gold)',fontWeight:900}}>{c}</span>
-                        <span style={{fontSize:9,color:'white',textOverflow:'ellipsis',overflow:'hidden'}}>{getTraitJaName(t)}</span>
+                        <img src={getTraitIconUrl(t)} style={{width:15,height:15, filter: 'brightness(0) invert(1)', flexShrink:0}} onError={e => e.target.style.display='none'}/>
+                        <span style={{fontSize:12,color:'var(--gold)',fontWeight:900}}>{c}</span>
+                        <span style={{fontSize:11,color:'white',textOverflow:'ellipsis',overflow:'hidden'}}>{getTraitJaName(t)}</span>
                       </div>
                     ))}
                   </div>
@@ -6066,21 +6097,21 @@ const handleAugmentPick = (aug, historyContext) => {
             <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'rgba(255,255,255,0.02)',borderRadius:12,border:'1px solid var(--border)',padding:'24px 16px',minWidth:340, gap: 16}}>
               
               {/* 🌟 上部エリア：左にアイテム、右に盤面（主役） */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 24, width: '100%',transform: 'translateX(30px)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 28, width: '100%' }}>
                 
                 {/* 🌟 アイテム一覧（左側に配置、縦長） */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(0,0,0,0.3)', padding: '12px 10px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', alignItems: 'center', minHeight: 120, minWidth: 50 }}>
-                  <div style={{ fontSize: 9, color: 'var(--gold)', fontFamily: 'Orbitron', letterSpacing: 1 }}>ITEMS</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, background: 'rgba(0,0,0,0.3)', padding: '14px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', alignItems: 'center', minHeight: 150, minWidth: 66 }}>
+                  <div style={{ fontSize: 11, color: 'var(--gold)', fontFamily: 'Orbitron', letterSpacing: 1 }}>ITEMS</div>
                   
                   {/* 👇 ここを flexDirection: 'column' に変更して縦長に！ */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', maxHeight: 260, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', maxHeight: 340, flexWrap: 'wrap', justifyContent: 'flex-start' }}>
                     {inventory.length > 0 ? inventory.map((it, i) => (
                       <div key={i} style={{
-                        width: 28, height: 28, background: '#1e293b', borderRadius: 4,
+                        width: 38, height: 38, background: '#1e293b', borderRadius: 5,
                         border: `1px solid ${it?.type === 'artifact' ? 'var(--red)' : (it?.type === 'radiant' ? 'var(--gold2)' : (it?.type === 'completed' ? 'var(--gold)' : 'var(--border)'))}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible', position: 'relative', flexShrink: 0
                       }}>
-                        {it?.name ? (<img src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />) : (<span style={{ fontSize: 12 }}>{it?.icon}</span>)}
+                        {it?.name ? (<img src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 3 }} />) : (<span style={{ fontSize: 12 }}>{it?.icon}</span>)}
                         
                         {/* 除去装置などのスタック表示 */}
                         {isConsumable(it,'REMOVER') && (it.count || 1) > 1 && (
@@ -6094,10 +6125,10 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
 
                 {/* 🌟 盤面（主役なので大きく表示） */}
-                <div style={{transform:'scale(0.8) translateX(-40px)',transformOrigin:'center center'}}>
+                <div style={{transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
-                    <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?30:0}}>
-                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={60} itemSize={17} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
+                    <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={76} itemSize={21} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
                 </div>
@@ -6106,28 +6137,28 @@ const handleAugmentPick = (aug, historyContext) => {
 
               {/* 🌟 下部エリア：ベンチ（小さく控えめに） */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4, background: 'rgba(0,0,0,0.3)', padding: '8px 12px', borderRadius: 10, border: '1px solid rgba(30,45,74,0.5)', width: 'fit-content' }}>
-                <div style={{ fontSize: 9, color: 'var(--textdim)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center' }}>BENCH</div>
-                <div style={{ display: 'flex', gap: 4 }}>
+                <div style={{ fontSize: 11, color: 'var(--textdim)', fontFamily: 'Orbitron', letterSpacing: 1, textAlign: 'center' }}>BENCH</div>
+                <div style={{ display: 'flex', gap: 6 }}>
                   {/* 🌟 リザルト画面：オーラ育成中 の専用待機枠 */}
                   {auraTrainingUnit && (
                     <div style={{
-                      width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
+                      width: 46, height: 46, borderRadius: 7, background: 'rgba(13,21,37,0.5)',
                       border: `2px dashed ${COST_COLORS[auraTrainingUnit.cost]}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
                       marginRight: 4, opacity: 0.8
                     }}>
-                      <img src={boardIcon(auraTrainingUnit.id)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={boardIcon(auraTrainingUnit.id)} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                        {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
+                        {(auraTrainingUnit.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width: 11, height: 11, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
                       </div>
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={auraTrainingUnit.star} /></div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.75)', transformOrigin: 'bottom' }}><Stars star={auraTrainingUnit.star} /></div>
                       <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', background:'rgba(0,0,0,0.5)' }}><span style={{ fontSize:14 }}>🔒</span></div>
                     </div>
                   )}
 
                   {bench.map((champ, i) => (
                     <div key={i} style={{
-                      width: 34, height: 34, borderRadius: 6, background: 'rgba(13,21,37,0.5)',
+                      width: 46, height: 46, borderRadius: 7, background: 'rgba(13,21,37,0.5)',
                       border: `1px solid ${champ ? (champ.isAnvil ? champ.color : COST_COLORS[champ.cost]) : 'rgba(30,45,74,.4)'}`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden'
                     }}>
@@ -6136,11 +6167,11 @@ const handleAugmentPick = (aug, historyContext) => {
                           <img src={champ.img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={champ.jaName} />
                         ) : (
                           <React.Fragment>
-                            <img src={boardIcon(champ.id)} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={boardIcon(champ.id)} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             <div style={{ position: 'absolute', top: 1, left: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                              {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" style={{ width: 8, height: 8, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
+                              {(champ.items||[]).map((it, idx) => (<img key={idx} src={getMetaTFTItemUrl(it)} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width: 11, height: 11, border: `1px solid ${it?.type==='artifact'?'var(--red)':(it?.type==='radiant'?'var(--gold2)':'white')}`, borderRadius: 1 }} />))}
                             </div>
-                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.6)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
+                            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'flex', justifyContent: 'center', transform: 'scale(0.75)', transformOrigin: 'bottom' }}><Stars star={champ.star} /></div>
                           </React.Fragment>
                         )
                       )}
