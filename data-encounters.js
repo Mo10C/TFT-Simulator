@@ -18,13 +18,13 @@ const ENCOUNTERS = [
       const c=pin||natural;
       const unit={...c, star:2, uid:rng(), items:[]};
       if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg(`⚙️ ビクター: ★★${c.jaName} を獲得！`); } },
-  { id:"miipsy", champ:"ミィプシー", jaName:"コスト2スタート", prob:5, desc:"ランダムなコスト2のチャンピオンを1体所持して試合を開始する。", icon:"⭐", color:"#44cc66", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===2);
+  { id:"warwick", champ:"ワーウィック", jaName:"コスト2スタート", prob:5, desc:"ランダムなコスト2のチャンピオンを1体所持して試合を開始する。", icon:"⭐", color:"#44cc66", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===2);
       const natural=pool[Math.floor(rng()*pool.length)];
       const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
       const c=pin||natural;
       const unit={...c, star:1, uid:rng(), items:[]};
       if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg('⭐ ミィプシー: 2コストを1体獲得！'); } },
-  { id:"lissandra", champ:"リサンドラ", jaName:"ハウリングアビス", prob:5, desc:"ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。", icon:"🌉", color:"#5b6cff", effect:(s,rng,h)=>{ 
+  { id:"azir", champ:"アジール", jaName:"ハウリングアビス", prob:5, desc:"ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。", icon:"🌉", color:"#5b6cff", effect:(s,rng,h)=>{ 
       const pool = CHAMPS.filter(c => c.cost === 1);
       const tempPool = [...pool];
       const chosen = [];
@@ -58,7 +58,7 @@ const ENCOUNTERS = [
   { id:"kobuko", champ:"コブコ", jaName:"ゴールドのサブスク", prob:4.9, desc:"ステージ2以降、毎ステージ開始時に2〜6ゴールドを獲得する。全プレイヤーが同じ量のゴールドを獲得する。", icon:"💳", color:"#ffd76e", effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'gold_subscription' }); h.showMsg('💳 ゾーイ: ゴールドのサブスクが有効になりました！'); } },
   { id:"graves", champ:"グレイブス", jaName:"プリズム フィナーレ", prob:5, desc:"この試合で最後に提示されるオーグメントがプリズムティアになる。", icon:"💎", color:"#ff7ad9", displayOnly:true, hidden:true },
   { id:"morgana", champ:"モルガナ", jaName:"プリズム プレリュード", prob:5, desc:"この試合で最初に提示されるオーグメントがプリズムティアになる。", icon:"💠", color:"#7ad9ff", augmentForceTier:"prismatic" },
-  { id:"talon", champ:"タロン", jaName:"偵察部隊", prob:5, desc:"この試合ではオーグメントのリロールを+1獲得する。", icon:"🗡️", color:"#9aa7b5", augmentRerollBonus:1 },
+  { id:"teemo", champ:"ティーモ", jaName:"偵察部隊", prob:5, desc:"この試合ではオーグメントのリロールを+1獲得する。", icon:"🗡️", color:"#9aa7b5", augmentRerollBonus:1 },
   { id:"velkoz", champ:"ヴェル=ヴェス", jaName:"複製器×2", prob:4.9, desc:"「小さなチャンピオン複製器」を1個獲得する。3-5で、「小型チャンピオン複製器」を獲得する。", icon:"🔹", color:"#a06bff", effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.TINY_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); }, hidden:true },
   { id:"tahmkench", champ:"タムケンチ", jaName:"戦利品サブスク", prob:3.7, desc:"1ステージごとに、様々な戦利品の中からランダムな戦利品を獲得する。", icon:"🎁", color:"#e0a060", displayOnly:true, hidden:true },
   { id:"none", champ:"なし", jaName:"遭遇なし", prob:5, desc:"この試合では誰にも遭遇しない。", icon:"🕊️", color:"#7a8aa0", effect:(s,rng,h)=>{ h.showMsg('🕊️ 神々の世界 ― 遭遇なし'); } },
