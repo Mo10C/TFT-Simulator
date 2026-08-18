@@ -78,9 +78,9 @@ const CHAMPS=[
 
 /* ── 特性（トレイト）日本語名 ── 公式クライアント表記（Set 18 資料より） ── */
 const TRAIT_JA = {
-  "aluneuniquetrait18": "同調",
+  "Attuned": "同調",
   "Blossom": "ブロッサム",
-  "BountySeeker": "バウンティーシーカー",
+  "Bounty Seeker": "バウンティーシーカー",
   "Coven": "盟約の魔女",
   "Elderwood": "エルダーウッド",
   "Fae": "フェイ",
@@ -96,7 +96,7 @@ const TRAIT_JA = {
   "Thornmaiden": "ソーンメイデン",
   "Adaptor": "アダプター",
   "Apex Predator": "捕食者の頂点",
-  "luxuniquetrait": "アバター",
+  "Avatar": "アバター",
   "Blackthorn": "ブラックソーン",
   "Brawler": "ブローラー",
   "Caustic": "腐敗",
@@ -106,8 +106,8 @@ const TRAIT_JA = {
   "Hunter": "ハンター",
   "Invoker": "インヴォーカー",
   "Juggernaut": "ジャガーノート",
-  "battlemage": "モノリス",
-  "maokai_uniquetrait": "原生林",
+  "Monolith": "モノリス",
+  "Old Growth": "原生林",
   "Rapidfire": "ラピッドファイア",
   "slayer": "ラヴィジャー",
   "Spellweaver": "スペルウィーバー",
@@ -116,11 +116,23 @@ const TRAIT_JA = {
   "Eclipse": "エクリプス",
 };
 
+/* ── 特性アイコンの例外指定 ──
+   空欄なら英名から自動（.../traits/da_18_<英名>.png）。
+   ここに書けば「別名」または「http〜の完全URL」で上書きできる。
+   ユニーク特性はクライアント内部名でアイコンが配信されているため別名を指定する。 */
+const TRAIT_ICONS = {
+  "Attuned": "aluneuniquetrait18",
+  "Bounty Seeker": "bountyseeker",
+  "Avatar": "luxuniquetrait",
+  "Monolith": "battlemage",
+  "Old Growth": "maokai_uniquetrait",
+};
+
 /* ── 特性（トレイト）発動しきい値 ── Set 18 資料より読み取り ── */
 const TRAIT_TIERS_DATA = {
-  "aluneuniquetrait18": [1],
+  "Attuned": [1],
   "Blossom": [3,5,7,9,11],
-  "BountySeeker": [1],
+  "Bounty Seeker": [1],
   "Coven": [3,4,5,7],
   "Elderwood": [3,5,7,9,11],
   "Fae": [2,4],
@@ -136,7 +148,7 @@ const TRAIT_TIERS_DATA = {
   "Thornmaiden": [1],
   "Adaptor": [2,3,4],
   "Apex Predator": [1],
-  "luxuniquetrait": [1],
+  "Avatar": [1],
   "Blackthorn": [2,4,6],
   "Brawler": [2,4,6],
   "Caustic": [1],
@@ -146,8 +158,8 @@ const TRAIT_TIERS_DATA = {
   "Hunter": [2,3,4,5],
   "Invoker": [2,3,4,5],
   "Juggernaut": [2,4,6],
-  "battlemage": [1],
-  "maokai_uniquetrait": [1],
+  "Monolith": [1],
+  "Old Growth": [1],
   "Rapidfire": [2,3,4,5],
   "slayer": [2,4,6],
   "Spellweaver": [2,4,6],

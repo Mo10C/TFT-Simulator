@@ -529,7 +529,7 @@ const shopIcon=(id, opts='width=512,format=auto')=>
 const getTraitIconUrl = (name) => {
   const ex = (typeof TRAIT_ICONS !== 'undefined' && TRAIT_ICONS) ? TRAIT_ICONS[name] : '';
   if (ex && /^https?:\/\//.test(ex)) return ex;                       // 例外：URL直接指定
-  const key = String(ex || name).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const key = String(ex || name).toLowerCase().replace(/[^a-z0-9_]/g, '');   // 別名は _ を残す
   return `https://cdn.metatft.com/file/metatft/traits/da_${SET_NO}_${key}.png`;
 };
 

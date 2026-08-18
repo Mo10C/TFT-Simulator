@@ -856,16 +856,26 @@ function traitIconUrl(icon, key) {
   const ex = (icon && icon.trim()) ? icon.trim() : '';
   if (/^https?:\/\//.test(ex)) return ex;
   const raw = ex || key || '';
-  return `https://cdn.metatft.com/file/metatft/traits/da_${setNoOf()}_${raw.toLowerCase().replace(/[^a-z0-9]/g, '')}.png`;
+  return `https://cdn.metatft.com/file/metatft/traits/da_${setNoOf()}_${raw.toLowerCase().replace(/[^a-z0-9_]/g, '')}.png`;
 }
 function renderTraits() {
   const el = document.getElementById('trait-body'); if (!el) return;
   if (!traitRows.length) { el.innerHTML = '<tr><td colspan="7" class="note">チャンピオンタブで読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('trait-search').value || '').toLowerCase().trim();
   const rows = traitRows.map((r, i) => ({ r, i })).filter(x => !q || (x.r.key || '').toLowerCase().includes(q) || (x.r.ja || '').toLowerCase().includes(q));
+  /* ⚠ キー不一致チェック
+     ── 英名(キー)はチャンピオンの「特性」欄と完全一致していないと、
+        日本語名・しきい値・アイコン例外URLがゲーム側で一切引かれない（既定URLのまま）。 */
+  const usedKeys = new Set(champs.flatMap(c => String(c.traits || '').split(',').map(t => t.trim()).filter(Boolean)));
+  const rowKeys = new Set(traitRows.map(r => (r.key || '').trim()).filter(Boolean));
+  const missing = [...usedKeys].filter(k => !rowKeys.has(k));
+  const st = document.getElementById('trait-status');
+  if (st) st.innerHTML = missing.length
+    ? `<span style="color:var(--red);font-weight:900">⚠ チャンピオンが使っているのに特性行が無いキー: ${esc(missing.join(' / '))}</span> ← このキーは日本語名・しきい値・アイコン例外がゲームに反映されません`
+    : `📂 特性 ${traitRows.length} 件（チャンピオンの特性名とすべて一致 ✅）`;
   el.innerHTML = rows.map(({ r, i }) => `<tr>
     <td><img class="champ-img" src="${traitIconUrl(r.icon, r.key)}" onerror="this.style.opacity=.15"></td>
-    <td><input type="text" value="${esc(r.key)}" style="width:120px;font-family:Rajdhani" oninput="traitRows[${i}].key=this.value" onchange="renderTraits()"></td>
+    <td><input type="text" value="${esc(r.key)}" style="width:120px;font-family:Rajdhani" oninput="traitRows[${i}].key=this.value" onchange="renderTraits()">${usedKeys.has((r.key || '').trim()) ? '' : '<span title="このキーを使っているチャンピオンがいません（アイコン例外URLも効きません）" style="color:var(--red);font-weight:900">&nbsp;⚠</span>'}</td>
     <td><input type="text" value="${esc(r.ja)}" style="width:130px" oninput="traitRows[${i}].ja=this.value"></td>
     <td><input type="text" value="${esc(r.tiers)}" style="width:90px" placeholder="2,4,6" oninput="traitRows[${i}].tiers=this.value"></td>
     <td><input type="text" value="${esc(r.icon)}" style="width:120px" placeholder="(自動)" oninput="traitRows[${i}].icon=this.value" onchange="renderTraits()"></td>
