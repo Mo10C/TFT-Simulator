@@ -12,31 +12,19 @@
    ── prob は出現確率(%)。合計≒100。
    ============================================================ */
 const ENCOUNTERS = [
-
-  { id:'viktor', champ:'ビクター', jaName:'アップグレード済みのチャンピオン', prob:7.3,
-    desc:'ランダムなコスト1の★2チャンピオンを1体所持して試合を開始する。',
-    icon:'⚙️', color:'#7fd0ff',
-    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===1);
+  { id:"leblanc", champ:"ルブラン", jaName:"アップグレードスタート", prob:5, desc:"ランダムなコスト1の★2チャンピオンを1体所持して試合を開始する。", icon:"⚙️", color:"#7fd0ff", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===1);
       const natural=pool[Math.floor(rng()*pool.length)];
       const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
       const c=pin||natural;
       const unit={...c, star:2, uid:rng(), items:[]};
       if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg(`⚙️ ビクター: ★★${c.jaName} を獲得！`); } },
-
-  { id:'miipsy', champ:'ミィプシー', jaName:'コスト2スタート', prob:7.3,
-    desc:'ランダムなコスト2のチャンピオンを1体所持して試合を開始する。',
-    icon:'⭐', color:'#44cc66',
-    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===2);
+  { id:"miipsy", champ:"ミィプシー", jaName:"コスト2スタート", prob:5, desc:"ランダムなコスト2のチャンピオンを1体所持して試合を開始する。", icon:"⭐", color:"#44cc66", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===2);
       const natural=pool[Math.floor(rng()*pool.length)];
       const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
       const c=pin||natural;
       const unit={...c, star:1, uid:rng(), items:[]};
       if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg('⭐ ミィプシー: 2コストを1体獲得！'); } },
-
-  { id:'lissandra', champ:'リサンドラ', jaName:'ハウリングアビス', prob:7.3,
-    desc:'ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。',
-    icon:'🌉', color:'#5b6cff',
-    effect:(s,rng,h)=>{ 
+  { id:"lissandra", champ:"リサンドラ", jaName:"ハウリングアビス", prob:5, desc:"ハウリングアビスの上で戦う、ランダムな1コストユニットを5体獲得する。", icon:"🌉", color:"#5b6cff", effect:(s,rng,h)=>{ 
       const pool = CHAMPS.filter(c => c.cost === 1);
       const tempPool = [...pool];
       const chosen = [];
@@ -55,74 +43,26 @@ const ENCOUNTERS = [
         chosen.forEach(c => h.addChampToBenchDirect(c));
       }
       h.showMsg('🌉 リサンドラ: 1コストを5体獲得！'); 
-    } 
-  },
-
-  { id:'poppy', champ:'ポッピー', jaName:'素材アイテムの金床', prob:7.3,
-    desc:'「素材アイテムの金床」を2個所持して試合を開始する。',
-    icon:'🛠️', color:'#ff9f43',
-    effect:(s,rng,h)=>{ 
+    } },
+  { id:"poppy", champ:"ポッピー", jaName:"素材アイテムの金床", prob:5, desc:"「素材アイテムの金床」を2個所持して試合を開始する。", icon:"🛠️", color:"#ff9f43", effect:(s,rng,h)=>{ 
       h.addAnvilToBench('component', 2); h.showMsg('🛠️ ポッピー: 金床を2個獲得！'); } },
-
-  { id:'twistedfate', champ:'ツイステッドフェイト', jaName:'黄金の祭典', prob:7.3,
-    desc:'この試合で提示されるオーグメントがすべてゴールドティアになる。',
-    icon:'🪙', color:'#ffcc44', augmentForceTier:'gold' },
-
-  { id:'missfortune', champ:'ミスフォーチュン', jaName:'コスト3スタート', prob:6.1,
-    desc:'ランダムなコスト3のチャンピオンを1体所持して試合を開始する。',
-    icon:'🌟', color:'#3399ff',
-    effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===3);
+  { id:"leona", champ:"レオナ", jaName:"黄金の祭典", prob:5, desc:"この試合で提示されるオーグメントがすべてゴールドティアになる。", icon:"🪙", color:"#ffcc44", augmentForceTier:"gold" },
+  { id:"missfortune", champ:"ミスフォーチュン", jaName:"コスト3スタート", prob:5, desc:"ランダムなコスト3のチャンピオンを1体所持して試合を開始する。", icon:"🌟", color:"#3399ff", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===3);
       const natural=pool[Math.floor(rng()*pool.length)];
       const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
       const c=pin||natural;
       const unit={...c, star:1, uid:rng(), items:[]};
       if(h.addChampToBoardDirect) { h.addChampToBoardDirect(unit); } else { h.addChampToBenchDirect(unit); } h.showMsg('🌟 ミスフォーチュン: 3コストを1体獲得！'); } },
-
-  { id:'fiora', champ:'フィオラ', jaName:'Silver Scrapes', prob:4.9,
-    desc:'最後に生存している2人のプレイヤーが70ゴールドを獲得し、壮大な最後の対決が始まる。',
-    icon:'⚔️', color:'#c0c0c0', displayOnly:true },
-
-  { id:'sona', champ:'ソナ', jaName:'お得なレベル', prob:4.9,
-    desc:'各レベルで必要な経験値が2減少する。',
-    icon:'🎵', color:'#7fe0d0',
-    effect:(s,rng,h)=>{ h.setXpCostReduction(2); h.showMsg('🎵 ソナ: XPコスト -2！'); } },
-
-  { id:'zoe', champ:'ゾーイ', jaName:'ゴールドのサブスク', prob:4.9,
-    desc:'ステージ2以降、毎ステージ開始時に2〜6ゴールドを獲得する。全プレイヤーが同じ量のゴールドを獲得する。',
-    icon:'💳', color:'#ffd76e',
-    effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'gold_subscription' }); h.showMsg('💳 ゾーイ: ゴールドのサブスクが有効になりました！'); } },
-
-  { id:'graves', champ:'グレイブス', jaName:'プリズム フィナーレ', prob:4.9,
-    desc:'この試合で最後に提示されるオーグメントがプリズムティアになる。',
-    icon:'💎', color:'#ff7ad9', displayOnly:true },
-
-  { id:'shen', champ:'シェン', jaName:'プリズム プレリュード', prob:4.9,
-    desc:'この試合で最初に提示されるオーグメントがプリズムティアになる。',
-    icon:'💠', color:'#7ad9ff', augmentForceTier:'prismatic' },
-
-  { id:'talon', champ:'タロン', jaName:'偵察部隊', prob:4.9,
-    desc:'この試合ではオーグメントのリロールを+1獲得する。',
-    icon:'🗡️', color:'#9aa7b5', augmentRerollBonus:1 },
-
-  { id:'velkoz', champ:'ヴェル=ヴェス', jaName:'複製器×2', prob:4.9,
-    desc:'「小さなチャンピオン複製器」を1個獲得する。3-5で、「小型チャンピオン複製器」を獲得する。',
-    icon:'🔹', color:'#a06bff',
-    effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.TINY_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); } },
-
-
-  { id:'tahmkench', champ:'タムケンチ', jaName:'戦利品サブスク', prob:3.7,
-    desc:'1ステージごとに、様々な戦利品の中からランダムな戦利品を獲得する。',
-    icon:'🎁', color:'#e0a060', displayOnly:true },
-
-  { id:'none', champ:'なし', jaName:'神々の世界', prob:3.7,
-    desc:'この試合では誰にも遭遇しない。',
-    icon:'🕊️', color:'#7a8aa0',
-    effect:(s,rng,h)=>{ h.showMsg('🕊️ 神々の世界 ― 遭遇なし'); } },
-
-  { id:'rastt', champ:'ラースト', jaName:'紋章アンサンブル', prob:3.7,
-    desc:'3個のランダムな紋章アイテムを所持してスタートする。',
-    icon:'🔰', color:'#66e0a0',
-    effect:(s,rng,h)=>{
+  { id:"draven", champ:"ドレイブン", jaName:"Silver Scrapes", prob:5, desc:"最後に生存している2人のプレイヤーが70ゴールドを獲得し、壮大な最後の対決が始まる。", icon:"⚔️", color:"#c0c0c0", displayOnly:true },
+  { id:"ash", champ:"アッシュ", jaName:"お得なレベル", prob:5, desc:"各レベルで必要な経験値が2減少する。", icon:"🎵", color:"#7fe0d0", effect:(s,rng,h)=>{ h.setXpCostReduction(2); h.showMsg('🎵 ソナ: XPコスト -2！'); } },
+  { id:"kobuko", champ:"コブコ", jaName:"ゴールドのサブスク", prob:4.9, desc:"ステージ2以降、毎ステージ開始時に2〜6ゴールドを獲得する。全プレイヤーが同じ量のゴールドを獲得する。", icon:"💳", color:"#ffd76e", effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'gold_subscription' }); h.showMsg('💳 ゾーイ: ゴールドのサブスクが有効になりました！'); } },
+  { id:"graves", champ:"グレイブス", jaName:"プリズム フィナーレ", prob:5, desc:"この試合で最後に提示されるオーグメントがプリズムティアになる。", icon:"💎", color:"#ff7ad9", displayOnly:true, hidden:true },
+  { id:"morgana", champ:"モルガナ", jaName:"プリズム プレリュード", prob:5, desc:"この試合で最初に提示されるオーグメントがプリズムティアになる。", icon:"💠", color:"#7ad9ff", augmentForceTier:"prismatic" },
+  { id:"talon", champ:"タロン", jaName:"偵察部隊", prob:5, desc:"この試合ではオーグメントのリロールを+1獲得する。", icon:"🗡️", color:"#9aa7b5", augmentRerollBonus:1 },
+  { id:"velkoz", champ:"ヴェル=ヴェス", jaName:"複製器×2", prob:4.9, desc:"「小さなチャンピオン複製器」を1個獲得する。3-5で、「小型チャンピオン複製器」を獲得する。", icon:"🔹", color:"#a06bff", effect:(s,rng,h)=>{ h.addItem({...CONSUMABLES.TINY_DUPE}); h.showMsg('🔹 ヴェル=ヴェス: 小さなチャンピオン複製器を獲得！'); }, hidden:true },
+  { id:"tahmkench", champ:"タムケンチ", jaName:"戦利品サブスク", prob:3.7, desc:"1ステージごとに、様々な戦利品の中からランダムな戦利品を獲得する。", icon:"🎁", color:"#e0a060", displayOnly:true, hidden:true },
+  { id:"none", champ:"なし", jaName:"遭遇なし", prob:5, desc:"この試合では誰にも遭遇しない。", icon:"🕊️", color:"#7a8aa0", effect:(s,rng,h)=>{ h.showMsg('🕊️ 神々の世界 ― 遭遇なし'); } },
+  { id:"lux", champ:"ラックス", jaName:"紋章アンサンブル", prob:5, desc:"3個のランダムな紋章アイテムを所持してスタートする。", icon:"🔰", color:"#66e0a0", effect:(s,rng,h)=>{
       const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
       const tempEmblems = [...emblems];
       for (let i = 0; i < 3; i++) {
@@ -133,35 +73,11 @@ const ENCOUNTERS = [
       }
       h.showMsg('🔰 ラースト: 異なる紋章を3個獲得しました！');
     } },
-
-  { id:'ezreal', champ:'エズリアル', jaName:'開幕リロール', prob:3.7,
-    desc:'2-1で、5回分の無料リロールを獲得する。',
-    icon:'🎲', color:'#ffd76e', freeRerollsAt21:5 },
-
-  { id:'ornn', champ:'オーン', jaName:'アーティファクトの金床', prob:2.4,
-    desc:'3-3で全プレイヤーが「アーティファクトの金床」を獲得する。',
-    icon:'🔨', color:'#d9a05b', displayOnly:true },
-
-  { id:'morgana', champ:'モルガナ', jaName:'プリズムパーティー', prob:2.4,
-    desc:'この試合で提示されるオーグメントがすべてプリズムティアになる。',
-    icon:'💜', color:'#c46bff', augmentForceTier:'prismatic' },
-
-  { id:'goldfinale', champ:'？', jaName:'ゴールド フィナーレ', prob:4.9,
-    desc:'この試合で最後に提示されるオーグメントがゴールドティアになる。',
-    icon:'🏅', color:'#ffcc44', displayOnly:true },
-
-  { id:'goldprelude', champ:'？', jaName:'ゴールド プレリュード', prob:4.9,
-    desc:'この試合で最初に提示されるオーグメントがゴールドティアになる。',
-    icon:'🥇', color:'#ffd76e', augmentForceTier:'gold' },
-
-  { id:'rerollsub', champ:'？', jaName:'リロールのサブスク', prob:4.9,
-    desc:'各ステージ開始時、ショップの無料リロールを獲得する。',
-    icon:'🔄', color:'#7fd0ff',
-    effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'reroll_subscription', amount: 1 }); h.showMsg('🔄 リロールのサブスクが有効になりました！'); } },
-
-  { id:'completedanvil', champ:'？', jaName:'完成アイテムの金床', prob:3.7,
-    desc:'「完成アイテムの金床」を1個所持して試合を開始する。',
-    icon:'⚒️', color:'#d4af37',
-    effect:(s,rng,h)=>{ h.addAnvilToBench('completed', 1); h.showMsg('⚒️ 完成アイテムの金床を1個獲得！'); } },
-
+  { id:"ezreal", champ:"エズリアル", jaName:"開幕リロール", prob:3.7, desc:"2-1で、5回分の無料リロールを獲得する。", icon:"🎲", color:"#ffd76e", freeRerollsAt21:5, hidden:true },
+  { id:"ornn", champ:"オーン", jaName:"アーティファクトの金床", prob:5, desc:"3-3で全プレイヤーが「アーティファクトの金床」を獲得する。", icon:"🔨", color:"#d9a05b", displayOnly:true },
+  { id:"elderdragon", champ:"エルダードラゴン", jaName:"プリズムパーティー", prob:5, desc:"この試合で提示されるオーグメントがすべてプリズムティアになる。", icon:"💜", color:"#c46bff", augmentForceTier:"prismatic" },
+  { id:"ivern", champ:"アイバーン", jaName:"ゴールド フィナーレ", prob:5, desc:"この試合で最後に提示されるオーグメントがゴールドティアになる。", icon:"🏅", color:"#ffcc44", displayOnly:true },
+  { id:"amumu", champ:"アムム", jaName:"ゴールド プレリュード", prob:5, desc:"この試合で最初に提示されるオーグメントがゴールドティアになる。", icon:"🥇", color:"#ffd76e", augmentForceTier:"gold" },
+  { id:"kayle", champ:"ケイル", jaName:"リロールのサブスク", prob:5, desc:"各ステージ開始時、ショップの無料リロールを獲得する。", icon:"🔄", color:"#7fd0ff", effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'reroll_subscription', amount: 1 }); h.showMsg('🔄 リロールのサブスクが有効になりました！'); } },
+  { id:"yunara", champ:"ユナラ", jaName:"完成アイテムの金床", prob:5, desc:"「完成アイテムの金床」を1個所持して試合を開始する。", icon:"⚒️", color:"#d4af37", effect:(s,rng,h)=>{ h.addAnvilToBench('completed', 1); h.showMsg('⚒️ 完成アイテムの金床を1個獲得！'); } },
 ];
