@@ -461,6 +461,41 @@ if (typeof window !== 'undefined') window.b3dCheckModels = b3dCheckModels;
    → 半透明扱いをやめて alphaTest（切り抜き）に変換し、深度も書かせる。
      本当に半透明にしたいエフェクト系（glow/vfx等）だけは名前で除外する。 */
 const B3D_KEEP_BLEND = /glow|vfx|_fx|flame|fire|smoke|particle|beam|aura|trail|light/i;
+
+/* 🔬 テクスチャのアルファを実際に覗いて、どう扱うべきか判定する。
+   ── 名前だけで判断すると、体や顔のテクスチャ（アルファをスペキュラ用マスクに使っている等）まで
+      切り抜き扱いになって穴が開く。実データを見れば確実に分けられる。
+        opaque … アルファがほぼ全部不透明 → 完全不透明として描く（体・顔はこれ）
+        cutout … 0か255にほぼ二極化 → alphaTest で抜く（髪・マント・羽根）
+        blend  … 中間値が多い本物の半透明 → エフェクト系だけ半透明のまま
+   ── 64x64 に縮めて1回だけ調べ、結果はテクスチャ単位でキャッシュする。 */
+const b3dAlphaKindCache = new Map();
+function b3dTextureAlphaKind(tex){
+  if(!tex || !tex.image) return 'unknown';
+  if(b3dAlphaKindCache.has(tex.uuid)) return b3dAlphaKindCache.get(tex.uuid);
+  let kind = 'unknown';
+  try{
+    const img = tex.image;
+    const w = Math.min(64, img.width || 64), h = Math.min(64, img.height || 64);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(img, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h).data;
+    let min = 255, mid = 0, n = 0;
+    for(let i = 3; i < d.length; i += 4){
+      const a = d[i];
+      if(a < min) min = a;
+      if(a > 30 && a < 220) mid++;
+      n++;
+    }
+    if(min >= 250) kind = 'opaque';
+    else if(n && mid / n < 0.08) kind = 'cutout';
+    else kind = 'blend';
+  }catch(e){ kind = 'unknown'; }     // CORSで読めない等は判定しない
+  b3dAlphaKindCache.set(tex.uuid, kind);
+  return kind;
+}
+
 function b3dFixMaterials(root){
   root.traverse(n=>{
     if(!n.isMesh && !n.isSkinnedMesh) return;
@@ -477,14 +512,18 @@ function b3dFixMaterials(root){
       if(typeof m.roughness==='number' && m.roughness<0.35) m.roughness=0.6;
       if(m.color && m.color.getHex()===0x000000 && m.map) m.color.setHex(0xffffff); // 黒ベースカラーで潰れるのを回避
 
-      const keepBlend = B3D_KEEP_BLEND.test(m.name || '') || B3D_KEEP_BLEND.test((n.name || ''));
-      if(m.transparent && !keepBlend){
-        m.transparent = false;              // 半透明合成をやめる
-        m.alphaTest   = m.alphaTest || 0.5; // アルファ0.5未満は「穴」として抜く
-        m.depthWrite  = true;
-        m.opacity     = 1;
-      } else if(m.transparent){
-        m.depthWrite = false;               // 本物の半透明は深度を書かない（重なりの破綻を減らす）
+      const isVfx = B3D_KEEP_BLEND.test(m.name || '') || B3D_KEEP_BLEND.test(n.name || '');
+      const kind  = b3dTextureAlphaKind(m.map);
+      if(isVfx && (kind === 'blend' || kind === 'unknown')){
+        m.transparent = true; m.depthWrite = false;   // 本物の半透明（エフェクト）だけ残す
+      } else if(kind === 'cutout'){
+        m.transparent = false; m.alphaTest = m.alphaTest || 0.5; m.depthWrite = true; m.opacity = 1;
+      } else if(kind === 'blend'){
+        // 体や顔でアルファに中間値が入っている（マスク用途など）。穴が開かないよう最小限だけ抜く
+        m.transparent = false; m.alphaTest = 0.02; m.depthWrite = true; m.opacity = 1;
+      } else {
+        // opaque / 判定不能：完全不透明にして透けを断つ
+        m.transparent = false; m.alphaTest = 0; m.depthWrite = true; m.opacity = 1;
       }
       // 抜きのある素材だけ両面（マントや羽根の裏側用）。
       // 完全不透明まで両面にすると、体の内側の面が見えて「透けた」ように見える。
@@ -494,11 +533,99 @@ function b3dFixMaterials(root){
   });
 }
 
+/* ── 🗡️ 余計なパーツの除去 ──
+   LoLのモデルは「投擲物（クナイ・矢・弾）」なども同じメッシュに含まれていて、
+   ゲーム内ではアニメーションごとにサブメッシュ表示を切り替えて隠している。
+   .glb に変換すると全部が出しっぱなしになるため、盤面の下にクナイが落ちていたり、
+   矢が空中に浮いたままになる。名前と位置の2段構えで取り除く。
+
+   1) 名前が投擲物っぽいもの（missile / arrow / kunai …）
+   2) 本体からぽつんと離れているもの（本体の当たり判定を1.6倍に広げても触れないパーツ）
+
+   ── 消えてほしくないものが消える場合は B3D_KEEP_PARTS にチャンピオンidと
+      パーツ名の一部を書けば残せる。逆に残ってしまうものは B3D_HIDE_PARTS に足す。
+   ── ブラウザのコンソールで b3dListParts('akali') を実行すると、
+      そのモデルのパーツ名・大きさ・除去判定を一覧できる。 */
+const B3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
+const B3D_HIDE_PARTS = {
+  // 例) akali: ['kunai'], ashe: ['arrow'],
+};
+const B3D_KEEP_PARTS = {
+  // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない（通常は自動で残ります）
+};
+function b3dPruneStrayParts(root, champId){
+  const id = String(champId || '').toLowerCase();
+  const hideList = (B3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
+  const keepList = (B3D_KEEP_PARTS[id] || []).map(x => x.toLowerCase());
+  const meshes = [];
+  root.updateWorldMatrix(true, true);
+  root.traverse(n => { if(n.isMesh || n.isSkinnedMesh) meshes.push(n); });
+  if(!meshes.length) return [];
+
+  const info = meshes.map(n => {
+    const box = new THREE.Box3().setFromObject(n);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const pos = n.geometry && n.geometry.attributes && n.geometry.attributes.position;
+    return { n, box, vol: Math.max(size.x * size.y * size.z, 1e-9),
+             verts: pos ? pos.count : 0, name: (n.name || '').toLowerCase() };
+  });
+  // 頂点数が最大のメッシュ＝本体とみなす（大きいだけの浮遊板を本体と誤認しないため）
+  const body = info.reduce((a, b) => (b.verts > a.verts ? b : a), info[0]);
+  const bodyBox = body.box.clone();
+  const c = new THREE.Vector3(); bodyBox.getCenter(c);
+  const sz = new THREE.Vector3(); bodyBox.getSize(sz);
+  bodyBox.setFromCenterAndSize(c, sz.multiplyScalar(1.6));   // 手に持った武器を巻き込まない程度に広げる
+
+  const removed = [];
+  info.forEach(it => {
+    if(it === body) return;
+    if(keepList.some(k => it.name.includes(k))) return;
+    const byName     = B3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
+    const detached   = !bodyBox.intersectsBox(it.box);      // 本体から浮いている
+    const negligible = it.vol < body.vol * 0.00002;         // 極小のゴミ
+    if(byName || detached || negligible){
+      // three の Box3 は非表示メッシュも含めて計算するので、隠すのではなく外す。
+      // 隠すだけだと、浮いたクナイを含めた大きさに合わせて本体が縮んでしまう。
+      if(it.n.parent) it.n.parent.remove(it.n); else it.n.visible = false;
+      removed.push({ 名前: it.n.name || '(無名)', 理由: byName ? '名前' : (detached ? '本体から離れている' : '極小') });
+    }
+  });
+  return removed;
+}
+
+/* 🔎 パーツ一覧の確認用。コンソールで b3dListParts('akali') と打つと中身が見られる */
+function b3dListParts(champId){
+  const champ = (typeof CHAMPS !== 'undefined' ? CHAMPS : []).find(c => c.id === champId) || {};
+  const url = champ.model || (CHAMP_MODELS3D && CHAMP_MODELS3D[champId]) || b3dAutoModelUrl(champId);
+  return b3dLoadModelAny(url).then(gltf => {
+    const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone) ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
+    const rows = [];
+    m.updateWorldMatrix(true, true);
+    m.traverse(n => {
+      if(!(n.isMesh || n.isSkinnedMesh)) return;
+      const b = new THREE.Box3().setFromObject(n), sz = new THREE.Vector3(); b.getSize(sz);
+      const c = new THREE.Vector3(); b.getCenter(c);
+      rows.push({ パーツ名: n.name || '(無名)',
+                  幅: +sz.x.toFixed(2), 高さ: +sz.y.toFixed(2), 奥行: +sz.z.toFixed(2),
+                  中心: `${c.x.toFixed(1)},${c.y.toFixed(1)},${c.z.toFixed(1)}`,
+                  材質: Array.isArray(n.material) ? n.material.map(x => x.name).join(',') : (n.material && n.material.name) || '' });
+    });
+    const removed = b3dPruneStrayParts(m, champId);
+    const gone = new Set(removed.map(r => r.名前));
+    rows.forEach(r => { r.判定 = gone.has(r.パーツ名) ? '✕ 除去' : '○ 表示'; });
+    if(console.table) console.table(rows); else console.log(rows);
+    console.log('除去したパーツ:', removed);
+    return rows;
+  });
+}
+if (typeof window !== 'undefined') window.b3dListParts = b3dListParts;
+
 /* ── 読み込んだモデルを駒に取り付ける（複製して使う） ── */
 function b3dAttachModel(S, g, key, gltf, champId){
   let m;
   if(THREE.SkeletonUtils && THREE.SkeletonUtils.clone) m=THREE.SkeletonUtils.clone(gltf.scene);
   else m=gltf.scene.clone(true);
+  b3dPruneStrayParts(m, champId);   // 先に余計なパーツを消す（大きさ・位置の計算が狂うため）
   b3dFitModel(m, champId);
   b3dFixMaterials(m);
   if(gltf.animations && gltf.animations.length>0){
@@ -1039,7 +1166,7 @@ function b3dEncounterModelUrl(enc, champ){
   return b3dAutoModelUrl(id);
 }
 
-function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY = 0 }){
+function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY = 0, champId = '' }){
   /* spin: 自転の速さ(rad/秒)。既定 0 ＝ 回さず正面を向いたまま。
      faceY: 正面の向きが合わないモデル用の固定回転(ラジアン)。例) Math.PI で背面向きを直す。 */
   const mountRef = useRef3D(null);
@@ -1089,8 +1216,9 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
         if(disposed) return;
         const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone)
           ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
+        b3dPruneStrayParts(m, champId || (url.match(/([a-z0-9]+)_\(tft_set/i) || [])[1] || '');
         b3dFixMaterials(m);
-        // 高さ2.6になるよう正規化し、足元を原点に、中心を軸に合わせる
+        // 高さ2.6になるよう正規化し、足元を原点に、中心を軸に合わせる（非表示パーツは無視される）
         const box = new THREE.Box3().setFromObject(m);
         const sz  = new THREE.Vector3(); box.getSize(sz);
         const ctr = new THREE.Vector3(); box.getCenter(ctr);
@@ -1136,7 +1264,7 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
       giveUp(err && err.message);
       try{ if(renderer) renderer.dispose(); }catch(e){}
     }
-  }, [url, color, spin, faceY]);
+  }, [url, color, spin, faceY, champId]);
 
   return <div ref={mountRef} style={{ width: width || '100%', height: height || '100%', pointerEvents:'none' }} />;
 }

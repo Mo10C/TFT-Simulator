@@ -6326,6 +6326,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   <div style={{ marginTop: 6, filter: `drop-shadow(0 12px 30px ${encounter.color}55)` }}>
                     <EncounterModel3D
                       url={encModelUrl}
+                      champId={encChamp ? encChamp.id : encounter.id}
                       color={encounter.color}
                       width={Math.min(420, Math.round(window.innerWidth * 0.8))}
                       height={Math.min(400, Math.round(window.innerHeight * 0.42))}
