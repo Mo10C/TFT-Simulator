@@ -12,8 +12,21 @@ window.SIM_CONFIG = {
   set: 'set18',
 
   /* 🖼️ ホーム・メニューの背景画像（任意）
-     ── 未設定なら Set 18 の画像を使う。セットが変わったらここを差し替える。 */
-  // homeBackground: 'https://example.com/set19.png',
+     ── 未設定なら Set 18 のキービジュアルを使う。セットが変わったらここを差し替える。 */
+  // homeBackground: 'https://example.com/set19.jpg',
+
+  /* 🖼️ 背景の見せ方（任意）── 位置や拡大の仕方を調整したいときだけ設定する。
+     homeBackgroundPosition: 画像のどこを画面中央に持ってくるか
+        'center'      … 中央（既定）
+        'center 30%'  … 上寄り（人物の顔を出したいときなど）
+        'center 70%'  … 下寄り
+        '30% center'  … 左寄り  /  '70% center' … 右寄り
+     homeBackgroundSize: 拡大の仕方
+        'cover'       … 画面いっぱいに敷き詰める（既定・端は切れる）
+        'contain'     … 画像全体を収める（余白が出る）
+        '120% auto'   … 横幅を120%に拡大（数値で微調整） */
+  // homeBackgroundPosition: 'center 35%',
+  // homeBackgroundSize: 'cover',
 
   /* 🧊 盤面の初期表示（任意）
      ── 既定では3D盤面で起動する。2Dで起動したい場合だけ true にする。 */

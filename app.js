@@ -494,10 +494,15 @@ const STAR_COLORS={1:'#8a9aaa',2:'#44ccff',3:'#ffcc44'};
 const XP_FOR_NEXT_LEVEL = { 1: 2, 2: 2, 3: 6, 4: 10, 5: 20 };
 
 const getTraitJaName = (trait) => TRAIT_JA[trait] || trait;
-/* 🖼️ ホーム・メニュー系の背景画像。セットが変わったらここ（または sim-config.js の homeBackground）を差し替える。
-   ── 1箇所にまとめてあるので、9画面ぶんを個別に直す必要はない。 */
+/* 🖼️ ホーム・メニュー系の背景画像。9画面ぶんをここ1箇所で管理する。
+   ── 画像を変える     : sim-config.js の homeBackground
+   ── 表示位置を変える : sim-config.js の homeBackgroundPosition（例 'center 30%' で上寄り）
+   ── 拡大の仕方を変える: sim-config.js の homeBackgroundSize（'cover' / 'contain' / '120% auto' など）
+   ── 暗さは各画面で個別に指定（homeBg(0.75) の数字。0=そのまま 1=真っ黒） */
 const HOME_BG_URL = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.homeBackground)
-  || 'https://cdn.metatft.com/file/metatft/setsplashes/set18.png';
+  || 'https://cdn.metatft.com/cdn-cgi/image/width=800,format=auto/https://cdn.metatft.com/file/metatft/set18/EnchantedWildsKeyVisual.jpg';
+const HOME_BG_POS = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.homeBackgroundPosition) || 'center';
+const HOME_BG_SIZE = (typeof window !== 'undefined' && window.SIM_CONFIG && window.SIM_CONFIG.homeBackgroundSize) || 'cover';
 const homeBg = (dim = 0.78) => `linear-gradient(rgba(0,0,0,${dim}), rgba(0,0,0,${dim})), url("${HOME_BG_URL}")`;
 
 // 🏷️ 画像URLのセット接頭辞。sim-config.js の set ('set18') → 'tft18_'。ここ1箇所で全画像が切り替わる。
@@ -1177,7 +1182,7 @@ function AccountScreen({ account, onChangeAccount, onBack }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: 16, overflowY: 'auto',
       backgroundImage: homeBg(0.75),
-      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,28px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)' }}>
         👤 アカウント連携 {admin && <span style={{ fontSize: 13, color: '#ffd76e', letterSpacing: 1 }}>🛡️ 管理者</span>}
       </div>
@@ -2350,7 +2355,7 @@ function AugmentPickerScreen({ augData, value, onChange, onBack }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
       backgroundImage: homeBg(0.82),
-      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🎯 オーグメントを指定</div>
 
       <div style={{ width: 'min(760px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
@@ -2460,7 +2465,7 @@ function DropPickerScreen({ ov, setOvKey, onBack }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
       backgroundImage: homeBg(0.82),
-      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>📦 ドロップを指定</div>
 
       <div style={{ width: 'min(980px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
@@ -2607,7 +2612,7 @@ function ShopPickerScreen({ ov, setOvKey, onBack }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
       backgroundImage: homeBg(0.82),
-      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🛍️ ショップを指定</div>
 
       <div style={{ width: 'min(1020px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
@@ -2706,7 +2711,7 @@ function EncChampPickerScreen({ ov, setOvKey, onBack }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: 16,
       backgroundImage: homeBg(0.82),
-      backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.4s ease' }}>
+      backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.4s ease' }}>
       <div style={{ fontFamily: 'Orbitron', fontSize: 'clamp(18px,4vw,30px)', fontWeight: 900, color: '#fff', letterSpacing: 4, textShadow: '0 0 10px rgba(0,0,0,0.9), 0 0 18px var(--gold)', marginTop: 4 }}>🎁 配布チャンピオンを指定</div>
 
       <div style={{ width: 'min(760px, 96vw)', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(8,16,26,0.85)', border: '1px solid var(--border)', borderRadius: 16, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
@@ -2906,7 +2911,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
   }
 
   return (
-    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, backgroundImage:homeBg(0.78), backgroundSize:'cover', backgroundPosition:'center', padding:16, animation:'fadeIn 0.6s ease' }}>
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, backgroundImage:homeBg(0.78), backgroundSize:HOME_BG_SIZE, backgroundPosition:HOME_BG_POS, padding:16, animation:'fadeIn 0.6s ease' }}>
       <div style={{ fontFamily:'Orbitron', fontSize:'clamp(20px,4.5vw,36px)', fontWeight:900, color:'#fff', letterSpacing:6, textShadow:'0 0 10px rgba(0,0,0,0.9), 0 0 20px var(--gold)' }}>
         ⚙️ 設定
       </div>
@@ -3226,7 +3231,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'row', overflow: 'hidden',
-      backgroundImage: BG, backgroundSize: 'cover', backgroundPosition: 'center', animation: 'fadeIn 0.5s ease' }}>
+      backgroundImage: BG, backgroundSize: HOME_BG_SIZE, backgroundPosition: HOME_BG_POS, animation: 'fadeIn 0.5s ease' }}>
 
       {/* 🔐 アカウント連携ゲート */}
       {gateOpen && (
@@ -3645,7 +3650,7 @@ function Main() {
     return (
       <React.Fragment>
       {globalStatsDrawer}
-      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:homeBg(0.6), backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 1s ease' }}>
+      <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:30, backgroundImage:homeBg(0.6), backgroundSize:HOME_BG_SIZE, backgroundPosition:HOME_BG_POS, padding:20, animation:'fadeIn 1s ease' }}>
         {/* 🌗 テーマ切替（右上・小さめの丸ボタン） */}
         <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
@@ -3723,7 +3728,7 @@ function Main() {
     return (
       <React.Fragment>
         {globalStatsDrawer}
-        <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:26, backgroundImage:homeBg(0.62), backgroundSize:'cover', backgroundPosition:'center', padding:20, animation:'fadeIn 0.6s ease' }}>
+        <div style={{ height:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:26, backgroundImage:homeBg(0.62), backgroundSize:HOME_BG_SIZE, backgroundPosition:HOME_BG_POS, padding:20, animation:'fadeIn 0.6s ease' }}>
           {/* 🌗 テーマ切替（右上・小さめの丸ボタン） */}
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             title={theme === 'dark' ? 'ライトモードに切替' : 'ダークモードに切替'}
