@@ -451,11 +451,23 @@ if (typeof window !== 'undefined') window.b3dCheckModels = b3dCheckModels;
 
 /* ── 材質の補正 ──
    three r128 では outputEncoding / texture.encoding を sRGB にしないと暗く沈む。
-   加えて metalness が高い素材は環境マップが無いと真っ黒になるため落としておく。 */
+   加えて metalness が高い素材は環境マップが無いと真っ黒になるため落としておく。
+
+   🩹 「体が透ける・パーツが消える・裏側が見える」対策:
+   LoLのモデルは髪・マント・羽根などがアルファ抜き（切り抜き）前提で作られているのに、
+   glTFに変換すると alphaMode:BLEND（半透明合成）で出てくることが多い。
+   半透明は描画順で結果が変わるため、同じモデル内で前後が入れ替わって
+   胴体越しに内側が見えたり、パーツが消えたりする。
+   → 半透明扱いをやめて alphaTest（切り抜き）に変換し、深度も書かせる。
+     本当に半透明にしたいエフェクト系（glow/vfx等）だけは名前で除外する。 */
+const B3D_KEEP_BLEND = /glow|vfx|_fx|flame|fire|smoke|particle|beam|aura|trail|light/i;
 function b3dFixMaterials(root){
-  const sRGB = THREE.sRGBEncoding;
   root.traverse(n=>{
-    if(!n.isMesh || !n.material) return;
+    if(!n.isMesh && !n.isSkinnedMesh) return;
+    // スキニングで頂点が動くと元のバウンディングボックスから外れ、
+    // 角度によってパーツごと消える（カリング）ため切っておく
+    n.frustumCulled = false;
+    if(!n.material) return;
     const mats = Array.isArray(n.material) ? n.material : [n.material];
     mats.forEach(m=>{
       if(!m) return;
@@ -464,7 +476,19 @@ function b3dFixMaterials(root){
       if(typeof m.metalness==='number' && m.metalness>0.25) m.metalness=0.15;  // 環境マップ無しの黒化を防ぐ
       if(typeof m.roughness==='number' && m.roughness<0.35) m.roughness=0.6;
       if(m.color && m.color.getHex()===0x000000 && m.map) m.color.setHex(0xffffff); // 黒ベースカラーで潰れるのを回避
-      m.side=THREE.DoubleSide;
+
+      const keepBlend = B3D_KEEP_BLEND.test(m.name || '') || B3D_KEEP_BLEND.test((n.name || ''));
+      if(m.transparent && !keepBlend){
+        m.transparent = false;              // 半透明合成をやめる
+        m.alphaTest   = m.alphaTest || 0.5; // アルファ0.5未満は「穴」として抜く
+        m.depthWrite  = true;
+        m.opacity     = 1;
+      } else if(m.transparent){
+        m.depthWrite = false;               // 本物の半透明は深度を書かない（重なりの破綻を減らす）
+      }
+      // 抜きのある素材だけ両面（マントや羽根の裏側用）。
+      // 完全不透明まで両面にすると、体の内側の面が見えて「透けた」ように見える。
+      m.side = (m.alphaTest > 0 || m.transparent) ? THREE.DoubleSide : THREE.FrontSide;
       m.needsUpdate=true;
     });
   });
