@@ -146,4 +146,22 @@ const ENCOUNTERS = [
     desc:'この試合で提示されるオーグメントがすべてプリズムティアになる。',
     icon:'💜', color:'#c46bff', augmentForceTier:'prismatic' },
 
+  { id:'goldfinale', champ:'？', jaName:'ゴールド フィナーレ', prob:4.9,
+    desc:'この試合で最後に提示されるオーグメントがゴールドティアになる。',
+    icon:'🏅', color:'#ffcc44', displayOnly:true },
+
+  { id:'goldprelude', champ:'？', jaName:'ゴールド プレリュード', prob:4.9,
+    desc:'この試合で最初に提示されるオーグメントがゴールドティアになる。',
+    icon:'🥇', color:'#ffd76e', augmentForceTier:'gold' },
+
+  { id:'rerollsub', champ:'？', jaName:'リロールのサブスク', prob:4.9,
+    desc:'各ステージ開始時、ショップの無料リロールを獲得する。',
+    icon:'🔄', color:'#7fd0ff',
+    effect:(s,rng,h)=>{ h.addPassiveBuff({ type: 'reroll_subscription', amount: 1 }); h.showMsg('🔄 リロールのサブスクが有効になりました！'); } },
+
+  { id:'completedanvil', champ:'？', jaName:'完成アイテムの金床', prob:3.7,
+    desc:'「完成アイテムの金床」を1個所持して試合を開始する。',
+    icon:'⚒️', color:'#d4af37',
+    effect:(s,rng,h)=>{ h.addAnvilToBench('completed', 1); h.showMsg('⚒️ 完成アイテムの金床を1個獲得！'); } },
+
 ];

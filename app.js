@@ -2839,7 +2839,7 @@ function SettingsScreen({ bindings, onChange, overrides = DEFAULT_OVERRIDES, onC
   const resetDefault = () => { setLocal({ ...DEFAULT_KEYBINDINGS }); onChange({ ...DEFAULT_KEYBINDINGS }); setNote(''); setListening(null); };
 
   // 🌟 ===== ゲーム内設定（オーバーライド） =====
-  const encList = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
+  const encList = ((typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : []).filter(e => !e.hidden);   // 🙈 非表示は選べない
   const augData = (typeof AUGMENTS_DATA !== 'undefined' && AUGMENTS_DATA) ? AUGMENTS_DATA : { silver:[], gold:[], prismatic:[] };
 
   const TIER_JA = { silver:'シルバー', gold:'ゴールド', prismatic:'プリズム' };
@@ -3863,7 +3863,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 🌟 遭遇（Opening Encounter）の抽選 ── 専用RNGで出現確率(prob)による加重抽選。
   // data-encounters.js が未読込でも白画面で落ちないよう防御（その場合は遭遇なしで起動）。
   const encounter = useMemo(() => {
-    const list = (typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : [];
+    // 🙈 hidden:true の遭遇は抽選対象から外す（エディタの「表示」チェックで切り替える）
+    const list = ((typeof ENCOUNTERS !== 'undefined' && Array.isArray(ENCOUNTERS)) ? ENCOUNTERS : []).filter(e => !e.hidden);
     if (list.length === 0) return null;
     // 🌟 固定時も必ず加重抽選を1回引く（rngEnc の消費回数を一定に保つ）
     const total = list.reduce((sum, e) => sum + (e.prob || 0), 0);
@@ -5276,6 +5277,17 @@ useEffect(() => {
         const g = 2 + Math.floor(rngEnc() * 5); // 2-6G
         setGold(prev => prev + g);
         showMsg(`💳 ゴールドのサブスク: ${g}G 獲得！`);
+      }
+    }
+
+    // 🌟 遭遇「リロールのサブスク」: ステージ2以降、各ステージ開始時に無料リロールを獲得
+    const rerollSub = passiveBuffs.find(b => b.type === 'reroll_subscription');
+    if (rerollSub) {
+      const stageNum = parseInt(nextR.split('-')[0]);
+      if (stageNum >= 2 && nextR.split('-')[1] === '1') {
+        const cnt = rerollSub.amount || 1;
+        setFreeRerolls(fr => fr + cnt);
+        showMsg(`🔄 リロールのサブスク: 無料リロール +${cnt}！`);
       }
     }
 

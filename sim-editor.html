@@ -236,11 +236,11 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
       <button onclick="addEncounter()" id="enc-add" disabled>＋ 新規遭遇追加</button>
       <button class="gold" onclick="downloadEncounters()" id="enc-dl" disabled>⬇ data-encounters.js をダウンロード</button>
     </div>
-    <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。</div>
+    <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その遭遇はゲームの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。確率合計は表示中の遭遇だけで計算しています。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
-    <tbody id="enc-body"><tr><td colspan="9" class="note">読み込み中…</td></tr></tbody></table>
+    <table><thead><tr><th></th><th>表示</th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
+    <tbody id="enc-body"><tr><td colspan="10" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -912,17 +912,23 @@ function encFlagSummary(e) {
   if (e.augmentRerollBonus) f.push('reroll+' + e.augmentRerollBonus);
   if (e.freeRerollsAt21) f.push('free×' + e.freeRerollsAt21);
   if (e.displayOnly) f.push('displayOnly');
+  if (e.hidden) f.push('🙈非表示');
   return f.join(' ') || '—';
 }
 function renderEncounters() {
   const el = document.getElementById('enc-body'); if (!el) return;
-  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="9" class="note">読み込み待ち…</td></tr>'; return; }
+  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="10" class="note">読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('enc-search').value || '').toLowerCase().trim();
-  const total = encObjs.reduce((s, e) => s + (Number(e.prob) || 0), 0);
-  document.getElementById('enc-status').textContent = `遭遇 ${encObjs.length} 件（確率合計 ${total.toFixed(1)}%）`;
+  /* 確率合計は「表示中」の遭遇だけで数える（非表示は抽選に出ないため） */
+  const shown = encObjs.filter(e => !e.hidden);
+  const total = shown.reduce((s, e) => s + (Number(e.prob) || 0), 0);
+  const hid = encObjs.length - shown.length;
+  document.getElementById('enc-status').textContent =
+    `遭遇 ${encObjs.length} 件（表示 ${shown.length} / 非表示 ${hid} ・表示分の確率合計 ${total.toFixed(1)}%）`;
   const rows = encObjs.map((e, i) => ({ e, i })).filter(x => !q || (x.e.id || '').toLowerCase().includes(q) || (x.e.jaName || '').toLowerCase().includes(q) || (x.e.champ || '').toLowerCase().includes(q));
-  el.innerHTML = rows.map(({ e, i }) => `<tr>
+  el.innerHTML = rows.map(({ e, i }) => `<tr style="${e.hidden ? 'opacity:.45' : ''}">
     <td><input type="text" value="${esc(e.icon || '')}" style="width:34px;font-size:18px;text-align:center" title="絵文字アイコン" oninput="encObjs[${i}].icon=this.value"></td>
+    <td style="text-align:center"><input type="checkbox" ${e.hidden ? '' : 'checked'} title="外すとゲームの抽選に出なくなります" onchange="setEncHidden(${i}, !this.checked)"></td>
     <td><input type="text" value="${esc(e.id || '')}" style="width:90px;font-family:Rajdhani" oninput="encObjs[${i}].id=this.value"></td>
     <td><input type="text" value="${esc(e.champ || '')}" style="width:100px" oninput="encObjs[${i}].champ=this.value"></td>
     <td><input type="text" value="${esc(e.jaName || '')}" style="width:160px" oninput="encObjs[${i}].jaName=this.value"></td>
@@ -932,6 +938,11 @@ function renderEncounters() {
     <td><textarea style="width:300px;height:44px;font-size:11px" oninput="encObjs[${i}].desc=this.value">${esc(e.desc || '')}</textarea></td>
     <td><button style="color:var(--red)" onclick="deleteEncounter(${i})">🗑</button></td>
   </tr>`).join('');
+}
+/* 🙈 表示/非表示の切り替え。表示のときは hidden キー自体を消してファイルを汚さない */
+function setEncHidden(i, hidden) {
+  if (hidden) encObjs[i].hidden = true; else delete encObjs[i].hidden;
+  renderEncounters();
 }
 function addEncounter() {
   if (encText == null) return showMsg('先に data-encounters.js を読み込んでください', true);
@@ -960,8 +971,9 @@ function downloadEncounters() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
   a.download = 'data-encounters.js'; a.click();
-  const total = encObjs.reduce((s, e) => s + (Number(e.prob) || 0), 0);
-  showMsg(`data-encounters.js（${encObjs.length}件 / 確率合計 ${total.toFixed(1)}%）をダウンロードしました`);
+  const shown = encObjs.filter(e => !e.hidden);
+  const total = shown.reduce((s, e) => s + (Number(e.prob) || 0), 0);
+  showMsg(`data-encounters.js（全${encObjs.length}件 / 表示${shown.length}件・確率合計 ${total.toFixed(1)}%）をダウンロードしました`);
 }
 document.getElementById('enc-file').addEventListener('change', async ev => {
   const f = ev.target.files[0]; if (f) { loadEncText(await f.text()); document.getElementById('enc-status').textContent = `📂 ${f.name} を読み込みました`; }
