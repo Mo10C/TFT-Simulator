@@ -697,14 +697,40 @@ const getMetaTFTItemUrl = (item) => {
   return ""; // Fallback to empty string if not found
 };
 
+/* 🖼️ オーグメント画像URL
+   ── 新形式: https://tftips.b-cdn.net/aug/<セット番号>_<imgName>.avif?v=1
+      imgName はティア表記（末尾の _ii / -iii / 数字 など）と記号を落として小文字化する。
+      例) 'itemgrabbag1' → 18_itemgrabbag.avif / 'buried-treasures-iii' → 18_buriedtreasures.avif
+   ── 読み込みに失敗したら augImgErr が旧MetaTFTのURLに自動で切り替える。 */
+const augImgSlug = (imgName) => String(imgName || '')
+  .toLowerCase()
+  .replace(/[^a-z0-9]/g, '')          // 記号・区切りを除去
+  .replace(/(?:iii|ii|iv|v|i)$/, '')   // 末尾のローマ数字ティア表記を除去
+  .replace(/[0-9]+$/, '');             // 末尾の数字ティア表記を除去
+
 const getAugmentIconUrl = (aug) => {
   if (!aug || !aug.imgName) return "";
-  // 🌟 修正：もし imgName が http から始まっていたら、そのまま返す
-  if (aug.imgName.startsWith('http')) {
-    return aug.imgName;
-  }
-  // MetaTFTのパスに合わせる（全て.png形式）
+  // 🌟 imgName が http から始まっていたら、そのまま返す
+  if (aug.imgName.startsWith('http')) return aug.imgName;
+  const slug = augImgSlug(aug.imgName);
+  if (!slug) return "";
+  return `https://tftips.b-cdn.net/aug/${SET_NO}_${slug}.avif?v=1`;
+};
+
+// 旧MetaTFT形式（フォールバック用）
+const getAugmentIconUrlMeta = (aug) => {
+  if (!aug || !aug.imgName) return "";
+  if (aug.imgName.startsWith('http')) return aug.imgName;
   return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/augments/${aug.imgName}.png`;
+};
+
+// <img onError> 用: 新URLが無ければ旧URLを試し、それも駄目なら非表示にする
+const augImgErr = (e, aug) => {
+  if (!e || !e.target) return;
+  if (e.target.dataset.fb) { e.target.style.display = 'none'; return; }
+  e.target.dataset.fb = '1';
+  const alt = getAugmentIconUrlMeta(aug);
+  if (alt) e.target.src = alt; else e.target.style.display = 'none';
 };
 
 // 🌿 Wispのカテゴリアイコン（MetaTFTのカードアイコン規則。URL形式は確認済み）
@@ -1129,7 +1155,7 @@ function ReplayViewer({ history, seed, onClose }) {
                 return (
                   <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: TIER_COLORS[a.tier], fontSize: 11.5 }}>
                     {meta && meta.imgName
-                      ? <img src={getAugmentIconUrl(meta)} style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid rgba(148,163,184,0.5)', background: '#0b1622' }} />
+                      ? <img src={getAugmentIconUrl(meta)} onError={e=>augImgErr(e,meta)} style={{ width: 18, height: 18, borderRadius: 4, border: '1px solid rgba(148,163,184,0.5)', background: '#0b1622' }} />
                       : (a.icon || '✨')}
                     {a.name}
                   </span>
@@ -1330,7 +1356,7 @@ function SeedStatsDrawer({ seed, open, onClose }) {
   const augIconEl = (name, size = 22) => {
     const meta = augMetaByName(name);
     return (meta && meta.imgName)
-      ? <img src={getAugmentIconUrl(meta)} style={{ width: size, height: size, borderRadius: 4, border: '1px solid rgba(148,163,184,0.5)', background: '#0b1622', flexShrink: 0, zIndex: 1 }} />
+      ? <img src={getAugmentIconUrl(meta)} onError={e=>augImgErr(e,meta)} style={{ width: size, height: size, borderRadius: 4, border: '1px solid rgba(148,163,184,0.5)', background: '#0b1622', flexShrink: 0, zIndex: 1 }} />
       : <span style={{ fontSize: size * 0.6, flexShrink: 0, zIndex: 1 }}>✨</span>;
   };
   const [rankFilter, setRankFilter] = useState('ALL'); // 📶 ランクフィルター（○○以上）
@@ -1741,7 +1767,7 @@ const AssetDrawer = ({ isOpen, onClose, setDragSrc, startTouchDrag }) => {
       onDragStart={() => setDragSrc({ type: 'drawer_augment', augment: aug })}
       onTouchStart={(e) => startTouchDrag(e, { type: 'drawer_augment', augment: aug })}
     >
-      <img src={getAugmentIconUrl(aug)} alt={aug.name} onError={(e) => e.target.style.display='none'} />
+      <img src={getAugmentIconUrl(aug)} alt={aug.name} onError={e=>augImgErr(e,aug)} />
     </div>
   );
 
@@ -2324,7 +2350,7 @@ const AugmentScreen = ({ onPick, rng, augmentTierBoost = 0, isNoMoreAugments = f
                 >
                   <div style={{ width: '100%', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(15, 23, 42, 1)', borderRadius: 10, overflow: 'hidden', flexShrink: 0, boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
                     {aug.imgName && (
-                      <img src={getAugmentIconUrl(aug)} style={{ height: '85%', width: 'auto', objectFit: 'contain' }} />
+                      <img src={getAugmentIconUrl(aug)} onError={e=>augImgErr(e,aug)} style={{ height: '85%', width: 'auto', objectFit: 'contain' }} />
                     )}
                   </div>
                   <div style={{ fontFamily: 'Noto Sans JP', fontSize: '20px', fontWeight: 900, color: 'var(--text-main)', textAlign: 'center', lineHeight: 1.25, minHeight: '46px', display: 'flex', alignItems: 'center' }}>
@@ -2408,7 +2434,7 @@ function AugmentPickerScreen({ augData, value, onChange, onBack }) {
         <div style={{ position: 'absolute', top: 6, left: 8, fontSize: 11, fontWeight: 900, color: active ? 'var(--blue)' : 'rgba(255,255,255,0.4)' }}>{idx + 1}</div>
         <div style={{ width: 54, height: 54, borderRadius: 10, overflow: 'hidden', background: '#0b1622', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `2px solid ${aug ? TIER_COLORS[aug.tier] : 'var(--border)'}` }}>
           {aug && aug.imgName
-            ? <img src={getAugmentIconUrl(aug)} alt={aug.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+            ? <img src={getAugmentIconUrl(aug)} alt={aug.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e=>augImgErr(e,aug)} />
             : <span style={{ fontSize: 24 }}>🎲</span>}
         </div>
         <div style={{ fontSize: 11, fontWeight: 700, color: aug ? '#fff' : 'rgba(255,255,255,0.5)', textAlign: 'center', lineHeight: 1.25, minHeight: 28, display: 'flex', alignItems: 'center' }}>{aug ? aug.name : 'ランダム'}</div>
@@ -2467,7 +2493,7 @@ function AugmentPickerScreen({ augData, value, onChange, onBack }) {
                     border: `2px solid ${chosen ? 'var(--blue)' : TIER_COLORS[a.tier]}`, background: chosen ? 'rgba(0,102,204,0.2)' : 'rgba(11,22,34,0.8)', transition: 'all 0.1s' }}>
                   <div style={{ width: 40, height: 40, borderRadius: 7, overflow: 'hidden', background: '#0b1622', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {a.imgName
-                      ? <img src={getAugmentIconUrl(a)} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      ? <img src={getAugmentIconUrl(a)} alt={a.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e=>augImgErr(e,a)} />
                       : <span>❔</span>}
                   </div>
                   <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>{a.name}</div>
@@ -3450,12 +3476,12 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                                       <div key={slotIdx} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: isPicked ? 1 : 0.5, background: isPicked ? 'rgba(255,255,255,0.05)' : 'transparent', border: isPicked ? `1px solid ${TIER_COLORS[a.tier]}` : '1px dashed rgba(255,255,255,0.1)', borderRadius: 6, padding: '8px 2px', position: 'relative' }}>
                                         {isRerolled && initAug && (
                                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
-                                            <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} onError={(e) => e.target.style.display = 'none'} />
+                                            <img src={getAugmentIconUrl(initAug)} style={{ width: 22, height: 22, filter: 'grayscale(0.8)', opacity: 0.6 }} onError={e=>augImgErr(e,initAug)} />
                                             <div style={{ fontSize: (initAug.name || '').length > 9 ? 7 : 9, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{initAug.name}</div>
                                             <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
                                           </div>
                                         )}
-                                        <img src={getAugmentIconUrl(finalAug)} style={{ width: 28, height: 28, filter: isPicked ? 'none' : 'grayscale(0.5)' }} onError={(e) => e.target.style.display = 'none'} />
+                                        <img src={getAugmentIconUrl(finalAug)} style={{ width: 28, height: 28, filter: isPicked ? 'none' : 'grayscale(0.5)' }} onError={e=>augImgErr(e,finalAug)} />
                                         <div style={{ fontSize: (finalAug.name || '').length > 9 ? 8 : 10, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{finalAug.name}</div>
                                         {isPicked && (
                                           <div style={{ position: 'absolute', top: -6, right: -6, background: 'var(--blue)', border: '1px solid var(--bg0)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: 'white', fontWeight: 900 }}>✓</div>
@@ -3469,7 +3495,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                                 return (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     {(meta && meta.imgName)
-                                      ? <img src={getAugmentIconUrl(meta)} style={{ width: 30, height: 30, borderRadius: 4, flexShrink: 0 }} onError={(e) => e.target.style.display = 'none'} />
+                                      ? <img src={getAugmentIconUrl(meta)} style={{ width: 30, height: 30, borderRadius: 4, flexShrink: 0 }} onError={e=>augImgErr(e,meta)} />
                                       : <span style={{ fontSize: 20, flexShrink: 0 }}>✨</span>}
                                     <div style={{ fontSize: 11, fontWeight: 900, color: TIER_TXT[a.tier] || '#fff', lineHeight: 1.25 }}>{a.name}</div>
                                   </div>
@@ -3487,7 +3513,7 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           {d.wisps.map((w, wi) => (
                             <div key={wi} title={w.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 52 }}>
-                              <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: '#000', borderRadius: 6, border: `1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}`, position: 'relative' }}>
+                              <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, position: 'relative' }}>
                                 {w.icon || '🌿'}
                                 <img src={getWispIconUrl(w)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
                               </div>
@@ -5526,7 +5552,7 @@ const handleAugmentPick = (aug, historyContext) => {
   // 通知メッセージを画像付きにする
   setDropMsg(
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-      <img src={getAugmentIconUrl(aug)} style={{ width: 24, height: 24, borderRadius: 4 }} />
+      <img src={getAugmentIconUrl(aug)} onError={e=>augImgErr(e,aug)} style={{ width: 24, height: 24, borderRadius: 4 }} />
       <span>{aug.name} を獲得しました</span>
     </div>
   );
@@ -6193,7 +6219,7 @@ const handleAugmentPick = (aug, historyContext) => {
                                 {/* 🌟 リロールされた場合、元のオーグメントを名前付きで表示 */}
                                 {isRerolled && (
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, width: '100%', marginBottom: 4 }}>
-                                    <img src={getAugmentIconUrl(initAug)} style={{ width: 28, height: 28, filter: 'grayscale(0.8)', opacity: 0.6 }} />
+                                    <img src={getAugmentIconUrl(initAug)} onError={e=>augImgErr(e,initAug)} style={{ width: 28, height: 28, filter: 'grayscale(0.8)', opacity: 0.6 }} />
                                     {/* 👇 名前を表示し、取り消し線（line-through）を引く */}
                                     <div style={{ fontSize: initAug?.name.length > 9 ? 9 : 11, color: 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, textDecoration: 'line-through', padding: '0 2px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{initAug?.name}</div>
                                     <div style={{ fontSize: 10, color: 'var(--blue)', lineHeight: 1, marginTop: 2 }}>▼</div>
@@ -6201,7 +6227,7 @@ const handleAugmentPick = (aug, historyContext) => {
                                 )}
                                 
                                 {/* 最終的なオーグメント */}
-                                <img src={getAugmentIconUrl(finalAug)} style={{ width: 36, height: 36, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
+                                <img src={getAugmentIconUrl(finalAug)} onError={e=>augImgErr(e,finalAug)} style={{ width: 36, height: 36, filter: isPicked ? 'none' : 'grayscale(0.5)' }} />
                                 <div style={{ fontSize: finalAug.name.length > 9 ? 10 : 12, color: isPicked ? 'white' : 'var(--textdim)', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', padding: '0 2px', fontWeight: isPicked ? 900 : 400, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{finalAug.name}</div>
                                 
                                 {/* 選んだものにはチェックマーク */}
@@ -6225,7 +6251,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
                     {wisps.map((w, i) => (
                       <div key={i} title={w.desc || ''} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5, width:64, background:'rgba(0,0,0,0.3)', padding:'8px 4px', borderRadius:8, border:`1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}66` }}>
-                        <div style={{ width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, background:'#000', borderRadius:6, border:`1px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}`, position:'relative' }}>
+                        <div style={{ width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, position:'relative' }}>
                           {w.icon || '🌿'}
                           <img src={getWispIconUrl(w)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
                         </div>
@@ -6816,7 +6842,7 @@ const handleAugmentPick = (aug, historyContext) => {
                   <img 
                     src={getAugmentIconUrl(a)} 
                     style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
-                    onError={(e) => e.target.style.display = 'none'}
+                    onError={e=>augImgErr(e,a)}
                   />
                 </div>
                 
@@ -6863,14 +6889,9 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{
                   width: 50,
                   height: 50,
-                  background: '#000',
-                  border: `2px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}`,
-                  borderRadius: 8,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  overflow: 'hidden',
-                  boxShadow: `0 0 10px ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}33`,
                   flexShrink: 0,
                   fontSize: 22,
                   position: 'relative',
@@ -7165,8 +7186,8 @@ const handleAugmentPick = (aug, historyContext) => {
                               <span style={{ fontSize:10, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
                             </div>
                           </div>
-                          {/* アイコンバッジ（枠の外側の要素として重ねる。枠のoverflow:hiddenに巻き込まれないよう別要素にしている） */}
-                          <div style={{ position:'absolute', top:WISP_BADGE_TOP, left:'50%', transform:'translateX(-50%)', width:WISP_BADGE_SIZE, height:WISP_BADGE_SIZE, borderRadius:'50%', background:'#0b1220', border:`2px solid ${catColor}`, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', boxShadow:'0 3px 8px rgba(0,0,0,0.55)', zIndex:2 }}>
+                          {/* アイコン（丸枠なし・背景透過の画像のみ。枠のoverflow:hiddenに巻き込まれないよう別要素にしている） */}
+                          <div style={{ position:'absolute', top:WISP_BADGE_TOP, left:'50%', transform:'translateX(-50%)', width:WISP_BADGE_SIZE, height:WISP_BADGE_SIZE, display:'flex', alignItems:'center', justifyContent:'center', zIndex:2, pointerEvents:'none' }}>
                             <span style={{ fontSize:34, lineHeight:1 }}>{wispSlot.icon || '🌿'}</span>
                             <img src={getWispIconUrl(wispSlot)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
                           </div>

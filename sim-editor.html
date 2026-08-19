@@ -202,8 +202,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     <div class="note">Wispはショップの一番右に1ラウンドおきに出現し、1回につき1個まで購入できる使い切りの魔法生物です（TFT Set 18の新機構）。編集できるのは<b>メタ情報</b>（id・名前・カテゴリ・コスト・絵文字アイコン・説明）です。<b>効果（effect関数）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。新規追加は効果なし（表示のみ・購入は可能）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その Wisp はショップの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>表示</th><th>id</th><th>名前</th><th>カテゴリ</th><th>コスト</th><th>効果</th><th>説明</th><th></th></tr></thead>
-    <tbody id="wisp-body"><tr><td colspan="9" class="note">読み込み中…</td></tr></tbody></table>
+    <table><thead><tr><th>アイコン</th><th>絵文字</th><th>表示</th><th>id</th><th>名前</th><th>カテゴリ</th><th>コスト</th><th>効果</th><th>説明</th><th></th></tr></thead>
+    <tbody id="wisp-body"><tr><td colspan="10" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -260,8 +260,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     <div class="note">編集できるのは<b>メタ情報</b>（id・キャラ名・遭遇名・確率prob・説明・絵文字アイコン・色）です。<b>効果（effect関数）とフラグ（augmentForceTier 等）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。確率(prob)は出現率(%)で、合計≒100になるよう調整してください。新規追加は効果なし（displayOnly）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その遭遇はゲームの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。確率合計は表示中の遭遇だけで計算しています。<br><b>3Dモデル</b>は1-1のお披露目画面に出す .glb のパスです。空欄なら <code>models/&lt;id&gt;_(tft_set_NN).glb</code> を自動で試し、見つからなければアイコン表示に戻ります。</div>
   </div>
   <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th></th><th>表示</th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>3Dモデル</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
-    <tbody id="enc-body"><tr><td colspan="11" class="note">読み込み中…</td></tr></tbody></table>
+    <table><thead><tr><th>アイコン</th><th>絵文字</th><th>表示</th><th>id</th><th>キャラ名</th><th>遭遇名</th><th>確率%</th><th>色</th><th>3Dモデル</th><th>効果/フラグ</th><th>説明</th><th></th></tr></thead>
+    <tbody id="enc-body"><tr><td colspan="12" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -938,7 +938,7 @@ function encFlagSummary(e) {
 }
 function renderEncounters() {
   const el = document.getElementById('enc-body'); if (!el) return;
-  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="11" class="note">読み込み待ち…</td></tr>'; return; }
+  if (!encObjs.length) { el.innerHTML = '<tr><td colspan="12" class="note">読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('enc-search').value || '').toLowerCase().trim();
   /* 確率合計は「表示中」の遭遇だけで数える（非表示は抽選に出ないため） */
   const shown = encObjs.filter(e => !e.hidden);
@@ -948,6 +948,7 @@ function renderEncounters() {
     `遭遇 ${encObjs.length} 件（表示 ${shown.length} / 非表示 ${hid} ・表示分の確率合計 ${total.toFixed(1)}%）`;
   const rows = encObjs.map((e, i) => ({ e, i })).filter(x => !q || (x.e.id || '').toLowerCase().includes(q) || (x.e.jaName || '').toLowerCase().includes(q) || (x.e.champ || '').toLowerCase().includes(q));
   el.innerHTML = rows.map(({ e, i }) => `<tr style="${e.hidden ? 'opacity:.45' : ''}">
+    <td><img class="champ-img" style="width:34px;height:34px;border-radius:5px;background:#0b1622" src="${encIconUrl(e)}" title="${esc(e.id || '')}" onerror="this.style.opacity=.2"></td>
     <td><input type="text" value="${esc(e.icon || '')}" style="width:34px;font-size:18px;text-align:center" title="絵文字アイコン" oninput="encObjs[${i}].icon=this.value"></td>
     <td style="text-align:center"><input type="checkbox" ${e.hidden ? '' : 'checked'} title="外すとゲームの抽選に出なくなります" onchange="setEncHidden(${i}, !this.checked)"></td>
     <td><input type="text" value="${esc(e.id || '')}" style="width:90px;font-family:Rajdhani" oninput="encObjs[${i}].id=this.value"></td>
@@ -1018,19 +1019,20 @@ function wispFlagSummary(w) {
 }
 function renderWisps() {
   const el = document.getElementById('wisp-body'); if (!el) return;
-  if (!wispObjs.length) { el.innerHTML = '<tr><td colspan="9" class="note">読み込み待ち…</td></tr>'; return; }
+  if (!wispObjs.length) { el.innerHTML = '<tr><td colspan="10" class="note">読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('wisp-search').value || '').toLowerCase().trim();
   const shown = wispObjs.filter(w => !w.hidden);
   const hid = wispObjs.length - shown.length;
   document.getElementById('wisp-status').textContent = `Wisp ${wispObjs.length} 件（表示 ${shown.length} / 非表示 ${hid}）`;
   const rows = wispObjs.map((w, i) => ({ w, i })).filter(x => !q || (x.w.id || '').toLowerCase().includes(q) || (x.w.name || '').toLowerCase().includes(q));
   el.innerHTML = rows.map(({ w, i }) => `<tr style="${w.hidden ? 'opacity:.45' : ''}">
+    <td><img class="champ-img" style="width:34px;height:34px;border-radius:5px;background:#0b1622" src="${wispIconUrl(w)}" title="${esc((WISP_CAT_JA[w.category]||w.category||'') + ' / ' + (w.cost||0) + 'G')}" onerror="this.style.opacity=.2"></td>
     <td><input type="text" value="${esc(w.icon || '')}" style="width:34px;font-size:18px;text-align:center" title="絵文字アイコン" oninput="wispObjs[${i}].icon=this.value"></td>
     <td style="text-align:center"><input type="checkbox" ${w.hidden ? '' : 'checked'} title="外すとショップの抽選に出なくなります" onchange="setWispHidden(${i}, !this.checked)"></td>
     <td><input type="text" value="${esc(w.id || '')}" style="width:130px;font-family:Rajdhani" oninput="wispObjs[${i}].id=this.value"></td>
     <td><input type="text" value="${esc(w.name || '')}" style="width:150px" oninput="wispObjs[${i}].name=this.value"></td>
-    <td><select onchange="wispObjs[${i}].category=this.value">${WISP_CATS.map(c => `<option value="${c}" ${w.category===c?'selected':''}>${WISP_CAT_JA[c]}</option>`).join('')}</select></td>
-    <td><input type="number" value="${Number(w.cost) || 0}" style="width:56px" oninput="wispObjs[${i}].cost=Number(this.value)||0"></td>
+    <td><select onchange="wispObjs[${i}].category=this.value;renderWisps()">${WISP_CATS.map(c => `<option value="${c}" ${w.category===c?'selected':''}>${WISP_CAT_JA[c]}</option>`).join('')}</select></td>
+    <td><input type="number" value="${Number(w.cost) || 0}" style="width:56px" oninput="wispObjs[${i}].cost=Number(this.value)||0" onchange="renderWisps()"></td>
     <td style="font-size:10px;color:var(--textdim);white-space:nowrap">${esc(wispFlagSummary(w))}</td>
     <td><textarea style="width:280px;height:44px;font-size:11px" oninput="wispObjs[${i}].desc=this.value">${esc(w.desc || '')}</textarea></td>
     <td><button style="color:var(--red)" onclick="deleteWisp(${i})">🗑</button></td>
@@ -1134,7 +1136,7 @@ function renderAugs() {
     const changed = a.newName !== a.name || a.newTier !== a.tier || a.newDesc !== a.desc || a.newImg !== a.imgName;
     return `<div class="card" style="${isHidden ? 'opacity:.55;border-style:dashed' : ''}">
       <div class="row">
-        <img class="champ-img" style="width:34px;height:34px" src="${augIconUrl(a.newImg)}" onerror="this.style.opacity=.15" id="augimg-${i}">
+        <img class="champ-img" style="width:34px;height:34px" src="${augIconUrl(a.newImg)}" data-img="${esc(a.newImg)}" onerror="augImgFallback(this, this.dataset.img)" id="augimg-${i}">
         <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
           <input type="checkbox" ${!isHidden ? 'checked' : ''} onchange="toggleAugHidden('${esc(a.id)}')"> 表示
         </label>
@@ -1154,7 +1156,7 @@ function renderAugs() {
       <div class="row">
         <label>画像(imgName):</label>
         <input type="text" value="${esc(a.newImg)}" placeholder="例: warlordshonor_ii または画像URL" style="flex:1;max-width:420px;font-family:Rajdhani"
-          oninput="augEntries[${i}].newImg=this.value" onchange="document.getElementById('augimg-${i}').src=augIconUrl(this.value)">
+          oninput="augEntries[${i}].newImg=this.value" onchange="(()=>{const im=document.getElementById('augimg-${i}');im.dataset.img=this.value;delete im.dataset.fb;im.style.opacity=1;im.src=augIconUrl(this.value);})()">
       </div>
       <textarea oninput="augEntries[${i}].newDesc=this.value">${esc(a.newDesc)}</textarea>
     </div>`;
@@ -1291,7 +1293,40 @@ const itemIconUrl = (it) => {
   return '';
 };
 // オーグメント画像URL（app.js の getAugmentIconUrl と同じロジック）
-const augIconUrl = (imgName) => !imgName ? '' : (imgName.startsWith('http') ? imgName : `https://cdn.metatft.com/cdn-gi/image/width=64,format=webp/file/metatft/augments/${imgName}.png`.replace('cdn-gi','cdn-cgi'));
+//   新形式: https://tftips.b-cdn.net/aug/<セット番号>_<slug>.avif?v=1
+//   slug = imgName から記号と末尾のティア表記（_ii / -iii / 数字）を除いて小文字化したもの
+const augImgSlug = (imgName) => String(imgName || '')
+  .toLowerCase().replace(/[^a-z0-9]/g, '')
+  .replace(/(?:iii|ii|iv|v|i)$/, '').replace(/[0-9]+$/, '');
+const augIconUrl = (imgName) => {
+  if (!imgName) return '';
+  if (String(imgName).startsWith('http')) return imgName;
+  const slug = augImgSlug(imgName);
+  return slug ? `https://tftips.b-cdn.net/aug/${setNoOf()}_${slug}.avif?v=1` : '';
+};
+// 旧MetaTFT形式（読み込み失敗時のフォールバック）
+const augIconUrlMeta = (imgName) => !imgName ? '' : (String(imgName).startsWith('http') ? imgName
+  : `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/augments/${imgName}.png`);
+/* <img onerror> 用の共通フォールバック。data-fb で二重呼び出しを防ぐ */
+function augImgFallback(img, imgName) {
+  if (!img) return;
+  if (img.dataset.fb) { img.style.opacity = .15; return; }
+  img.dataset.fb = '1';
+  const alt = augIconUrlMeta(imgName);
+  if (alt) img.src = alt; else img.style.opacity = .15;
+}
+/* 🎲 遭遇 / 🌿 Wisp のアイコンURL。アイテムタブと同じ tftips 規則に揃える。
+   ── 遭遇: https://tftips.b-cdn.net/champ/sm/<セット番号>_<id>.avif （登場チャンピオンの顔）
+   ── Wisp: カテゴリ別のショップカードアイコン（app.js の getWispIconUrl と同じ） */
+const encIconUrl = (e) => (e && e.id) ? champIcon(e.id) : '';
+const WISP_CAT_SLUG = { economy:'goldxp', shop:'shop', champion:'champion', item:'item', risky:'risky', combat:'combat', misc:'misc' };
+const wispIconUrl = (w) => {
+  if (!w) return '';
+  const slug = WISP_CAT_SLUG[w.category] || w.category || 'misc';
+  const tier = Math.max(1, Math.min(5, (Number(w.cost) || 0) + 1));
+  const inner = `https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_${slug}_tier${tier}.png`;
+  return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=auto/${inner}`;
+};
 let itemSetFilter = 'all';
 function renderItemSetBtns() {
   document.getElementById('item-set-btns').innerHTML = ['all', ...SET_TAGS, 'none'].map(t =>
@@ -1575,7 +1610,12 @@ window.addEventListener('load', () => {
    ── 調整値はブラウザに自動保存されるので、閉じても続きから作業できる。
    ═══════════════════════════════════════════════════════════ */
 const M3D_KEY = 'tft_model_tune_' + (CURRENT_SET || 'set18');
-const M3D_R = 1.0, M3D_TH = 0.28, M3D_TOP = M3D_TH / 2;
+// 🎯 M3D_TOP は「マスの上面のY座標」＝モデルの足元を置く基準線。board3d.js の
+//    B3D.TOP（TH:0.02 → TOP:0.01）と必ず同じ値にすること。ここが違うと「エディタでは
+//    正しく見えるのに実際のゲームでは足元が沈む/浮く」というズレが起きる。
+//    M3D_TH（マスの見た目の厚み）はエディタで掴みやすくするための演出用の値で、
+//    実際のゲームの薄いマス(0.02)とは別物 ── 厚みを変えても M3D_TOP はズレない。
+const M3D_R = 1.0, M3D_TH = 0.28, M3D_TOP = 0.01;
 const M3D_GAP = 1.10, M3D_HSP = Math.sqrt(3) * M3D_R * M3D_GAP;
 const M3D_BASE_HEIGHT = M3D_R * 2.3;          // scale=1 のときの高さ（board3d.js と同じ）
 const M3D_COST_COLOR = {1:0x9aa7b5,2:0x2ec77e,3:0x2f9bff,4:0xc46bff,5:0xf4c04a};
@@ -1693,7 +1733,7 @@ function m3dBuildStage() {
     const col = M3D_COST_COLOR[c ? c.cost : 1] || 0x9aa7b5;
     const tile = new THREE.Mesh(new THREE.CylinderGeometry(M3D_R, M3D_R, M3D_TH, 6),
       new THREE.MeshStandardMaterial({ color: id === m3dSel ? 0x4b6a92 : 0x2b3a52, metalness: .2, roughness: .8 }));
-    tile.rotation.y = Math.PI / 6; tile.position.set(x, 0, 0); tile.receiveShadow = true;
+    tile.rotation.y = Math.PI / 6; tile.position.set(x, M3D_TOP - M3D_TH / 2, 0); tile.receiveShadow = true;
     tile.userData.tileFor = id; m3dTiles.add(tile);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(M3D_R * 0.99, 0.02, 8, 6),
       new THREE.MeshBasicMaterial({ color: col }));
@@ -1728,6 +1768,54 @@ function m3dLoadModel(c) {
     new THREE.GLTFLoader().load(u, g => { m3dCache.set(u, g); res(g); }, undefined, () => tryNext().then(res, rej));
   });
   return tryNext();
+}
+
+/* 🧹 浮いた飛翔体パーツ（クナイ・矢など）の除去。board3d.js の
+   B3D_STRAY_NAME / B3D_HIDE_PARTS / B3D_KEEP_PARTS / b3dPruneStrayParts と
+   まったく同じロジック。あちらを変更したら必ずこちらも合わせること
+   （揃えないと、エディタでは浮遊パーツを含んだ外接箱で大きさ・立ち位置が
+   計算されるのに、実際のゲームでは除去された後の箱で計算されるため、
+   その分だけ「エディタでは正しく見えるのに実ゲームではズレる」原因になる）。 */
+const M3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
+const M3D_HIDE_PARTS = {
+  // 例) akali: ['kunai'], ashe: ['arrow'],
+};
+const M3D_KEEP_PARTS = {
+  // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない
+  varus: ['bow', 'arrow'],   // 🏹 ヴァルス: 弓に番えた矢のパーツ名がarrowに一致し誤って消えるため保護（board3d.jsと同じ）
+};
+function m3dPruneStrayParts(root, champId) {
+  const id = String(champId || '').toLowerCase();
+  const hideList = (M3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
+  const keepList = (M3D_KEEP_PARTS[id] || []).map(x => x.toLowerCase());
+  const meshes = [];
+  root.updateWorldMatrix(true, true);
+  root.traverse(n => { if (n.isMesh || n.isSkinnedMesh) meshes.push(n); });
+  if (!meshes.length) return [];
+  const info = meshes.map(n => {
+    const box = new THREE.Box3().setFromObject(n);
+    const size = new THREE.Vector3(); box.getSize(size);
+    const pos = n.geometry && n.geometry.attributes && n.geometry.attributes.position;
+    return { n, box, vol: Math.max(size.x * size.y * size.z, 1e-9), verts: pos ? pos.count : 0, name: (n.name || '').toLowerCase() };
+  });
+  const body = info.reduce((a, b) => (b.verts > a.verts ? b : a), info[0]);
+  const bodyBox = body.box.clone();
+  const c = new THREE.Vector3(); bodyBox.getCenter(c);
+  const sz = new THREE.Vector3(); bodyBox.getSize(sz);
+  bodyBox.setFromCenterAndSize(c, sz.multiplyScalar(1.6));
+  const removed = [];
+  info.forEach(it => {
+    if (it === body) return;
+    if (keepList.some(k => it.name.includes(k))) return;
+    const byName = M3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
+    const detached = !bodyBox.intersectsBox(it.box);
+    const negligible = it.vol < body.vol * 0.00002;
+    if (byName || detached || negligible) {
+      if (it.n.parent) it.n.parent.remove(it.n); else it.n.visible = false;
+      removed.push(it.n.name || '(無名)');
+    }
+  });
+  return removed;
 }
 
 /* 足元（下から25%）の重心＝立っている位置。board3d.js と同じ考え方 */
@@ -1774,6 +1862,7 @@ function m3dRebuild() {
     m3dLoadModel(c).then(gltf => {
       const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone) ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
       m3dFixMaterials(m);
+      m3dPruneStrayParts(m, c.id);   // 🧹 実ゲーム(board3d.js)と同じく、フィッティング計算の前に浮遊パーツを除去
       holder.userData.model = m;
       holder.add(m);
       // 元モデルの実寸を控えておく（極端に大きい/小さいファイルの切り分け用）
