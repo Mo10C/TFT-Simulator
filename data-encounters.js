@@ -47,7 +47,7 @@ const ENCOUNTERS = [
   { id:"sivir", champ:"シヴィア", jaName:"素材アイテムの金床", prob:5, desc:"「素材アイテムの金床」を2個所持して試合を開始する。", icon:"🛠️", color:"#ff9f43", effect:(s,rng,h)=>{ 
       h.addAnvilToBench('component', 2); h.showMsg('🛠️ ポッピー: 金床を2個獲得！'); } },
   { id:"leona", champ:"レオナ", jaName:"黄金の祭典", prob:5, desc:"この試合で提示されるオーグメントがすべてゴールドティアになる。", icon:"🪙", color:"#ffcc44", augmentForceTier:"gold" },
-  { id:"missfortune", champ:"ミスフォーチュン", jaName:"コスト3スタート", prob:5, desc:"ランダムなコスト3のチャンピオンを1体所持して試合を開始する。", icon:"🌟", color:"#3399ff", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===3);
+  { id:"tristana", champ:"トリスターナ", jaName:"コスト3スタート", prob:5, desc:"ランダムなコスト3のチャンピオンを1体所持して試合を開始する。", icon:"🌟", color:"#3399ff", effect:(s,rng,h)=>{ const pool=CHAMPS.filter(c=>c.cost===3);
       const natural=pool[Math.floor(rng()*pool.length)];
       const pin=(s.encChamps&&s.encChamps[0])?pool.find(c=>c.id===s.encChamps[0]):null;
       const c=pin||natural;
