@@ -48,12 +48,12 @@ window.SIM_CONFIG = {
      ── y は地面の高さ。ベンチ列より下でないと駒の足が埋まるので -0.09 前後にしておく。
      ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面は横およそ13・奥行およそ6。 */
   arena: {
-    image: 'tft-arena-skin-runic.webp',
-    width: 26,
+    image: 'TFT-arena.jpg',
+    width: 28.8,
     depth: 17,
-    x: 0,
+    x: 0.3,
     y: -0.09,
-    z: 1.0,
+    z: -0.2,
   },
 
   /* 📊 みんなの結果（Firestore）
