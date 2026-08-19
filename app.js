@@ -7157,7 +7157,7 @@ const handleAugmentPick = (aug, historyContext) => {
                       //    WISP_BADGE_SIZE: バッジ（円）の直径。WISP_BADGE_TOP: 枠の上端からのズラし量（負値＝上にはみ出す）。
                       //    バッジを大きくしたら、下の説明文コンテナの paddingTop も
                       //    「WISP_BADGE_SIZE + WISP_BADGE_TOP」に合わせて調整すると文字と重ならない。
-                      const WISP_BADGE_SIZE = 74;
+                      const WISP_BADGE_SIZE = 60;
                       const WISP_BADGE_TOP = -40;
                       return (
                         <div key={i}
