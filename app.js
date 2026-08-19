@@ -5471,6 +5471,20 @@ useEffect(() => {
         setLevel(r.level);
         setXp(r.xp);
       }
+
+      // 🌿 庇護者の祝福: レベル5・6・7・8到達時に「素材アイテムの金床」を1個獲得
+      const hasGB = passiveBuffs.some(b => b.type === 'guardians_blessing');
+      if (hasGB && [5, 6, 7, 8].includes(newLevel)) {
+        addAnvilToBench('component', 1);
+        showMsg('🙏 庇護者の祝福: 素材アイテムの金床を獲得！');
+      }
+
+      // 🌿 買い物三昧: レベルアップするたびに、新レベル+1回の無料リロールを獲得
+      const hasSS = passiveBuffs.some(b => b.type === 'shopping_spree');
+      if (hasSS) {
+        setFreeRerolls(fr => fr + newLevel + 1);
+        showMsg(`🛍️ 買い物三昧: 無料リロール+${newLevel + 1}！`);
+      }
     }
 
     setLevel(newLevel); 
