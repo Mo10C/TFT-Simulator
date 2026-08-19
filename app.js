@@ -4247,7 +4247,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       const aw = area.clientWidth, ah = area.clientHeight;
       const gw = inner.offsetWidth, gh = inner.offsetHeight;
       if (!aw || !ah || !gw || !gh) return;
-      setBoardFit(Math.max(0.4, Math.min(2.2, Math.min(aw / gw, ah / gh) * 0.97)));
+      setBoardFit(Math.max(0.4, Math.min(2.2, Math.min(aw / gw, ah / gh) * 0.75)));
     };
     calc();
     const t = setTimeout(calc, 120);
