@@ -740,7 +740,8 @@ const wispIconTier = (cost) => Math.max(1, Math.min(5, (Number(cost) || 0) + 1))
 const getWispIconUrl = (wisp) => {
   if (!wisp) return "";
   const slug = (typeof WISP_CATEGORY_SLUG !== 'undefined' && WISP_CATEGORY_SLUG[wisp.category]) || wisp.category || 'misc';
-  const inner = `https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_${slug}_tier${wispIconTier(wisp.cost)}.png`;
+  const tier = Math.max(1, Math.min(5, Number(wisp.tier) || 1));
+  const inner = `https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_${slug}_tier${tier}.png`;
   return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=auto/${inner}`;
 };
 
@@ -4057,7 +4058,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
         level, gold,
         augments: augments.map(a => ({ id: a.id, name: a.name, tier: a.tier, history: slimAugHistory(a.history) })),
         // 🌿 取得済みWisp（結果画面・みんなの結果で表示するため保存）
-        wisps: wisps.map(w => ({ id: w.id, name: w.name, category: w.category, icon: w.icon, cost: w.cost })),
+        wisps: wisps.map(w => ({ id: w.id, name: w.name, category: w.category, icon: w.icon, cost: w.cost, tier: w.tier })),
         board: pickBoard(board),
         bench: pickUnits(bench),
         // 盤面ユニットに装備中の完成系アイテム（素材・消耗品を除く）
@@ -7176,14 +7177,14 @@ const handleAugmentPick = (aug, historyContext) => {
                           }}>
                             {/* 効果説明（アイコンバッジが重なる分だけ上に余白） */}
                             <div style={{ flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center', padding:`${WISP_BADGE_SIZE + WISP_BADGE_TOP + 2}px 6px 2px`, overflow:'hidden' }}>
-                              <span style={{ fontSize:8.5, color:'rgba(255,255,255,0.92)', textAlign:'center', lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:6, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-all' }}>
+                              <span style={{ fontSize:13, color:'rgba(255,255,255,0.92)', textAlign:'center', lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:6, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-all' }}>
                                 {wispSlot.desc}
                               </span>
                             </div>
                             {/* 区切り線 ＋ 名前と価格 */}
                             <div style={{ flexShrink:0, borderTop:`1px solid ${catColor}77`, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
-                              <span style={{ fontSize:9.5, fontWeight:900, color:'white', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
-                              <span style={{ fontSize:10, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
+                              <span style={{ fontSize:11, fontWeight:900, color:'white', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
+                              <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
                             </div>
                           </div>
                           {/* アイコン（丸枠なし・背景透過の画像のみ。枠のoverflow:hiddenに巻き込まれないよう別要素にしている） */}
