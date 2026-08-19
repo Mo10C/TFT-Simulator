@@ -201,9 +201,9 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
     </div>
     <div class="note">Wispはショップの一番右に1ラウンドおきに出現し、1回につき1個まで購入できる使い切りの魔法生物です（TFT Set 18の新機構）。編集できるのは<b>メタ情報</b>（id・名前・カテゴリ・コスト・絵文字アイコン・説明）です。<b>効果（effect関数）はコードなので原文のまま保持</b>され、ダウンロードしても壊れません。新規追加は効果なし（表示のみ・購入は可能）で作られます ― 挙動が要る場合はコードを別途書いてください。<br><b>「表示」のチェックを外すと、その Wisp はショップの抽選に出なくなります</b>（データは残るので、いつでも戻せます）。</div>
   </div>
-  <div class="card" style="overflow-x:auto">
-    <table><thead><tr><th>アイコン</th><th>絵文字</th><th>表示</th><th>id</th><th>名前</th><th>カテゴリ</th><th>コスト</th><th>効果</th><th>説明</th><th></th></tr></thead>
-    <tbody id="wisp-body"><tr><td colspan="10" class="note">読み込み中…</td></tr></tbody></table>
+<div class="card" style="overflow-x:auto">
+    <table><thead><tr><th>アイコン</th><th>絵文字</th><th>表示</th><th>id</th><th>名前</th><th>カテゴリ</th><th>コスト</th><th>ティア</th><th>効果</th><th>説明</th><th></th></tr></thead>
+    <tbody id="wisp-body"><tr><td colspan="11" class="note">読み込み中…</td></tr></tbody></table>
   </div>
 </div>
 
@@ -1046,20 +1046,21 @@ function wispFlagSummary(w) {
 }
 function renderWisps() {
   const el = document.getElementById('wisp-body'); if (!el) return;
-  if (!wispObjs.length) { el.innerHTML = '<tr><td colspan="10" class="note">読み込み待ち…</td></tr>'; return; }
+  if (!wispObjs.length) { el.innerHTML = '<tr><td colspan="11" class="note">読み込み待ち…</td></tr>'; return; }
   const q = (document.getElementById('wisp-search').value || '').toLowerCase().trim();
   const shown = wispObjs.filter(w => !w.hidden);
   const hid = wispObjs.length - shown.length;
   document.getElementById('wisp-status').textContent = `Wisp ${wispObjs.length} 件（表示 ${shown.length} / 非表示 ${hid}）`;
   const rows = wispObjs.map((w, i) => ({ w, i })).filter(x => !q || (x.w.id || '').toLowerCase().includes(q) || (x.w.name || '').toLowerCase().includes(q));
   el.innerHTML = rows.map(({ w, i }) => `<tr style="${w.hidden ? 'opacity:.45' : ''}">
-    <td><img class="champ-img" style="width:34px;height:34px;border-radius:5px;background:#0b1622" src="${wispIconUrl(w)}" title="${esc((WISP_CAT_JA[w.category]||w.category||'') + ' / ' + (w.cost||0) + 'G')}" onerror="this.style.opacity=.2"></td>
+    <td><img class="champ-img" style="width:34px;height:34px;border-radius:5px;background:#0b1622" src="${wispIconUrl(w)}" title="${esc((WISP_CAT_JA[w.category]||w.category||'') + ' / ' + (w.cost||0) + 'G (T' + (w.tier||1) + ')')}" onerror="this.style.opacity=.2"></td>
     <td><input type="text" value="${esc(w.icon || '')}" style="width:34px;font-size:18px;text-align:center" title="絵文字アイコン" oninput="wispObjs[${i}].icon=this.value"></td>
     <td style="text-align:center"><input type="checkbox" ${w.hidden ? '' : 'checked'} title="外すとショップの抽選に出なくなります" onchange="setWispHidden(${i}, !this.checked)"></td>
     <td><input type="text" value="${esc(w.id || '')}" style="width:130px;font-family:Rajdhani" oninput="wispObjs[${i}].id=this.value"></td>
     <td><input type="text" value="${esc(w.name || '')}" style="width:150px" oninput="wispObjs[${i}].name=this.value"></td>
     <td><select onchange="wispObjs[${i}].category=this.value;renderWisps()">${WISP_CATS.map(c => `<option value="${c}" ${w.category===c?'selected':''}>${WISP_CAT_JA[c]}</option>`).join('')}</select></td>
     <td><input type="number" value="${Number(w.cost) || 0}" style="width:56px" oninput="wispObjs[${i}].cost=Number(this.value)||0" onchange="renderWisps()"></td>
+    <td><select onchange="wispObjs[${i}].tier=Number(this.value)||1;renderWisps()">${[1,2,3,4,5].map(t => `<option value="${t}" ${(Number(w.tier)||1)===t?'selected':''}>T${t}</option>`).join('')}</select></td>
     <td style="font-size:10px;color:var(--textdim);white-space:nowrap">${esc(wispFlagSummary(w))}</td>
     <td><textarea style="width:280px;height:44px;font-size:11px" oninput="wispObjs[${i}].desc=this.value">${esc(w.desc || '')}</textarea></td>
     <td><button style="color:var(--red)" onclick="deleteWisp(${i})">🗑</button></td>
@@ -1071,7 +1072,7 @@ function setWispHidden(i, hidden) {
 }
 function addWisp() {
   if (wispText == null) return showMsg('先に data-wisps.js を読み込んでください', true);
-  wispObjs.push({ id: '', name: '新規Wisp', category: 'misc', cost: 1, desc: '', icon: '🌿' });
+  wispObjs.push({ id: '', name: '新規Wisp', category: 'misc', cost: 1, tier: 1, desc: '', icon: '🌿' });
   document.getElementById('wisp-search').value = '';
   renderWisps();
   const rows = document.querySelectorAll('#wisp-body tr'); if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth' });
@@ -1350,7 +1351,7 @@ const WISP_CAT_SLUG = { economy:'goldxp', shop:'shop', champion:'champion', item
 const wispIconUrl = (w) => {
   if (!w) return '';
   const slug = WISP_CAT_SLUG[w.category] || w.category || 'misc';
-  const tier = Math.max(1, Math.min(5, (Number(w.cost) || 0) + 1));
+  const tier = Math.max(1, Math.min(5, Number(w.tier) || 1));
   const inner = `https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_${slug}_tier${tier}.png`;
   return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=auto/${inner}`;
 };
