@@ -707,6 +707,16 @@ const getAugmentIconUrl = (aug) => {
   return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/augments/${aug.imgName}.png`;
 };
 
+// 🌿 Wispのカテゴリアイコン（MetaTFTのカードアイコン規則を踏襲・推測URL）
+//    価格が高いWispほど「tier」が上がる想定で 0G=tier1 〜 4G以上=tier5 に割り振る。
+//    読み込みに失敗した場合は呼び出し側で絵文字アイコンに自動フォールバックする。
+const wispIconTier = (cost) => Math.max(1, Math.min(5, (Number(cost) || 0) + 1));
+const getWispIconUrl = (wisp) => {
+  if (!wisp) return "";
+  const slug = (typeof WISP_CATEGORY_SLUG !== 'undefined' && WISP_CATEGORY_SLUG[wisp.category]) || wisp.category || 'misc';
+  return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=webp/file/metatft/categories/t_shopcardsicon18_${slug}_tier${wispIconTier(wisp.cost)}.png`;
+};
+
 // 📛 記録に保存されたアイテム名（文字列）から表示用オブジェクトを復元する。
 //    記録には名前しか保存されないため、そのまま {name} で表示すると
 //    ・サイオニック（日本語名で保存）→ 画像URLが引けずアイコンが出ない
@@ -3476,7 +3486,10 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           {d.wisps.map((w, wi) => (
                             <div key={wi} title={w.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 52 }}>
-                              <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: '#000', borderRadius: 6, border: `1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}` }}>{w.icon || '🌿'}</div>
+                              <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: '#000', borderRadius: 6, border: `1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}`, position: 'relative' }}>
+                                {w.icon || '🌿'}
+                                <img src={getWispIconUrl(w)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                              </div>
                               <div style={{ fontSize: 8.5, color: 'white', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{w.name}</div>
                             </div>
                           ))}
@@ -4017,7 +4030,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
         level, gold,
         augments: augments.map(a => ({ id: a.id, name: a.name, tier: a.tier, history: slimAugHistory(a.history) })),
         // 🌿 取得済みWisp（結果画面・みんなの結果で表示するため保存）
-        wisps: wisps.map(w => ({ id: w.id, name: w.name, category: w.category, icon: w.icon })),
+        wisps: wisps.map(w => ({ id: w.id, name: w.name, category: w.category, icon: w.icon, cost: w.cost })),
         board: pickBoard(board),
         bench: pickUnits(bench),
         // 盤面ユニットに装備中の完成系アイテム（素材・消耗品を除く）
@@ -4134,7 +4147,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     setWisps(prev => [...prev, bought]);
     setWispSlot(null);
     if (typeof bought.effect === 'function') {
-      try { bought.effect({ gold, level, xp }, rngWisp, augmentHelpers); }
+      try { bought.effect({ gold, level, xp, board, bench }, rngWisp, augmentHelpers); }
       catch (e) { console.error('wisp effect error', e); }
     } else {
       setDropMsg(
@@ -4773,6 +4786,33 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     });
   }, [showMsg]);
 
+  // 🌿 Wisp「初級変身術」「変身術」用: 盤面/ベンチのuidを指定し、コスト・種族を恒久的に変化させる
+  //    （スター・アイテムは維持）。board→benchの順で先に見つかった方を書き換える。
+  const transmuteUnitByUid = useCallback((uid, toCost, rng) => {
+    const pool = CHAMPS.filter(c => c.cost === toCost);
+    if (!pool.length) return null;
+    const newChamp = pool[Math.floor(rng() * pool.length)];
+    const apply = (u) => (u && u.uid === uid)
+      ? { ...u, id: newChamp.id, name: newChamp.name, jaName: newChamp.jaName, cost: newChamp.cost, traits: newChamp.traits }
+      : u;
+    setBoard(prev => prev.map(apply));
+    setBench(prev => prev.map(apply));
+    return newChamp;
+  }, []);
+
+  // 🌿 Wisp「アーティファクティネート」用: 手持ちアイテム欄から素材アイテムを最大n個削除
+  //    （簡略実装：完成品に組み込まれた素材の分解までは行わず、手持ちの素材アイテムのみ対象）
+  const removeCompItems = useCallback((n) => {
+    setInventory(prev => {
+      const next = [...prev];
+      let removed = 0;
+      for (let i = next.length - 1; i >= 0 && removed < n; i--) {
+        if (next[i] && next[i].type === 'comp') { next.splice(i, 1); removed++; }
+      }
+      return next;
+    });
+  }, []);
+
   // 🌟 金床売却・選択（依存する showMsg / addPassiveBuff より後に宣言する）
   const handleSellAnvil = useCallback((anvil) => {
     triggerAnvilChoice(anvil.anvilType);
@@ -4966,7 +5006,9 @@ useEffect(() => {
     addFreeRerolls,
     setShop,
     setIsFinished,
-  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addChampToBoard, addChampToBoardDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc, setIsFinished]);
+    transmuteUnitByUid,   // 🌿 Wisp: 恒久的なコスト変化
+    removeCompItems,      // 🌿 Wisp: 素材アイテムの消費
+  }), [addGold, addXp, addItem, addPassiveBuff, showMsg, addChampToBench, addChampToBenchDirect, addChampToBoard, addChampToBoardDirect, addAnvilToBench, triggerAnvilChoice, setLevelDirect, setMaxInterestFn, setXpCostReductionFn, setAugmentTierBoostFn, setNoMoreAugmentsFn, setAfkRoundsLeftFn, addFreeRerolls, rngMisc, setIsFinished, transmuteUnitByUid, removeCompItems]);
 
   useEffect(() => {
     if (mergeToast) {
@@ -6168,7 +6210,10 @@ const handleAugmentPick = (aug, historyContext) => {
                   <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
                     {wisps.map((w, i) => (
                       <div key={i} title={w.desc || ''} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5, width:64, background:'rgba(0,0,0,0.3)', padding:'8px 4px', borderRadius:8, border:`1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}66` }}>
-                        <div style={{ width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, background:'#000', borderRadius:6, border:`1px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}` }}>{w.icon || '🌿'}</div>
+                        <div style={{ width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, background:'#000', borderRadius:6, border:`1px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}`, position:'relative' }}>
+                          {w.icon || '🌿'}
+                          <img src={getWispIconUrl(w)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                        </div>
                         <div style={{ fontSize:9.5, color:'white', textAlign:'center', lineHeight:1.15, wordBreak:'break-all', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{w.name}</div>
                       </div>
                     ))}
@@ -6813,8 +6858,10 @@ const handleAugmentPick = (aug, historyContext) => {
                   boxShadow: `0 0 10px ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}33`,
                   flexShrink: 0,
                   fontSize: 22,
+                  position: 'relative',
                 }}>
                   {w.icon || '🌿'}
+                  <img src={getWispIconUrl(w)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
                 </div>
 
                 {/* 名前 */}
@@ -7083,7 +7130,10 @@ const handleAugmentPick = (aug, historyContext) => {
                             display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
                           }}>
                           <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:44, height:6, background:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)', borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
-                          <div style={{ fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>{wispSlot.icon || '🌿'}</div>
+                          <div style={{ position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>
+                            {wispSlot.icon || '🌿'}
+                            <img src={getWispIconUrl(wispSlot)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                          </div>
                           <div style={{ fontSize:10.5, fontWeight:900, color:'white', textAlign:'center', lineHeight:1.15, padding:'0 4px', textShadow:'0 0 3px rgba(0,0,0,1)' }}>{wispSlot.name}</div>
                           <div style={{ fontSize:9, fontWeight:700, color:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)' }}>{WISP_CATEGORY_JA[wispSlot.category] || wispSlot.category}</div>
                           <div style={{ position:'absolute', bottom:4, right:6, fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {wispSlot.cost || 0}</div>
