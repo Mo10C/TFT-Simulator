@@ -380,6 +380,33 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
         </div>
         <div class="note" style="margin-top:6px">コスト帯で大きさを変えたいときは「同じコスト」にまとめて適用すると差別化しやすくなります。</div>
       </div>
+
+      <div class="card" style="margin-top:12px;padding:12px">
+        <h2 style="font-size:12px">🧹 パーツの除去設定</h2>
+        <div class="note" style="margin-bottom:8px">
+          戦闘中に浮いたままになる矢やクナイを自動で消す仕組みの設定です。
+          <b>消えてほしくないパーツ</b>（手に持った武器など）と、<b>消したいパーツ</b>を名前の一部で指定します。
+          下の一覧で「✕」が付いているものが現在消えているパーツです。
+        </div>
+        <div id="m3d-parts-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--bg2);border-radius:8px;padding:6px;font-size:11px;margin-bottom:8px">
+          <span class="note">チャンピオンを選ぶと一覧が出ます</span>
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px">残す（keep）</label>
+          <input type="text" id="m3d-keep" placeholder="例: weapon, bow" style="width:100%"
+            onchange="m3dSetParts('keep', this.value)">
+        </div>
+        <div style="margin-bottom:8px">
+          <label style="font-size:11px">消す（hide）</label>
+          <input type="text" id="m3d-hide" placeholder="例: kunai, arrow" style="width:100%"
+            onchange="m3dSetParts('hide', this.value)">
+        </div>
+        <div class="row" style="gap:6px">
+          <button onclick="m3dReloadCurrent()" style="flex:1">🔄 反映して再読み込み</button>
+          <button class="gold" onclick="m3dCopyParts()" style="flex:1">📋 コピー</button>
+        </div>
+        <div class="note" style="margin-top:6px">カンマ区切りで複数指定できます（大文字小文字は区別しません）。「コピー」で <b>B3D_KEEP_PARTS / B3D_HIDE_PARTS</b> を書き出せるので、board3d.js の同名の設定に貼り替えてください。</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1777,13 +1804,32 @@ function m3dLoadModel(c) {
    計算されるのに、実際のゲームでは除去された後の箱で計算されるため、
    その分だけ「エディタでは正しく見えるのに実ゲームではズレる」原因になる）。 */
 const M3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
-const M3D_HIDE_PARTS = {
+/* ── 除去設定（エディタで編集可能・localStorageに自動保存） ──
+   初期値は board3d.js の B3D_HIDE_PARTS / B3D_KEEP_PARTS と同じ内容にしておくこと。
+   エディタで編集したあと「📋 コピー」で書き出し、board3d.js 側に貼り替える運用。 */
+const M3D_HIDE_PARTS_DEFAULT = {
   // 例) akali: ['kunai'], ashe: ['arrow'],
 };
-const M3D_KEEP_PARTS = {
+const M3D_KEEP_PARTS_DEFAULT = {
   // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない
-  varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'（board3d.jsと同じ内容にすること）
+  varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'
 };
+const M3D_PARTS_KEY = 'tft_model_parts_' + (CURRENT_SET || 'set18');
+let M3D_HIDE_PARTS = JSON.parse(JSON.stringify(M3D_HIDE_PARTS_DEFAULT));
+let M3D_KEEP_PARTS = JSON.parse(JSON.stringify(M3D_KEEP_PARTS_DEFAULT));
+function m3dPartsLoad() {
+  try {
+    const raw = localStorage.getItem(M3D_PARTS_KEY);
+    if (!raw) return;
+    const o = JSON.parse(raw);
+    if (o && o.hide) M3D_HIDE_PARTS = o.hide;
+    if (o && o.keep) M3D_KEEP_PARTS = o.keep;
+  } catch (e) {}
+}
+function m3dPartsSave() {
+  try { localStorage.setItem(M3D_PARTS_KEY, JSON.stringify({ hide: M3D_HIDE_PARTS, keep: M3D_KEEP_PARTS })); } catch (e) {}
+}
+m3dPartsLoad();
 /* 🗡️ 手に持つ装備の一般的なパーツ名（board3d.js の B3D_HELD_NAME と同じ内容にすること） */
 const M3D_HELD_NAME = /weapon|bow|staff|sword|blade|scythe|hammer|axe|shield|glaive|lantern|book|orb\b/i;
 
@@ -1807,19 +1853,80 @@ function m3dPruneStrayParts(root, champId) {
   const sz = new THREE.Vector3(); bodyBox.getSize(sz);
   bodyBox.setFromCenterAndSize(c, sz.multiplyScalar(1.6));
   const removed = [];
+  const report = [];
   info.forEach(it => {
-    if (it === body) return;
-    if (keepList.some(k => it.name.includes(k))) return;
+    const rawName = it.n.name || '(無名)';
+    if (it === body) { report.push({ name: rawName, removed: false, why: '本体' }); return; }
+    if (keepList.some(k => it.name.includes(k))) { report.push({ name: rawName, removed: false, why: 'keep指定' }); return; }
     const byName = M3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
     const held = M3D_HELD_NAME.test(it.name);
     const detached = !bodyBox.intersectsBox(it.box) && !held;
     const negligible = it.vol < body.vol * 0.00002 && !held;
     if (byName || detached || negligible) {
       if (it.n.parent) it.n.parent.remove(it.n); else it.n.visible = false;
-      removed.push(it.n.name || '(無名)');
+      removed.push(rawName);
+      report.push({ name: rawName, removed: true, why: byName ? '名前' : (detached ? '本体から離れている' : '極小') });
+    } else {
+      report.push({ name: rawName, removed: false, why: held ? '手持ち装備' : '通常' });
     }
   });
+  m3dPartsReport[id] = report;
   return removed;
+}
+
+/* 直近に読み込んだモデルのパーツ判定結果（チャンピオンidごと）。除去設定パネルの一覧表示に使う */
+const m3dPartsReport = {};
+/* 選択中のチャンピオンid（既存コードは m3dSel を使っているのでそれを返すだけ） */
+const m3dCurrentId = () => m3dSel;
+
+/* ── 除去設定パネル ── */
+function m3dPartsFor(kind, id) {
+  const src = kind === 'keep' ? M3D_KEEP_PARTS : M3D_HIDE_PARTS;
+  return (src[id] || []).join(', ');
+}
+function m3dSetParts(kind, value) {
+  const id = m3dCurrentId();
+  if (!id) return;
+  const list = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+  const target = kind === 'keep' ? M3D_KEEP_PARTS : M3D_HIDE_PARTS;
+  if (list.length) target[id] = list; else delete target[id];
+  m3dPartsSave();
+  showMsg(`${kind === 'keep' ? '残す' : '消す'}パーツを更新しました（「反映して再読み込み」で見た目に反映されます）`);
+}
+function m3dRenderParts() {
+  const id = m3dCurrentId();
+  const box = document.getElementById('m3d-parts-list');
+  const keepEl = document.getElementById('m3d-keep');
+  const hideEl = document.getElementById('m3d-hide');
+  if (!box) return;
+  if (!id) {
+    box.innerHTML = '<span class="note">チャンピオンを選ぶと一覧が出ます</span>';
+    if (keepEl) keepEl.value = ''; if (hideEl) hideEl.value = '';
+    return;
+  }
+  if (keepEl) keepEl.value = m3dPartsFor('keep', id);
+  if (hideEl) hideEl.value = m3dPartsFor('hide', id);
+  const rep = m3dPartsReport[id];
+  if (!rep || !rep.length) { box.innerHTML = '<span class="note">パーツ情報がありません（モデル未読み込み）</span>'; return; }
+  box.innerHTML = rep.map(r => `<div style="display:flex;gap:6px;align-items:center;padding:2px 0;${r.removed ? 'color:var(--red)' : ''}">
+    <span style="width:14px;flex-shrink:0">${r.removed ? '✕' : '○'}</span>
+    <span style="flex:1;word-break:break-all">${esc(r.name)}</span>
+    <span class="note" style="flex-shrink:0">${esc(r.why)}</span>
+  </div>`).join('');
+}
+function m3dReloadCurrent() {
+  const id = m3dCurrentId();
+  if (!id) return showMsg('先にチャンピオンを選んでください', true);
+  m3dRebuild();          // モデルを組み直す＝新しい除去設定で読み込み直す
+  showMsg('除去設定を反映して再読み込みしました');
+}
+function m3dCopyParts() {
+  const fmt = (obj) => Object.keys(obj).length === 0 ? '{\n}' :
+    '{\n' + Object.entries(obj).map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`).join('\n') + '\n}';
+  const text = `const B3D_HIDE_PARTS = ${fmt(M3D_HIDE_PARTS)};\nconst B3D_KEEP_PARTS = ${fmt(M3D_KEEP_PARTS)};`;
+  navigator.clipboard.writeText(text)
+    .then(() => showMsg('B3D_HIDE_PARTS / B3D_KEEP_PARTS をコピーしました。board3d.js の同名の設定に貼り替えてください'))
+    .catch(() => showMsg('コピーに失敗しました', true));
 }
 
 /* 足元（下から25%）の重心＝立っている位置。board3d.js と同じ考え方 */
@@ -1867,6 +1974,7 @@ function m3dRebuild() {
       const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone) ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
       m3dFixMaterials(m);
       m3dPruneStrayParts(m, c.id);   // 🧹 実ゲーム(board3d.js)と同じく、フィッティング計算の前に浮遊パーツを除去
+      if (c.id === m3dSel) m3dRenderParts();   // 除去設定パネルの一覧を最新化
       holder.userData.model = m;
       holder.add(m);
       // 元モデルの実寸を控えておく（極端に大きい/小さいファイルの切り分け用）
@@ -1974,7 +2082,7 @@ function m3dSelect(id) {
   document.getElementById('m3d-current').textContent = (m3dChamps().find(c => c.id === m3dSel) || {}).jaName || m3dSel;
   document.getElementById('m3d-controls').style.opacity = 1;
   document.getElementById('m3d-controls').style.pointerEvents = 'auto';
-  m3dSyncPanel(); m3dRenderList(); m3dShowSize();
+  m3dSyncPanel(); m3dRenderList(); m3dShowSize(); m3dRenderParts();
   // 既に並んでいる駒を選び直しただけなら、組み直さない＝その場から動かさない
   if (already) m3dHighlight();
   else { m3dRebuild(); m3dResetCam(); }
