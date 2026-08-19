@@ -877,6 +877,16 @@ function rollShop(level, rng){
   });
 }
 
+/* ── 🌿 Wisp（ウィスプ）: ショップ右端に出現する使い切り枠 ──
+   本家は毎ラウンドおきに出現するが、このシムでは 2-1 のみに出現させる。 */
+const WISP_ROUNDS = ['2-1'];
+function rollWisp(rng){
+  const pool = (typeof WISPS_DATA !== 'undefined' ? WISPS_DATA : []).filter(w => !w.hidden);
+  if (pool.length === 0) return null;
+  const w = pool[Math.floor(rng() * pool.length)];
+  return { ...w, uid: rng() };
+}
+
 /* ── 🎬 振り返り: 前後スナップショットの差分からアクション名を生成 ── */
 function describeReplayDiff(prev, cur) {
   if (!prev) return '🏁 ゲーム開始';
@@ -3458,6 +3468,20 @@ function HistoryScreen({ account, onChangeAccount, onBack, onPlay }) {
                         </div>
                       </div>
                     )}
+                    {/* 🌿 WISP HISTORY */}
+                    {(d.wisps || []).length > 0 && (
+                      <div style={{ background: 'rgba(13,21,37,0.8)', border: '1px solid rgba(192,132,252,0.3)', borderRadius: 10, padding: '12px 14px' }}>
+                        <div style={{ fontSize: 9, color: 'var(--prismatic)', marginBottom: 10, fontWeight: 700, letterSpacing: 2 }}>WISP HISTORY</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {d.wisps.map((w, wi) => (
+                            <div key={wi} title={w.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, width: 52 }}>
+                              <div style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, background: '#000', borderRadius: 6, border: `1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}` }}>{w.icon || '🌿'}</div>
+                              <div style={{ fontSize: 8.5, color: 'white', textAlign: 'center', lineHeight: 1.1, wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{w.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* 右：ITEMS縦列 + 盤面 + BENCH */}
@@ -3870,6 +3894,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const rngAug = useMemo(() => createRNG(seed + "_aug"), [seed]);
   const rngMisc = useMemo(() => createRNG(seed + "_misc"), [seed]);
   const rngEnc  = useMemo(() => createRNG(seed + "_enc"),  [seed]);
+  const rngWisp = useMemo(() => createRNG(seed + "_wisp"), [seed]);
 
 
 
@@ -3920,6 +3945,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [board, setBoard] = useState(initBoard);
   const [inventory, setInventory] = useState([]);
   const [augments, setAugments] = useState([]);
+  const [wisps, setWisps] = useState([]);           // 🌿 取得済みWisp履歴
+  const [wispSlot, setWispSlot] = useState(null);    // 🌿 現在ショップに出ているWisp（未購入なら随時null）
   const [passiveBuffs, setPassiveBuffs] = useState([]);
   const [dragSrc, setDragSrc] = useState(null);
   const [dropMsg, setDropMsg] = useState(null);
@@ -3988,6 +4015,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       data: {
         level, gold,
         augments: augments.map(a => ({ id: a.id, name: a.name, tier: a.tier, history: slimAugHistory(a.history) })),
+        // 🌿 取得済みWisp（結果画面・みんなの結果で表示するため保存）
+        wisps: wisps.map(w => ({ id: w.id, name: w.name, category: w.category, icon: w.icon })),
         board: pickBoard(board),
         bench: pickUnits(bench),
         // 盤面ユニットに装備中の完成系アイテム（素材・消耗品を除く）
@@ -4094,6 +4123,28 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       }
     }
   };
+  // 🌿 Wispを購入（1ラウンドにつき1個まで＝wispSlotが埋まっている間だけ押せる）
+  const doBuyWisp = () => {
+    if (!wispSlot) return;
+    const cost = wispSlot.cost || 0;
+    if (gold < cost) return;
+    const bought = wispSlot;
+    setGold(g => g - cost);
+    setWisps(prev => [...prev, bought]);
+    setWispSlot(null);
+    if (typeof bought.effect === 'function') {
+      try { bought.effect({ gold, level, xp }, rngWisp, augmentHelpers); }
+      catch (e) { console.error('wisp effect error', e); }
+    } else {
+      setDropMsg(
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+          <span style={{ fontSize: 20 }}>{bought.icon || '🌿'}</span>
+          <span>{bought.name} を獲得しました</span>
+        </div>
+      );
+    }
+  };
+
   // カーソル下の駒を売却
   const doSellHovered = () => {
     if (phaseRef.current === 'drop') return; // 素材ドロップ中は無効
@@ -5393,6 +5444,9 @@ useEffect(() => {
       setShop(finalShop);
     }
 
+    // 🌿 Wisp: 出現ラウンドなら1体抽選、それ以外は（未購入でも）消える
+    setWispSlot(WISP_ROUNDS.includes(nextR) ? rollWisp(rngWisp) : null);
+
     if (nextR === '2-1' && !noMoreAugments) {
       setShowAugment(true);
     }
@@ -6106,6 +6160,21 @@ const handleAugmentPick = (aug, historyContext) => {
                 </div>
               )}
 
+              {/* 🌿 Wisp履歴 */}
+              {wisps.length > 0 && (
+                <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(192,132,252,0.3)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:11,color:'var(--prismatic)',fontFamily:'Noto Sans JP',marginBottom:10,fontWeight:700,letterSpacing:2}}>WISP HISTORY</div>
+                  <div style={{display:'flex',flexWrap:'wrap',gap:10}}>
+                    {wisps.map((w, i) => (
+                      <div key={i} title={w.desc || ''} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5, width:64, background:'rgba(0,0,0,0.3)', padding:'8px 4px', borderRadius:8, border:`1px solid ${(WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)')}66` }}>
+                        <div style={{ width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, background:'#000', borderRadius:6, border:`1px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}` }}>{w.icon || '🌿'}</div>
+                        <div style={{ fontSize:9.5, color:'white', textAlign:'center', lineHeight:1.15, wordBreak:'break-all', display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{w.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* シナジー */}
               {activeTraits.length > 0 && (
                 <div style={{background:'rgba(13,21,37,0.8)',border:'1px solid rgba(0,229,192,0.2)',borderRadius:10,padding:'12px 14px'}}>
@@ -6643,59 +6712,125 @@ const handleAugmentPick = (aug, historyContext) => {
           borderLeft: '1px solid var(--border)',
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          padding: isLandscapeMobile ? '8px 3px' : '15px 5px',
-          gap: isLandscapeMobile ? 10 : 20,
-          overflowY: 'auto',
           flexShrink: 0,
+          overflow: 'hidden',
           paddingRight: 'env(safe-area-inset-right)'
         }}>
-          <div style={{ fontSize: 9, color: 'var(--gold2)', fontWeight: 900, marginBottom: 5, textAlign: 'center', fontFamily:'Noto Sans JP' }}>AUGMENTS</div>
-          
-          {augments.map((a, i) => (
-            <div key={i} style={{
-              display: 'flex',
-              flexDirection: 'column', // 縦に並べる
-              alignItems: 'center',
-              gap: 6,
-              textAlign: 'center',
-              width: '100%'
-            }}>
-              {/* アイコン画像 */}
-              <div style={{
-                width: 50,
-                height: 50,
-                background: '#000',
-                border: `2px solid ${TIER_COLORS[a.tier]}`,
-                borderRadius: 8,
+          {/* 🌟 上段: 取得済みオーグメント */}
+          <div style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: isLandscapeMobile ? '8px 3px' : '15px 5px',
+            gap: isLandscapeMobile ? 10 : 20,
+            overflowY: 'auto',
+          }}>
+            <div style={{ fontSize: 9, color: 'var(--gold2)', fontWeight: 900, marginBottom: 5, textAlign: 'center', fontFamily:'Noto Sans JP' }}>AUGMENTS</div>
+
+            {augments.map((a, i) => (
+              <div key={i} style={{
                 display: 'flex',
+                flexDirection: 'column', // 縦に並べる
                 alignItems: 'center',
-                justifyContent: 'center',
-                overflow: 'hidden',
-                boxShadow: `0 0 10px ${TIER_COLORS[a.tier]}33`,
-                flexShrink: 0
+                gap: 6,
+                textAlign: 'center',
+                width: '100%'
               }}>
-                <img 
-                  src={getAugmentIconUrl(a)} 
-                  style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
-                  onError={(e) => e.target.style.display = 'none'}
-                />
+                {/* アイコン画像 */}
+                <div style={{
+                  width: 50,
+                  height: 50,
+                  background: '#000',
+                  border: `2px solid ${TIER_COLORS[a.tier]}`,
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  boxShadow: `0 0 10px ${TIER_COLORS[a.tier]}33`,
+                  flexShrink: 0
+                }}>
+                  <img 
+                    src={getAugmentIconUrl(a)} 
+                    style={{ width: '85%', height: '85%', objectFit: 'contain' }} 
+                    onError={(e) => e.target.style.display = 'none'}
+                  />
+                </div>
+                
+                {/* 名前 */}
+                <span style={{
+                  fontSize: 10,
+                  color: TIER_COLORS[a.tier],
+                  fontWeight: 900,
+                  lineHeight: 1.2,
+                  fontFamily: 'Noto Sans JP',
+                  wordBreak: 'break-all',
+                  padding: '0 4px'
+                }}>
+                  {a.name}
+                </span>
               </div>
-              
-              {/* 名前 */}
-              <span style={{
-                fontSize: 10,
-                color: TIER_COLORS[a.tier],
-                fontWeight: 900,
-                lineHeight: 1.2,
-                fontFamily: 'Noto Sans JP',
-                wordBreak: 'break-all',
-                padding: '0 4px'
+            ))}
+          </div>
+
+          {/* 🌿 下段: 取得済みWisp（何を取得したか分かるように） */}
+          <div style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            padding: isLandscapeMobile ? '8px 3px' : '15px 5px',
+            gap: isLandscapeMobile ? 10 : 16,
+            overflowY: 'auto',
+            borderTop: '1px solid var(--border)',
+          }}>
+            <div style={{ fontSize: 9, color: 'var(--prismatic)', fontWeight: 900, marginBottom: 5, textAlign: 'center', fontFamily:'Noto Sans JP' }}>WISPS</div>
+
+            {wisps.map((w, i) => (
+              <div key={i} title={w.desc || ''} style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                textAlign: 'center',
+                width: '100%'
               }}>
-                {a.name}
-              </span>
-            </div>
-          ))}
+                {/* アイコン（絵文字） */}
+                <div style={{
+                  width: 50,
+                  height: 50,
+                  background: '#000',
+                  border: `2px solid ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}`,
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                  boxShadow: `0 0 10px ${WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)'}33`,
+                  flexShrink: 0,
+                  fontSize: 22,
+                }}>
+                  {w.icon || '🌿'}
+                </div>
+
+                {/* 名前 */}
+                <span style={{
+                  fontSize: 10,
+                  color: WISP_CATEGORY_COLORS[w.category] || 'var(--prismatic)',
+                  fontWeight: 900,
+                  lineHeight: 1.2,
+                  fontFamily: 'Noto Sans JP',
+                  wordBreak: 'break-all',
+                  padding: '0 4px'
+                }}>
+                  {w.name}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       {/* 🌟 メインエリア全体の閉じタグの直前まで */}
 
@@ -6968,6 +7103,29 @@ const handleAugmentPick = (aug, historyContext) => {
                       )}
                     </div>
                   ))}
+
+                  {/* 🌿 Wispスロット（2-1のみ出現。購入すると即座に消える） */}
+                  {wispSlot && (
+                    <div
+                      onClick={doBuyWisp}
+                      title={wispSlot.desc || ''}
+                      style={{
+                        ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }),
+                        borderRadius:4,
+                        background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
+                        border:`3px solid ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}`,
+                        boxShadow:`0 0 10px ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}55`,
+                        cursor:'pointer', position:'relative', overflow:'hidden',
+                        opacity: gold < (wispSlot.cost||0) ? 0.4 : 1,
+                        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+                      }}>
+                      <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:44, height:6, background:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)', borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
+                      <div style={{ fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>{wispSlot.icon || '🌿'}</div>
+                      <div style={{ fontSize:10.5, fontWeight:900, color:'white', textAlign:'center', lineHeight:1.15, padding:'0 4px', textShadow:'0 0 3px rgba(0,0,0,1)' }}>{wispSlot.name}</div>
+                      <div style={{ fontSize:9, fontWeight:700, color:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)' }}>{WISP_CATEGORY_JA[wispSlot.category] || wispSlot.category}</div>
+                      <div style={{ position:'absolute', bottom:4, right:6, fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {wispSlot.cost || 0}</div>
+                    </div>
+                  )}
                 </div>
               </div>
             </React.Fragment>
