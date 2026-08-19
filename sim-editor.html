@@ -77,6 +77,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="tab" data-page="items">🗡️ アイテム</div>
   <div class="tab" data-page="encounters">🎲 遭遇</div>
   <div class="tab" data-page="models">🧊 3Dモデル</div>
+  <div class="tab" data-page="arena">🏟️ アリーナ</div>
 </div>
 
 <!-- ══════════ 📊 記録データ ══════════ -->
@@ -407,6 +408,83 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
         </div>
         <div class="note" style="margin-top:6px">カンマ区切りで複数指定できます（大文字小文字は区別しません）。「コピー」で <b>B3D_KEEP_PARTS / B3D_HIDE_PARTS</b> を書き出せるので、board3d.js の同名の設定に貼り替えてください。</div>
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════ 🏟️ アリーナ ══════════ -->
+<div class="page" id="page-arena">
+  <div class="card">
+    <h2>🏟️ アリーナ画像とグリッドの位置合わせ</h2>
+    <div class="row">
+      <span class="note" id="arena-status">真上から見た図です。六角形のグリッドが画像の地面にぴったり重なるよう調整します。</span>
+      <button onclick="arenaReset()">初期値に戻す</button>
+      <button class="gold" onclick="arenaCopy()">📋 arena 設定をコピー</button>
+    </div>
+    <div class="note">ここで合わせた値を <b>sim-config.js の arena</b> に貼り付けるとゲームに反映されます。数値の基準は「六角マス1個の半径 = 1.0」です。</div>
+  </div>
+
+  <div class="card" style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
+    <div>
+      <div id="arena-view" style="width:100%;height:560px;background:#0b1622;border:1px solid var(--bg2);border-radius:10px;overflow:hidden;position:relative">
+        <div style="position:absolute;left:10px;top:10px;font-size:11px;color:#cbd5e1;background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px;pointer-events:none">真上から表示（ドラッグでの回転はしません）</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px">画像（ファイル名 または http〜のURL）</label>
+        <input type="text" id="arena-image" style="width:100%" onchange="arenaSet('image', this.value)">
+        <div class="note" style="margin-top:4px">index.html と同じ場所に置いた画像はファイル名だけでOK。空にすると画像なしになります。</div>
+      </div>
+
+      <div style="margin-bottom:10px">
+        <label>横幅 (width)</label>
+        <div class="row" style="gap:6px">
+          <input type="range" id="arena-width" min="5" max="60" step="0.1" oninput="arenaSet('width', this.value)" style="flex:1">
+          <input type="number" id="arena-width-n" step="0.1" onchange="arenaSet('width', this.value)" style="width:72px">
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>奥行き (depth)</label>
+        <div class="row" style="gap:6px">
+          <input type="range" id="arena-depth" min="5" max="60" step="0.1" oninput="arenaSet('depth', this.value)" style="flex:1">
+          <input type="number" id="arena-depth-n" step="0.1" onchange="arenaSet('depth', this.value)" style="width:72px">
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>左右 (x)</label>
+        <div class="row" style="gap:6px">
+          <input type="range" id="arena-x" min="-15" max="15" step="0.05" oninput="arenaSet('x', this.value)" style="flex:1">
+          <input type="number" id="arena-x-n" step="0.05" onchange="arenaSet('x', this.value)" style="width:72px">
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>前後 (z)</label>
+        <div class="row" style="gap:6px">
+          <input type="range" id="arena-z" min="-15" max="15" step="0.05" oninput="arenaSet('z', this.value)" style="flex:1">
+          <input type="number" id="arena-z-n" step="0.05" onchange="arenaSet('z', this.value)" style="width:72px">
+        </div>
+      </div>
+      <div style="margin-bottom:10px">
+        <label>高さ (y)</label>
+        <div class="row" style="gap:6px">
+          <input type="number" id="arena-y-n" step="0.01" onchange="arenaSet('y', this.value)" style="width:72px">
+          <span class="note" style="flex:1">真上からは変化しません。ベンチ列(-0.06)より下にします。</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:4px;padding:10px">
+        <h2 style="font-size:12px">表示</h2>
+        <label style="font-weight:400;display:block"><input type="checkbox" id="arena-showgrid" checked onchange="arenaRender()"> グリッド線</label>
+        <label style="font-weight:400;display:block"><input type="checkbox" id="arena-showbench" checked onchange="arenaRender()"> ベンチ列</label>
+        <div class="row" style="gap:6px;margin-top:6px">
+          <label style="font-size:11px">拡大</label>
+          <input type="range" id="arena-zoom" min="0.4" max="2.5" step="0.05" value="1" oninput="arenaRender()" style="flex:1">
+        </div>
+      </div>
+      <div class="note" style="margin-top:8px">盤面(4行×7列)とベンチ(9枠)の位置は、ゲーム本体と<b>まったく同じ計算</b>で描いています。ここで合えばゲームでも合います。</div>
     </div>
   </div>
 </div>
@@ -1631,6 +1709,173 @@ window.addEventListener('load', () => {
   } catch (err) { showMsg('自動読み込みでエラー: ' + err.message, true); }
 });
 
+
+/* ═══════════════════════════════════════════════════════════
+   🏟️ アリーナ位置合わせ
+   ── 盤面(4行×7列)とベンチ(9枠)を board3d.js とまったく同じ計算で組み、
+      真上から正射影で見下ろす。その下にアリーナ画像を敷いて位置を合わせる。
+   ── ここで合わせた値は sim-config.js の arena にそのまま貼れる。
+   ═══════════════════════════════════════════════════════════ */
+const ARENA_KEY = 'tft_arena_cfg_' + (CURRENT_SET || 'set18');
+const ARENA_DEFAULT = { image:'tft-arena-skin-runic.webp', width:26, depth:17, x:0, y:-0.09, z:1.0 };
+let arenaCfg = Object.assign({}, ARENA_DEFAULT);
+let arenaScene, arenaCam, arenaRenderer, arenaGroundMesh, arenaGridGroup, arenaBenchGroup, arenaBoardOffset = {x:0,z:0};
+let arenaInited = false;
+
+/* board3d.js と同じ定数 */
+const A3D = { R:1.0, TH:0.02, GAP:1.10,
+  get HSP(){ return Math.sqrt(3)*this.R*this.GAP; },
+  get VSP(){ return 1.5*this.R*this.GAP; } };
+
+function arenaLoadCfg() {
+  try {
+    const raw = localStorage.getItem(ARENA_KEY);
+    if (raw) arenaCfg = Object.assign({}, ARENA_DEFAULT, JSON.parse(raw));
+  } catch (e) {}
+  // sim-config.js に既に arena があればそれを初期値にする
+  const fromCfg = (window.SIM_CONFIG || {}).arena;
+  if (fromCfg && !localStorage.getItem(ARENA_KEY)) arenaCfg = Object.assign({}, ARENA_DEFAULT, fromCfg);
+}
+function arenaSaveCfg() { try { localStorage.setItem(ARENA_KEY, JSON.stringify(arenaCfg)); } catch (e) {} }
+
+function arenaSyncInputs() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+  set('arena-image', arenaCfg.image);
+  ['width','depth','x','z'].forEach(k => { set('arena-'+k, arenaCfg[k]); set('arena-'+k+'-n', arenaCfg[k]); });
+  set('arena-y-n', arenaCfg.y);
+}
+
+function arenaSet(key, value) {
+  if (key === 'image') arenaCfg.image = String(value || '').trim();
+  else arenaCfg[key] = Number(value) || 0;
+  arenaSaveCfg(); arenaSyncInputs();
+  if (key === 'image') arenaApplyImage(); else arenaRender();
+}
+function arenaReset() {
+  arenaCfg = Object.assign({}, ARENA_DEFAULT);
+  arenaSaveCfg(); arenaSyncInputs(); arenaApplyImage(); arenaRender();
+  showMsg('初期値に戻しました');
+}
+function arenaCopy() {
+  const c = arenaCfg;
+  const text = `  arena: {\n    image: '${c.image}',\n    width: ${c.width},\n    depth: ${c.depth},\n    x: ${c.x},\n    y: ${c.y},\n    z: ${c.z},\n  },`;
+  navigator.clipboard.writeText(text)
+    .then(() => showMsg('arena 設定をコピーしました。sim-config.js の arena に貼り替えてください'))
+    .catch(() => showMsg('コピーに失敗しました', true));
+}
+
+function arenaInit() {
+  const host = document.getElementById('arena-view');
+  if (!host || arenaInited) { if (arenaInited) { arenaResize(); arenaRender(); } return; }
+  if (typeof THREE === 'undefined') { document.getElementById('arena-status').textContent = 'three.js を読み込めませんでした'; return; }
+  arenaInited = true;
+
+  arenaScene = new THREE.Scene();
+  arenaScene.background = new THREE.Color(0x0b1622);
+  arenaRenderer = new THREE.WebGLRenderer({ antialias:true });
+  arenaRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  host.appendChild(arenaRenderer.domElement);
+  arenaCam = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 100);
+  arenaCam.position.set(0, 20, 0);
+  arenaCam.up.set(0, 0, -1);          // 画面の上＝盤面の奥(-z)。lookAt より先に決めないと向きが定まらない
+  arenaCam.lookAt(0, 0, 0);
+
+  // ── 地面（画像）
+  const planeGeo = new THREE.PlaneGeometry(1, 1);
+  arenaGroundMesh = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ color:0x1b2740 }));
+  arenaGroundMesh.rotation.x = -Math.PI/2;
+  arenaScene.add(arenaGroundMesh);
+
+  // ── グリッド（board3d.js と同じ組み方）
+  arenaGridGroup = new THREE.Group(); arenaScene.add(arenaGridGroup);
+  arenaBenchGroup = new THREE.Group(); arenaScene.add(arenaBenchGroup);
+
+  const hexGeo = new THREE.CylinderGeometry(A3D.R, A3D.R, A3D.TH, 6);
+  const benchGeo = new THREE.CylinderGeometry(A3D.R*0.92, A3D.R*0.92, A3D.TH, 6);
+  const lineMat = new THREE.LineBasicMaterial({ color:0xffe9a8 });
+  const benchLineMat = new THREE.LineBasicMaterial({ color:0x7fd0ff });
+
+  // 位置計算は board3d.js の該当箇所と同一
+  const measure = new THREE.Group();
+  const mk = (geo, x, y, z, mat, group) => {
+    const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), mat);
+    e.rotation.y = Math.PI/6; e.position.set(x, y, z);
+    group.add(e);
+    const m = new THREE.Mesh(geo); m.rotation.y = Math.PI/6; m.position.set(x, y, z); measure.add(m);
+    return e;
+  };
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 7; c++) {
+    const x = c*A3D.HSP + (r%2 ? A3D.HSP/2 : 0), z = r*A3D.VSP;
+    mk(hexGeo, x, 0, z, lineMat, arenaGridGroup);
+  }
+  const benchZ = 3*A3D.VSP + A3D.VSP*1.35;
+  const benchSpan = 9*A3D.HSP*0.98;
+  const boardW = 6*A3D.HSP + A3D.HSP/2;
+  const benchX0 = (boardW - (benchSpan - A3D.HSP*0.98))/2;
+  for (let i = 0; i < 9; i++) {
+    mk(benchGeo, benchX0 + i*A3D.HSP*0.98, -0.06, benchZ, benchLineMat, arenaBenchGroup);
+  }
+  // board3d.js は boardGroup 全体の外接箱の中心を原点に持ってくる。同じ補正をかける
+  const bb = new THREE.Box3().setFromObject(measure), ctr = new THREE.Vector3(); bb.getCenter(ctr);
+  arenaBoardOffset = { x: -ctr.x, z: -ctr.z };
+  arenaGridGroup.position.set(arenaBoardOffset.x, 0, arenaBoardOffset.z);
+  arenaBenchGroup.position.set(arenaBoardOffset.x, 0, arenaBoardOffset.z);
+
+  arenaApplyImage();
+  arenaResize();
+  window.addEventListener('resize', () => { if (document.getElementById('page-arena').classList.contains('active')) { arenaResize(); arenaRender(); } });
+}
+
+function arenaApplyImage() {
+  if (!arenaGroundMesh) return;
+  const url = arenaCfg.image;
+  if (!url) {
+    arenaGroundMesh.material = new THREE.MeshBasicMaterial({ color:0x1b2740 });
+    arenaRender(); return;
+  }
+  new THREE.TextureLoader().load(url, (tex) => {
+    if (THREE.SRGBColorSpace !== undefined) tex.colorSpace = THREE.SRGBColorSpace;
+    else if (THREE.sRGBEncoding !== undefined) tex.encoding = THREE.sRGBEncoding;
+    arenaGroundMesh.material = new THREE.MeshBasicMaterial({ map:tex });
+    document.getElementById('arena-status').textContent = '画像を読み込みました。グリッドが地面に重なるよう width / depth / x / z を調整してください。';
+    arenaRender();
+  }, undefined, () => {
+    arenaGroundMesh.material = new THREE.MeshBasicMaterial({ color:0x5a2230 });
+    document.getElementById('arena-status').textContent = '画像を読み込めませんでした（ファイル名とファイルの場所を確認してください）';
+    arenaRender();
+  });
+}
+
+function arenaResize() {
+  const host = document.getElementById('arena-view');
+  if (!host || !arenaRenderer) return;
+  const w = host.clientWidth || 800, h = host.clientHeight || 560;
+  arenaRenderer.setSize(w, h);   // 画角は arenaRender() が left/right/top/bottom で決める
+}
+
+function arenaRender() {
+  if (!arenaInited || !arenaRenderer) return;
+  const host = document.getElementById('arena-view');
+  const w = host.clientWidth || 800, h = host.clientHeight || 560;
+  const zoom = Number((document.getElementById('arena-zoom') || {}).value) || 1;
+  // 画像全体がだいたい収まる高さを基準にする
+  const halfH = Math.max(arenaCfg.depth, 8) * 0.62 / zoom;
+  const halfW = halfH * (w / h);
+  arenaCam.left = -halfW; arenaCam.right = halfW;
+  arenaCam.top = halfH; arenaCam.bottom = -halfH;
+  arenaCam.updateProjectionMatrix();
+
+  arenaGroundMesh.position.set(arenaCfg.x, -0.5, arenaCfg.z);
+  arenaGroundMesh.scale.set(arenaCfg.width, arenaCfg.depth, 1);
+
+  const showGrid = (document.getElementById('arena-showgrid') || {}).checked !== false;
+  const showBench = (document.getElementById('arena-showbench') || {}).checked !== false;
+  if (arenaGridGroup) arenaGridGroup.visible = showGrid;
+  if (arenaBenchGroup) arenaBenchGroup.visible = showGrid && showBench;
+
+  arenaRenderer.render(arenaScene, arenaCam);
+}
+
 /* ═══════════════════════════════════════════════════════════
    🧊 3Dモデル調整タブ
    ── 六角形1マスを基準に、各チャンピオンの大きさ・中心位置・向きを決める。
@@ -2217,6 +2462,11 @@ document.querySelector('.tab[data-page="models"]').addEventListener('click', () 
       document.getElementById('m3d-status').textContent = 'モデルを読み込んでいます…';
     }
   }, 30);
+});
+
+/* 🏟️ アリーナタブを開いたときに初期化（タブが表示されてから寸法を測る必要がある） */
+document.querySelector('.tab[data-page="arena"]').addEventListener('click', () => {
+  setTimeout(() => { arenaLoadCfg(); arenaSyncInputs(); arenaInit(); arenaResize(); arenaRender(); }, 30);
 });
 
 </script>
