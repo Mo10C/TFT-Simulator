@@ -552,8 +552,15 @@ const B3D_HIDE_PARTS = {
 };
 const B3D_KEEP_PARTS = {
   // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない（通常は自動で残ります）
-  varus: ['bow', 'arrow'],   // 🏹 ヴァルス: 弓に番えた矢のパーツ名が「arrow」に一致し誤って消えるため明示的に保護
+  varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'。本体から離れて持たれているため
+                                        //    「本体の箱に触れない＝浮遊パーツ」と誤判定されて消えていた。明示的に保護する。
 };
+/* 🗡️ 手に持つ装備の一般的なパーツ名。これに当てはまるものは
+   「本体から離れている／極小」だけを理由には消さない（明らかな飛翔体名なら消す）。
+   ヴァルスの弓 'Weapon1' のように、本体の当たり判定から外れた位置で
+   持たれている武器が丸ごと消えるのを防ぐための共通ガード。 */
+const B3D_HELD_NAME = /weapon|bow|staff|sword|blade|scythe|hammer|axe|shield|glaive|lantern|book|orb\b/i;
+
 function b3dPruneStrayParts(root, champId){
   const id = String(champId || '').toLowerCase();
   const hideList = (B3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
@@ -582,8 +589,9 @@ function b3dPruneStrayParts(root, champId){
     if(it === body) return;
     if(keepList.some(k => it.name.includes(k))) return;
     const byName     = B3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
-    const detached   = !bodyBox.intersectsBox(it.box);      // 本体から浮いている
-    const negligible = it.vol < body.vol * 0.00002;         // 極小のゴミ
+    const held       = B3D_HELD_NAME.test(it.name);         // 手持ち装備っぽい名前
+    const detached   = !bodyBox.intersectsBox(it.box) && !held;   // 本体から浮いている（手持ち装備は除く）
+    const negligible = it.vol < body.vol * 0.00002 && !held;      // 極小のゴミ（手持ち装備は除く）
     if(byName || detached || negligible){
       // three の Box3 は非表示メッシュも含めて計算するので、隠すのではなく外す。
       // 隠すだけだと、浮いたクナイを含めた大きさに合わせて本体が縮んでしまう。

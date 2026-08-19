@@ -1782,8 +1782,11 @@ const M3D_HIDE_PARTS = {
 };
 const M3D_KEEP_PARTS = {
   // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない
-  varus: ['bow', 'arrow'],   // 🏹 ヴァルス: 弓に番えた矢のパーツ名がarrowに一致し誤って消えるため保護（board3d.jsと同じ）
+  varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'（board3d.jsと同じ内容にすること）
 };
+/* 🗡️ 手に持つ装備の一般的なパーツ名（board3d.js の B3D_HELD_NAME と同じ内容にすること） */
+const M3D_HELD_NAME = /weapon|bow|staff|sword|blade|scythe|hammer|axe|shield|glaive|lantern|book|orb\b/i;
+
 function m3dPruneStrayParts(root, champId) {
   const id = String(champId || '').toLowerCase();
   const hideList = (M3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
@@ -1808,8 +1811,9 @@ function m3dPruneStrayParts(root, champId) {
     if (it === body) return;
     if (keepList.some(k => it.name.includes(k))) return;
     const byName = M3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
-    const detached = !bodyBox.intersectsBox(it.box);
-    const negligible = it.vol < body.vol * 0.00002;
+    const held = M3D_HELD_NAME.test(it.name);
+    const detached = !bodyBox.intersectsBox(it.box) && !held;
+    const negligible = it.vol < body.vol * 0.00002 && !held;
     if (byName || detached || negligible) {
       if (it.n.parent) it.n.parent.remove(it.n); else it.n.visible = false;
       removed.push(it.n.name || '(無名)');
