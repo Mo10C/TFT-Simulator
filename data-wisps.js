@@ -39,10 +39,10 @@ const WISP_CATEGORY_COLORS = {
   misc: '#94a3b8',
 };
 
-/* ── カテゴリ → アイコンURLのスラッグ（MetaTFTのカード分類アイコン用・未確認の推測値） ──
-   例: https://cdn.metatft.com/cdn-cgi/image/width=72,format=webp/file/metatft/categories/t_shopcardsicon18_champion_tier1.png
-   「economy」の実際のスラッグ表記が不明なため 'goldxp' と仮定している。違っていた場合は
-   ここを直すだけで全Wispのアイコンに反映される（読み込み失敗時は絵文字アイコンに自動フォールバック）。 */
+/* ── カテゴリ → アイコンURLのスラッグ（MetaTFTのカード分類アイコン用・URL形式は確認済み） ──
+   例: https://cdn.metatft.com/cdn-cgi/image/width=72,format=auto/https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_champion_tier1.png
+   スラッグは公式カテゴリ名（Champion/Combat/GoldXP/Item/Misc/Risky/Shop）の小文字表記。
+   tier番号（価格帯との対応）は未確認の推測値。読み込み失敗時は絵文字アイコンに自動フォールバックする。 */
 const WISP_CATEGORY_SLUG = {
   economy: 'goldxp',
   shop: 'shop',

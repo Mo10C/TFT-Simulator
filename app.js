@@ -707,14 +707,15 @@ const getAugmentIconUrl = (aug) => {
   return `https://cdn.metatft.com/cdn-cgi/image/width=64,format=webp/file/metatft/augments/${aug.imgName}.png`;
 };
 
-// 🌿 Wispのカテゴリアイコン（MetaTFTのカードアイコン規則を踏襲・推測URL）
-//    価格が高いWispほど「tier」が上がる想定で 0G=tier1 〜 4G以上=tier5 に割り振る。
+// 🌿 Wispのカテゴリアイコン（MetaTFTのカードアイコン規則。URL形式は確認済み）
+//    価格が高いWispほど「tier」が上がる想定で 0G=tier1 〜 4G以上=tier5 に割り振る（tier番号の対応は推測）。
 //    読み込みに失敗した場合は呼び出し側で絵文字アイコンに自動フォールバックする。
 const wispIconTier = (cost) => Math.max(1, Math.min(5, (Number(cost) || 0) + 1));
 const getWispIconUrl = (wisp) => {
   if (!wisp) return "";
   const slug = (typeof WISP_CATEGORY_SLUG !== 'undefined' && WISP_CATEGORY_SLUG[wisp.category]) || wisp.category || 'misc';
-  return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=webp/file/metatft/categories/t_shopcardsicon18_${slug}_tier${wispIconTier(wisp.cost)}.png`;
+  const inner = `https://cdn.metatft.com/file/metatft/charms/categories/t_shopcardsicon18_${slug}_tier${wispIconTier(wisp.cost)}.png`;
+  return `https://cdn.metatft.com/cdn-cgi/image/width=72,format=auto/${inner}`;
 };
 
 // 📛 記録に保存されたアイテム名（文字列）から表示用オブジェクトを復元する。
@@ -7115,28 +7116,42 @@ const handleAugmentPick = (aug, historyContext) => {
                   {shop.map((champ, i) => {
                     const showWisp = wispSlot && i === WISP_SLOT_INDEX;
                     if (showWisp) {
+                      const catColor = WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)';
                       return (
                         <div key={i}
                           onClick={doBuyWisp}
-                          title={wispSlot.desc || ''}
                           style={{
                             ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }),
-                            borderRadius:4,
-                            background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
-                            border:`3px solid ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}`,
-                            boxShadow:`0 0 10px ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}55`,
-                            cursor:'pointer', position:'relative', overflow:'hidden',
+                            display:'flex', flexDirection:'column', gap:3,
+                            cursor:'pointer',
                             opacity: gold < (wispSlot.cost||0) ? 0.4 : 1,
-                            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
                           }}>
-                          <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:44, height:6, background:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)', borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
-                          <div style={{ position:'relative', width:34, height:34, display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>
-                            {wispSlot.icon || '🌿'}
-                            <img src={getWispIconUrl(wispSlot)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                          {/* 枠: 上にアイコン、下にウィスプの効果説明 */}
+                          <div style={{
+                            flex:1, minHeight:0, position:'relative', overflow:'hidden', borderRadius:4,
+                            background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
+                            border:`3px solid ${catColor}`,
+                            boxShadow:`0 0 10px ${catColor}55`,
+                            display:'flex', flexDirection:'column', alignItems:'center',
+                            padding:'12px 5px 4px',
+                          }}>
+                            {/* アイコンバッジ（枠の一番上、境界に少し重ねる） */}
+                            <div style={{ position:'absolute', top:-11, left:'50%', transform:'translateX(-50%)', width:28, height:28, borderRadius:'50%', background:'#0b1220', border:`2px solid ${catColor}`, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', boxShadow:'0 2px 6px rgba(0,0,0,0.5)', zIndex:2 }}>
+                              <span style={{ fontSize:14, lineHeight:1 }}>{wispSlot.icon || '🌿'}</span>
+                              <img src={getWispIconUrl(wispSlot)} onError={(e)=>{ e.target.style.display='none'; }} style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'contain' }} />
+                            </div>
+                            {/* 効果説明 */}
+                            <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden' }}>
+                              <span style={{ fontSize:8.5, color:'rgba(255,255,255,0.92)', textAlign:'center', lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:6, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-all' }}>
+                                {wispSlot.desc}
+                              </span>
+                            </div>
                           </div>
-                          <div style={{ fontSize:10.5, fontWeight:900, color:'white', textAlign:'center', lineHeight:1.15, padding:'0 4px', textShadow:'0 0 3px rgba(0,0,0,1)' }}>{wispSlot.name}</div>
-                          <div style={{ fontSize:9, fontWeight:700, color:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)' }}>{WISP_CATEGORY_JA[wispSlot.category] || wispSlot.category}</div>
-                          <div style={{ position:'absolute', bottom:4, right:6, fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {wispSlot.cost || 0}</div>
+                          {/* 枠外: ウィスプ名と価格 */}
+                          <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', gap:4, padding:'0 2px' }}>
+                            <span style={{ fontSize:9.5, fontWeight:900, color:'white', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
+                            <span style={{ fontSize:10, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
+                          </div>
                         </div>
                       );
                     }
