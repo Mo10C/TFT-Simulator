@@ -118,6 +118,24 @@ function b3dAutoModelUrl(id){
    ── CHAMP_MODELS3D[<champ.id>] に .glb パスを入れるとモデル表示に切替。
    ============================================================ */
 const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
+
+/* ═══ 🏟️ アリーナ（盤面の地面）の設定 ═══
+   ── sim-config.js の arena で上書きできる。例:
+        arena: { image:'tft-arena-skin-runic.webp', width:22, depth:16, x:0, z:1.2 }
+      image … 地面に貼る画像。index.html と同じ場所に置けばファイル名だけでOK（http〜のURLも可）。
+              未設定・読み込み失敗時は画像なし（影だけ）になり、盤面は従来どおり動く。
+      width/depth … 地面の板の大きさ。盤面がアリーナの内側（草地の部分）に収まるよう調整する。
+      x / z … 地面の位置。盤面に対して画像がズレているときに動かす。
+      y … 地面の高さ。ベンチ列(-0.06)より下でないと駒の足が地面に埋まるので既定は -0.09。
+   ── 数値は「六角マス1個の半径=1.0」が基準。盤面は横約13・奥行約6の大きさ。 */
+const B3D_ARENA = Object.assign(
+  { image:'tft-arena-skin-runic.webp', width:26, depth:17, x:0, y:-0.09, z:1.0 },
+  (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.arena) || {}
+);
+
+/* ✏️ 六角形の淵（駒を持ち上げている間だけ見える線）の色と濃さ */
+const B3D_HEX_EDGE_COLOR = 0xffe9a8;
+const B3D_HEX_EDGE_OPACITY = 0.55;
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
 const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
 
@@ -502,6 +520,7 @@ function b3dFixMaterials(root){
     // スキニングで頂点が動くと元のバウンディングボックスから外れ、
     // 角度によってパーツごと消える（カリング）ため切っておく
     n.frustumCulled = false;
+    n.castShadow = true;      // 🌑 アリーナの地面に影を落とす（接地感が出る）
     if(!n.material) return;
     const mats = Array.isArray(n.material) ? n.material : [n.material];
     mats.forEach(m=>{
@@ -950,18 +969,37 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
 
 
       const boardGroup = new THREE.Group(); scene.add(boardGroup);
+
+      /* 🟡 マスは「見えない当たり判定」にする。
+         ── 本家と同じく、普段はアリーナの地面がそのまま見えて、
+            駒を持ち上げたときだけ六角形の淵が浮かび上がる。
+         ── visible=false にするとレイキャストから外れる three のバージョンがあるため、
+            完全透明なマテリアル（opacity:0 / depthWrite:false）で「描かれないが当たる」状態にする。 */
       const hexGeo = new THREE.CylinderGeometry(B3D.R,B3D.R,B3D.TH,6);
-      const hexMat = new THREE.MeshStandardMaterial({color:0x16233c,metalness:0.35,roughness:0.6,emissive:0x0a1424,emissiveIntensity:0.6});
-      const hexHover = new THREE.MeshStandardMaterial({color:0x274063,metalness:0.4,roughness:0.5,emissive:0x1a9fff,emissiveIntensity:0.5});
+      const mkInvisible = () => new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false });
+      const hexMat = mkInvisible();
+      const benchMat = mkInvisible();
+      // ドラッグ中にカーソルが乗っているマスだけ、うっすら光らせる
+      const hexHover = new THREE.MeshBasicMaterial({ color:B3D_HEX_EDGE_COLOR, transparent:true, opacity:0.18, depthWrite:false });
+
+      /* ✏️ 六角形の淵（駒を持ち上げている間だけ表示） */
+      const hexEdgeGroup = new THREE.Group(); hexEdgeGroup.visible = false; boardGroup.add(hexEdgeGroup);
+      const hexEdgeMat = new THREE.LineBasicMaterial({ color:B3D_HEX_EDGE_COLOR, transparent:true, opacity:B3D_HEX_EDGE_OPACITY });
+      const addHexEdge = (geo, x, y, z) => {
+        const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), hexEdgeMat);
+        e.rotation.y = Math.PI/6; e.position.set(x, y + 0.012, z);   // 地面と重なってチラつかないよう少し浮かせる
+        hexEdgeGroup.add(e);
+      };
+
       const hexes=[];
       const slots=[];
       for(let r=0;r<4;r++) for(let c=0;c<7;c++){
         const x=c*B3D.HSP+(r%2?B3D.HSP/2:0), z=r*B3D.VSP;
         const m=new THREE.Mesh(hexGeo, hexMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,0,z);
-        m.receiveShadow=true; m.userData={kind:'board',idx:r*7+c,x,y:0,z}; boardGroup.add(m); hexes.push(m); slots.push(m);
+        m.userData={kind:'board',idx:r*7+c,x,y:0,z}; boardGroup.add(m); hexes.push(m); slots.push(m);
+        addHexEdge(hexGeo, x, 0, z);
       }
-      // 🪑 ベンチ（9スロット）── 盤面の手前に一列。少し低く、色を変えて区別する
-      const benchMat = new THREE.MeshStandardMaterial({color:0x121d31,metalness:0.3,roughness:0.7,emissive:0x0a1424,emissiveIntensity:0.4});
+      // 🪑 ベンチ（9スロット）── 盤面の手前に一列
       const benchGeo = new THREE.CylinderGeometry(B3D.R*0.92,B3D.R*0.92,B3D.TH,6);
       const benchZ = 3*B3D.VSP + B3D.VSP*1.35;
       const benchSpan = 9*B3D.HSP*0.98;
@@ -971,10 +1009,41 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       for(let i=0;i<9;i++){
         const x=benchX0 + i*B3D.HSP*0.98, z=benchZ;
         const m=new THREE.Mesh(benchGeo, benchMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,-0.06,z);
-        m.receiveShadow=true; m.userData={kind:'bench',idx:i,x,y:-0.06,z}; boardGroup.add(m); benchSlots.push(m); slots.push(m);
+        m.userData={kind:'bench',idx:i,x,y:-0.06,z}; boardGroup.add(m); benchSlots.push(m); slots.push(m);
+        addHexEdge(benchGeo, x, -0.06, z);
       }
       const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
       boardGroup.position.set(-ctr.x,0,-ctr.z);
+
+      /* 🏟️ アリーナの地面（画像を1枚貼った板）。駒の影はここが受ける。
+         ── 画像・大きさ・位置は sim-config.js の arena で調整できる（B3D_ARENA 参照）。 */
+      const arenaGroup = new THREE.Group(); scene.add(arenaGroup);
+      {
+        const A = B3D_ARENA;
+        const planeGeo = new THREE.PlaneGeometry(1,1);
+        // 影を受ける面（画像の有無に関わらず必要）
+        const shadowCatcher = new THREE.Mesh(planeGeo, new THREE.ShadowMaterial({ opacity:0.34 }));
+        shadowCatcher.rotation.x = -Math.PI/2;
+        shadowCatcher.position.set(A.x, A.y, A.z);
+        shadowCatcher.scale.set(A.width, A.depth, 1);
+        shadowCatcher.receiveShadow = true;
+        arenaGroup.add(shadowCatcher);
+
+        if (A.image) {
+          const texLoader = new THREE.TextureLoader();
+          texLoader.setCrossOrigin && texLoader.setCrossOrigin('anonymous');
+          texLoader.load(A.image, (tex) => {
+            b3dSetSRGB(tex);
+            if (THREE.LinearFilter) { tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; }
+            tex.anisotropy = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 1;
+            const ground = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map:tex, toneMapped:false }));
+            ground.rotation.x = -Math.PI/2;
+            ground.position.set(A.x, A.y - 0.01, A.z);  // 影を受ける面のさらに下
+            ground.scale.set(A.width, A.depth, 1);
+            arenaGroup.add(ground);
+          }, undefined, () => { /* 画像が無ければ影だけ出す */ });
+        }
+      }
 
       // 選択中マスのハイライト枠
       const selMarker=new THREE.LineSegments(
@@ -990,7 +1059,9 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const setPtr=(e)=>{ const b=renderer.domElement.getBoundingClientRect();
         ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1; ray.setFromCamera(ptr,camera); };
       const pickSlot=()=>{ const hit=ray.intersectObjects(slots,false)[0]; return hit?hit.object:null; };
-      const clearHover=()=>{ if(hovered){ hovered.material = hovered.userData.kind==='bench'?benchMat.clone():hexMat.clone(); hovered=null; } };
+      const clearHover=()=>{ if(hovered){ hovered.material = mkInvisible(); hovered=null; } };
+      // 六角形の淵は「駒を持ち上げている / 何かをドラッグしている」間だけ見せる
+      const showHexEdges=(on)=>{ hexEdgeGroup.visible = !!on; };
 
       const onDown=(e)=>{
         down=[e.clientX,e.clientY];
@@ -1010,6 +1081,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
           drag=pending; pending=null;
           if(S.current && S.current.spawning) S.current.spawning.delete(drag.piece);
           drag.piece.position.y = drag.home.y + 0.9;   // 持ち上げる
+          showHexEdges(true);                          // 持ち上げた瞬間にマスの淵を出す
           if(pickRef.current) pickRef.current(drag.kind, drag.idx);
         }
         if(drag){
@@ -1020,7 +1092,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         }
         const slot=pickSlot();
         if(hovered && (!slot || slot!==hovered)) clearHover();
-        if(slot){ slot.material=hexHover; hovered=slot; }
+        if(slot && drag){ slot.material=hexHover; hovered=slot; }   // 持っているときだけ光らせる
         // 売却キーなど「カーソル下の駒」を使う機能のために、今どのマスを指しているか伝える
         if(hoverRef.current) hoverRef.current(slot ? slot.userData.kind : null, slot ? slot.userData.idx : null);
       };
@@ -1030,7 +1102,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         down=null;
         try{ renderer.domElement.releasePointerCapture(e.pointerId); }catch(err){}
         controls.enabled = !!(S.current && S.current.freeView);   // 固定視点のままなら戻さない
-        clearHover();
+        clearHover(); showHexEdges(false);
         setPtr(e); const slot=pickSlot();
         if(drag){
           const d=drag; drag=null; pending=null;
@@ -1046,12 +1118,14 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         if(slot && cbRef.current) cbRef.current(slot.userData.kind, slot.userData.idx);
       };
       // 2Dのアイテム欄などから canvas 上にドロップされた場合の受け口
-      const onDragOver=(e)=>{ e.preventDefault(); setPtr(e); const slot=pickSlot();
+      const onDragOver=(e)=>{ e.preventDefault(); setPtr(e); showHexEdges(true); const slot=pickSlot();
         if(hovered && (!slot || slot!==hovered)) clearHover();
         if(slot){ slot.material=hexHover; hovered=slot; } };
-      const onDomDropEv=(e)=>{ e.preventDefault(); clearHover(); setPtr(e); const slot=pickSlot();
+      const onDragLeaveEv=(e)=>{ clearHover(); showHexEdges(false); };
+      const onDomDropEv=(e)=>{ e.preventDefault(); clearHover(); showHexEdges(false); setPtr(e); const slot=pickSlot();
         if(slot && domDropRef.current) domDropRef.current(slot.userData.kind, slot.userData.idx); };
       renderer.domElement.addEventListener('dragover', onDragOver);
+      renderer.domElement.addEventListener('dragleave', onDragLeaveEv);
       renderer.domElement.addEventListener('drop', onDomDropEv);
 
       renderer.domElement.addEventListener('pointerdown', onDown);
@@ -1099,7 +1173,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
          spawning:new Set(), // 出現アニメ中の駒
          mixers: new Map(), // 駒ごとのAnimationMixerを保持
          clock: new THREE.Clock(), // 経過時間計算用
-         raf, ro, onDown, onUp, onMove };
+         raf, ro, onDown, onUp, onMove, onDragLeaveEv };
       S.current=s;
       b3dFitCamera(s);          // まず画面いっぱいに収まる位置を算出
       if(savedViewRef.current) b3dApplySavedView(s, savedViewRef.current);  // 保存済みの視点があれば上書き
@@ -1110,7 +1184,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const x=S.current; if(!x) return;
       cancelAnimationFrame(x.raf);
       cancelAnimationFrame(x.raf); try{ x.ro.disconnect(); }catch(e){}
-      const el=x.renderer.domElement; el.removeEventListener('dragover',x.onDragOver); el.removeEventListener('drop',x.onDomDropEv); el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
+      const el=x.renderer.domElement; el.removeEventListener('dragover',x.onDragOver); el.removeEventListener('dragleave',x.onDragLeaveEv); el.removeEventListener('drop',x.onDomDropEv); el.removeEventListener('pointerdown',x.onDown); el.removeEventListener('pointerup',x.onUp); el.removeEventListener('pointermove',x.onMove);
       x.pieces.forEach(g=>b3dDispose(g));
       if(x.itemDom){ x.itemDom.forEach(b=>b.remove()); x.itemDom.clear(); }
       if(x.itemLayer && x.itemLayer.parentNode) x.itemLayer.parentNode.removeChild(x.itemLayer); try{ x.renderer.dispose(); }catch(e){}
