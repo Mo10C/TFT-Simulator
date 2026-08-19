@@ -552,6 +552,7 @@ const B3D_HIDE_PARTS = {
 };
 const B3D_KEEP_PARTS = {
   // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない（通常は自動で残ります）
+  varus: ['bow', 'arrow'],   // 🏹 ヴァルス: 弓に番えた矢のパーツ名が「arrow」に一致し誤って消えるため明示的に保護
 };
 function b3dPruneStrayParts(root, champId){
   const id = String(champId || '').toLowerCase();

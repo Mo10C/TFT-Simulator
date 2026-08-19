@@ -880,6 +880,7 @@ function rollShop(level, rng){
 /* ── 🌿 Wisp（ウィスプ）: ショップ右端に出現する使い切り枠 ──
    本家は毎ラウンドおきに出現するが、このシムでは 2-1 のみに出現させる。 */
 const WISP_ROUNDS = ['2-1'];
+const WISP_SLOT_INDEX = 4;   // 🌿 ショップの5枚目（最後の枠）をWispが置き換える
 function rollWisp(rng){
   const pool = (typeof WISPS_DATA !== 'undefined' ? WISPS_DATA : []).filter(w => !w.hidden);
   if (pool.length === 0) return null;
@@ -7062,9 +7063,34 @@ const handleAugmentPick = (aug, historyContext) => {
                   </button>
                 </div>
 
-                {/* チャンピオン枠 */}
+                {/* チャンピオン枠（🌿 Wisp出現中は5枚目=index4がWispに置き換わる。購入すると元のチャンピオンが現れる） */}
                 <div style={{ display:'flex', gap: isLandscapeMobile ? 5 : 8, height:'100%', padding:'8px 0', flex: isLandscapeMobile ? '1 1 0' : '0 0 auto', minWidth: 0, justifyContent:'center', alignItems: isLandscapeMobile ? 'center' : 'stretch' }}>
-                  {shop.map((champ, i) => (
+                  {shop.map((champ, i) => {
+                    const showWisp = wispSlot && i === WISP_SLOT_INDEX;
+                    if (showWisp) {
+                      return (
+                        <div key={i}
+                          onClick={doBuyWisp}
+                          title={wispSlot.desc || ''}
+                          style={{
+                            ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }),
+                            borderRadius:4,
+                            background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
+                            border:`3px solid ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}`,
+                            boxShadow:`0 0 10px ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}55`,
+                            cursor:'pointer', position:'relative', overflow:'hidden',
+                            opacity: gold < (wispSlot.cost||0) ? 0.4 : 1,
+                            display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
+                          }}>
+                          <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:44, height:6, background:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)', borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
+                          <div style={{ fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>{wispSlot.icon || '🌿'}</div>
+                          <div style={{ fontSize:10.5, fontWeight:900, color:'white', textAlign:'center', lineHeight:1.15, padding:'0 4px', textShadow:'0 0 3px rgba(0,0,0,1)' }}>{wispSlot.name}</div>
+                          <div style={{ fontSize:9, fontWeight:700, color:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)' }}>{WISP_CATEGORY_JA[wispSlot.category] || wispSlot.category}</div>
+                          <div style={{ position:'absolute', bottom:4, right:6, fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {wispSlot.cost || 0}</div>
+                        </div>
+                      );
+                    }
+                    return (
                     <div key={i}
                       draggable={!!champ && gold>=champ.cost}
                       onDragStart={champ ? () => setDragSrc({ type:'shop', idx:i }) : undefined}
@@ -7102,30 +7128,8 @@ const handleAugmentPick = (aug, historyContext) => {
                         </React.Fragment>
                       )}
                     </div>
-                  ))}
-
-                  {/* 🌿 Wispスロット（2-1のみ出現。購入すると即座に消える） */}
-                  {wispSlot && (
-                    <div
-                      onClick={doBuyWisp}
-                      title={wispSlot.desc || ''}
-                      style={{
-                        ...(isLandscapeMobile ? { flex:'1 1 0', minWidth:0, height:'auto', maxHeight:'100%', aspectRatio:'400/237' } : { height:'100%', aspectRatio:'400/237', flexShrink:0 }),
-                        borderRadius:4,
-                        background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
-                        border:`3px solid ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}`,
-                        boxShadow:`0 0 10px ${WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)'}55`,
-                        cursor:'pointer', position:'relative', overflow:'hidden',
-                        opacity: gold < (wispSlot.cost||0) ? 0.4 : 1,
-                        display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3,
-                      }}>
-                      <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:44, height:6, background:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)', borderBottomLeftRadius:4, borderBottomRightRadius:4, border:'1px solid rgba(0,0,0,0.5)', borderTop:'none' }}></div>
-                      <div style={{ fontSize:26, lineHeight:1, filter:'drop-shadow(0 0 4px rgba(0,0,0,0.6))' }}>{wispSlot.icon || '🌿'}</div>
-                      <div style={{ fontSize:10.5, fontWeight:900, color:'white', textAlign:'center', lineHeight:1.15, padding:'0 4px', textShadow:'0 0 3px rgba(0,0,0,1)' }}>{wispSlot.name}</div>
-                      <div style={{ fontSize:9, fontWeight:700, color:WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)' }}>{WISP_CATEGORY_JA[wispSlot.category] || wispSlot.category}</div>
-                      <div style={{ position:'absolute', bottom:4, right:6, fontSize:12, fontWeight:900, color:'var(--gold2)', textShadow:'0 0 3px rgba(0,0,0,1)', fontFamily:'Orbitron' }}>💰 {wispSlot.cost || 0}</div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             </React.Fragment>
