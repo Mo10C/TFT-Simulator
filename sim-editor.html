@@ -428,7 +428,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
   <div class="card" style="display:grid;grid-template-columns:1fr 280px;gap:14px;align-items:start">
     <div>
       <div id="arena-view" style="width:100%;height:560px;background:#0b1622;border:1px solid var(--bg2);border-radius:10px;overflow:hidden;position:relative">
-        <div style="position:absolute;left:10px;top:10px;font-size:11px;color:#cbd5e1;background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px;pointer-events:none">真上から表示（ドラッグでの回転はしません）</div>
+        <div style="position:absolute;left:10px;top:10px;font-size:11px;color:#cbd5e1;background:rgba(0,0,0,.45);padding:4px 8px;border-radius:6px;pointer-events:none">真上から表示 ／ ホイールで拡大縮小・ドラッグで移動</div>
       </div>
     </div>
 
@@ -481,7 +481,8 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
         <label style="font-weight:400;display:block"><input type="checkbox" id="arena-showbench" checked onchange="arenaRender()"> ベンチ列</label>
         <div class="row" style="gap:6px;margin-top:6px">
           <label style="font-size:11px">拡大</label>
-          <input type="range" id="arena-zoom" min="0.4" max="2.5" step="0.05" value="1" oninput="arenaRender()" style="flex:1">
+          <input type="range" id="arena-zoom" min="0.4" max="2.5" step="0.05" value="1" oninput="arenaZoom=Number(this.value);arenaRender()" style="flex:1">
+          <button onclick="arenaFitView()" style="padding:4px 8px;font-size:11px">全体表示</button>
         </div>
       </div>
       <div class="note" style="margin-top:8px">盤面(4行×7列)とベンチ(9枠)の位置は、ゲーム本体と<b>まったく同じ計算</b>で描いています。ここで合えばゲームでも合います。</div>
@@ -1721,6 +1722,8 @@ const ARENA_DEFAULT = { image:'tft-arena-skin-runic.webp', width:26, depth:17, x
 let arenaCfg = Object.assign({}, ARENA_DEFAULT);
 let arenaScene, arenaCam, arenaRenderer, arenaGroundMesh, arenaGridGroup, arenaBenchGroup, arenaBoardOffset = {x:0,z:0};
 let arenaInited = false;
+let arenaZoom = 1;                 // 表示倍率（ホイール／スライダー共通）
+let arenaPan = { x:0, z:0 };       // 表示の中心（ドラッグで移動）
 
 /* board3d.js と同じ定数 */
 const A3D = { R:1.0, TH:0.02, GAP:1.10,
@@ -1821,9 +1824,45 @@ function arenaInit() {
   arenaGridGroup.position.set(arenaBoardOffset.x, 0, arenaBoardOffset.z);
   arenaBenchGroup.position.set(arenaBoardOffset.x, 0, arenaBoardOffset.z);
 
+  /* 🖱️ ホイールで拡大縮小・ドラッグで移動（回転はしない） */
+  const cv = arenaRenderer.domElement;
+  cv.style.cursor = 'grab';
+  cv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    arenaZoom = Math.min(6, Math.max(0.3, arenaZoom * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+    const sl = document.getElementById('arena-zoom'); if (sl) sl.value = Math.min(2.5, Math.max(0.4, arenaZoom));
+    arenaRender();
+  }, { passive:false });
+
+  let panning = null;
+  cv.addEventListener('pointerdown', (e) => {
+    panning = { sx:e.clientX, sy:e.clientY, px:arenaPan.x, pz:arenaPan.z };
+    cv.style.cursor = 'grabbing';
+    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!panning) return;
+    // 画面上の移動量をワールド座標に変換（正射影なので単純な比率）
+    const h = cv.clientHeight || 1;
+    const worldPerPx = (arenaCam.top - arenaCam.bottom) / h;
+    arenaPan.x = panning.px - (e.clientX - panning.sx) * worldPerPx;
+    arenaPan.z = panning.pz - (e.clientY - panning.sy) * worldPerPx;
+    arenaRender();
+  });
+  const endPan = (e) => { panning = null; cv.style.cursor = 'grab'; try { cv.releasePointerCapture(e.pointerId); } catch (err) {} };
+  cv.addEventListener('pointerup', endPan);
+  cv.addEventListener('pointercancel', endPan);
+
   arenaApplyImage();
   arenaResize();
   window.addEventListener('resize', () => { if (document.getElementById('page-arena').classList.contains('active')) { arenaResize(); arenaRender(); } });
+}
+
+/* 表示を初期状態（全体が見える位置）に戻す */
+function arenaFitView() {
+  arenaZoom = 1; arenaPan = { x:0, z:0 };
+  const sl = document.getElementById('arena-zoom'); if (sl) sl.value = 1;
+  arenaRender();
 }
 
 function arenaApplyImage() {
@@ -1857,13 +1896,16 @@ function arenaRender() {
   if (!arenaInited || !arenaRenderer) return;
   const host = document.getElementById('arena-view');
   const w = host.clientWidth || 800, h = host.clientHeight || 560;
-  const zoom = Number((document.getElementById('arena-zoom') || {}).value) || 1;
   // 画像全体がだいたい収まる高さを基準にする
-  const halfH = Math.max(arenaCfg.depth, 8) * 0.62 / zoom;
+  const halfH = Math.max(arenaCfg.depth, 8) * 0.62 / arenaZoom;
   const halfW = halfH * (w / h);
   arenaCam.left = -halfW; arenaCam.right = halfW;
   arenaCam.top = halfH; arenaCam.bottom = -halfH;
   arenaCam.updateProjectionMatrix();
+  // 見ている位置（ドラッグでずらした分）
+  arenaCam.position.set(arenaPan.x, 20, arenaPan.z);
+  arenaCam.up.set(0, 0, -1);
+  arenaCam.lookAt(arenaPan.x, 0, arenaPan.z);
 
   arenaGroundMesh.position.set(arenaCfg.x, -0.5, arenaCfg.z);
   arenaGroundMesh.scale.set(arenaCfg.width, arenaCfg.depth, 1);
