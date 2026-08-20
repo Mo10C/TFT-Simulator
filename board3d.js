@@ -117,7 +117,6 @@ function b3dAutoModelUrl(id){
    ── 駒 = コスト色の台座 ＋ (自前.glbモデル or ポートレート立て看板) ＋ ★ ＋ アイテムpip。
    ── CHAMP_MODELS3D[<champ.id>] に .glb パスを入れるとモデル表示に切替。
    ============================================================ */
-const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*this.GAP;}, get VSP(){return 1.5*this.R*this.GAP;}, get TOP(){return this.TH/2;} };
 
 /* ═══ 🏟️ アリーナ（盤面の地面）の設定 ═══
    ── sim-config.js の arena で上書きできる。例:
@@ -180,6 +179,15 @@ function b3dPixelRatio(){
 }
 /* テクスチャの異方性フィルタの最大値。斜めに見た面のボケ・ちらつきを抑える */
 let B3D_MAX_ANISO = 1;
+
+/* 🎨 チャンピオンモデルだけの明るさ調整（1.0 で無調整、下げると落ち着く）
+   ── アリーナはマテリアル色をそのまま線形の明るさとして扱うのに対し、
+      モデルはテクスチャを sRGB から正しく変換して読む。この違いで、
+      同じライトでもモデル側だけ明るく（白っぽく）見えることがある。
+   ── ここはモデルのマテリアルにだけ掛かるので、アリーナの色は変わらない。
+   ── sim-config.js の modelTint で上書きできる。例: modelTint: 0.8 */
+const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && typeof window.SIM_CONFIG.modelTint === 'number')
+  ? window.SIM_CONFIG.modelTint : 0.68;
 
 /* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
 const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
@@ -474,66 +482,12 @@ function b3dRemoveItemDom(S, key){
    例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
 /* 🧊 モデルの調整値は data-model-tune.js に集約した（エディタと共有）。
    このファイルが読み込まれていない場合でも落ちないよう空で受ける。 */
-const CHAMP_MODEL_TUNE = (typeof MODEL_TUNE !== 'undefined') ? MODEL_TUNE : {};
 
 /* 足元（下から25%）の重心を求める。武器やエフェクトが横に張り出したモデルでも
    外接箱の中心ではなく「立っている位置」を中心として扱えるようにするため。 */
-function b3dFootprintCenter(obj){
-  const box=new THREE.Box3().setFromObject(obj);
-  const size=new THREE.Vector3(); box.getSize(size);
-  const yCut = box.min.y + Math.max(1e-4, size.y*0.25);
-  const v=new THREE.Vector3();
-  let sx=0, sz=0, n=0;
-  obj.updateMatrixWorld(true);
-  obj.traverse(m=>{
-    if(!m.isMesh || !m.geometry || !m.geometry.attributes || !m.geometry.attributes.position) return;
-    const pos=m.geometry.attributes.position;
-    const step=Math.max(1, Math.floor(pos.count/600));   // 間引いて走査（重いモデル対策）
-    for(let i=0;i<pos.count;i+=step){
-      v.fromBufferAttribute(pos,i); m.localToWorld(v);
-      if(v.y<=yCut){ sx+=v.x; sz+=v.z; n++; }
-    }
-  });
-  if(!n){ const c=new THREE.Vector3(); box.getCenter(c); return { x:c.x, z:c.z }; }
-  return { x:sx/n, z:sz/n };
-}
+/* ↑この処理は model-fit.js に移動（エディタと共有） */
 
-function b3dFitModel(obj, champId){
-  const tune = (champId && CHAMP_MODEL_TUNE[champId]) || {};
-
-  // 1. 初期化
-  obj.position.set(0, 0, 0);
-  obj.rotation.set(0, 0, 0);
-  obj.scale.set(1, 1, 1);
-  if(tune.rotY) obj.rotation.y = tune.rotY;
-
-  // 2. スケーリング（高さを基準にそろえる）
-  const box = new THREE.Box3().setFromObject(obj);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-  const height = size.y || 1;
-  const targetHeight = B3D.R * 2.3 * (tune.scale || 1);
-  obj.scale.setScalar(targetHeight / height);
-
-  // 3. 位置合わせ：足元の重心を六角形の中心に、底面をマスの上面に置く
-  obj.updateMatrixWorld(true);
-  const foot = b3dFootprintCenter(obj);
-  const scaledBox = new THREE.Box3().setFromObject(obj);
-  obj.position.x = -foot.x + (tune.x || 0);
-  obj.position.z = -foot.z + (tune.z || 0);
-  obj.position.y = B3D.TOP - scaledBox.min.y + (tune.y || 0);
-
-  // 4. マテリアル・影設定
-  obj.traverse(n => {
-    if(n.isMesh) {
-      n.castShadow = true;
-      if(n.material) {
-        if(n.material.metalness !== undefined) n.material.metalness = 0.0;
-        if(n.material.roughness !== undefined) n.material.roughness = 0.8;
-      }
-    }
-  });
-}
+/* ↑この処理は model-fit.js に移動（エディタと共有） */
 function b3dMakeAnvil(u){
   // 🔨 金床：チャンピオンではないので簡易マーカーで表示（見えないと置き場所を見失うため）
   const col = new THREE.Color(u.color || '#d9a05b');
@@ -689,6 +643,12 @@ function b3dFixMaterials(root){
       if(typeof m.metalness==='number' && m.metalness>0.25) m.metalness=0.15;  // 環境マップ無しの黒化を防ぐ
       if(typeof m.roughness==='number' && m.roughness<0.35) m.roughness=0.6;
       if(m.color && m.color.getHex()===0x000000 && m.map) m.color.setHex(0xffffff); // 黒ベースカラーで潰れるのを回避
+      /* 🎨 モデルだけを少し落ち着かせる。SkeletonUtils.clone はマテリアルを共有するため、
+         同じマテリアルに何度も掛けて暗くなり続けないよう1回だけ適用する。 */
+      if(m.color && B3D_MODEL_TINT !== 1 && !m.userData.b3dTinted){
+        m.color.multiplyScalar(B3D_MODEL_TINT);
+        m.userData.b3dTinted = true;
+      }
 
       const isVfx = B3D_KEEP_BLEND.test(m.name || '') || B3D_KEEP_BLEND.test(n.name || '');
       const kind  = b3dTextureAlphaKind(m.map);
@@ -724,55 +684,12 @@ function b3dFixMaterials(root){
       パーツ名の一部を書けば残せる。逆に残ってしまうものは B3D_HIDE_PARTS に足す。
    ── ブラウザのコンソールで b3dListParts('akali') を実行すると、
       そのモデルのパーツ名・大きさ・除去判定を一覧できる。 */
-const B3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
-const B3D_HIDE_PARTS = (typeof MODEL_HIDE_PARTS !== 'undefined') ? MODEL_HIDE_PARTS : {};
-const B3D_KEEP_PARTS = (typeof MODEL_KEEP_PARTS !== 'undefined') ? MODEL_KEEP_PARTS : {};
 /* 🗡️ 手に持つ装備の一般的なパーツ名。これに当てはまるものは
    「本体から離れている／極小」だけを理由には消さない（明らかな飛翔体名なら消す）。
    ヴァルスの弓 'Weapon1' のように、本体の当たり判定から外れた位置で
    持たれている武器が丸ごと消えるのを防ぐための共通ガード。 */
-const B3D_HELD_NAME = /weapon|bow|staff|sword|blade|scythe|hammer|axe|shield|glaive|lantern|book|orb\b/i;
 
-function b3dPruneStrayParts(root, champId){
-  const id = String(champId || '').toLowerCase();
-  const hideList = (B3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
-  const keepList = (B3D_KEEP_PARTS[id] || []).map(x => x.toLowerCase());
-  const meshes = [];
-  root.updateWorldMatrix(true, true);
-  root.traverse(n => { if(n.isMesh || n.isSkinnedMesh) meshes.push(n); });
-  if(!meshes.length) return [];
-
-  const info = meshes.map(n => {
-    const box = new THREE.Box3().setFromObject(n);
-    const size = new THREE.Vector3(); box.getSize(size);
-    const pos = n.geometry && n.geometry.attributes && n.geometry.attributes.position;
-    return { n, box, vol: Math.max(size.x * size.y * size.z, 1e-9),
-             verts: pos ? pos.count : 0, name: (n.name || '').toLowerCase() };
-  });
-  // 頂点数が最大のメッシュ＝本体とみなす（大きいだけの浮遊板を本体と誤認しないため）
-  const body = info.reduce((a, b) => (b.verts > a.verts ? b : a), info[0]);
-  const bodyBox = body.box.clone();
-  const c = new THREE.Vector3(); bodyBox.getCenter(c);
-  const sz = new THREE.Vector3(); bodyBox.getSize(sz);
-  bodyBox.setFromCenterAndSize(c, sz.multiplyScalar(1.6));   // 手に持った武器を巻き込まない程度に広げる
-
-  const removed = [];
-  info.forEach(it => {
-    if(it === body) return;
-    if(keepList.some(k => it.name.includes(k))) return;
-    const byName     = B3D_STRAY_NAME.test(it.name) || hideList.some(k => it.name.includes(k));
-    const held       = B3D_HELD_NAME.test(it.name);         // 手持ち装備っぽい名前
-    const detached   = !bodyBox.intersectsBox(it.box) && !held;   // 本体から浮いている（手持ち装備は除く）
-    const negligible = it.vol < body.vol * 0.00002 && !held;      // 極小のゴミ（手持ち装備は除く）
-    if(byName || detached || negligible){
-      // three の Box3 は非表示メッシュも含めて計算するので、隠すのではなく外す。
-      // 隠すだけだと、浮いたクナイを含めた大きさに合わせて本体が縮んでしまう。
-      if(it.n.parent) it.n.parent.remove(it.n); else it.n.visible = false;
-      removed.push({ 名前: it.n.name || '(無名)', 理由: byName ? '名前' : (detached ? '本体から離れている' : '極小') });
-    }
-  });
-  return removed;
-}
+/* ↑この処理は model-fit.js に移動（エディタと共有） */
 
 /* 🔎 パーツ一覧の確認用。コンソールで b3dListParts('akali') と打つと中身が見られる */
 function b3dListParts(champId){
@@ -1449,7 +1366,8 @@ function b3dEncounterModelUrl(enc, champ){
 
 function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY = 0, champId = '' }){
   /* spin: 自転の速さ(rad/秒)。既定 0 ＝ 回さず正面を向いたまま。
-     faceY: 正面の向きが合わないモデル用の固定回転(ラジアン)。例) Math.PI で背面向きを直す。 */
+     faceY: 正面の向きが合わないモデル用の固定回転(ラジアン)。例) Math.PI で背面向きを直す。
+            省略時は data-model-tune.js の rotY（盤面と同じ向き）が使われる。 */
   const mountRef = useRef3D(null);
   const failRef  = useRef3D(onFail);
   failRef.current = onFail;
@@ -1490,7 +1408,11 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
       );
       disc.rotation.x = -Math.PI/2; disc.position.y = 0.01; scene.add(disc);
 
-      const pivot = new THREE.Group(); pivot.rotation.y = faceY || 0; scene.add(pivot);
+      /* 🧭 向きは盤面と同じ設定（data-model-tune.js の rotY）を使う。
+         ここが盤面と別管理だったため、「遭遇では前を向くのに盤面では別の向き」になっていた。
+         faceY を明示的に渡したときだけ、そちらを優先する。 */
+      const tunedRotY = (champId && CHAMP_MODEL_TUNE[champId] && CHAMP_MODEL_TUNE[champId].rotY) || 0;
+      const pivot = new THREE.Group(); pivot.rotation.y = faceY || tunedRotY; scene.add(pivot);
       let mixer = null;
       const clock = new THREE.Clock();
 

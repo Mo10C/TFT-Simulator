@@ -7,6 +7,8 @@
 <script src="sim-config.js"></script>
 <!-- 🧊 3Dモデルの調整値（board3d.js と共有。ここで編集してダウンロードし、このファイルを差し替える） -->
 <script src="data-model-tune.js"></script>
+<!-- 🧊 モデル配置の共通ロジック（ゲーム本体と同じ計算を使うため） -->
+<script src="model-fit.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -2365,7 +2367,8 @@ function m3dRebuild() {
     m3dLoadModel(c).then(gltf => {
       const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone) ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
       m3dFixMaterials(m);
-      m3dPruneStrayParts(m, c.id);   // 🧹 実ゲーム(board3d.js)と同じく、フィッティング計算の前に浮遊パーツを除去
+      // 🧹 ゲーム本体とまったく同じ関数（model-fit.js）で除去する
+      (typeof b3dPruneStrayParts === 'function' ? b3dPruneStrayParts : m3dPruneStrayParts)(m, c.id);
       if (c.id === m3dSel) m3dRenderParts();   // 除去設定パネルの一覧を最新化
       holder.userData.model = m;
       holder.add(m);
@@ -2416,17 +2419,33 @@ function m3dApplyTo(id) {
   const home = holder.position.clone();
   holder.position.set(0, 0, 0); holder.updateMatrixWorld(true);
   try {
-    m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
-    m.rotation.y = (t.rotY || 0) * Math.PI / 180;
-    m.updateMatrixWorld(true);
-    const box = new THREE.Box3().setFromObject(m), size = new THREE.Vector3(); box.getSize(size);
-    m.scale.setScalar((M3D_BASE_HEIGHT * (t.scale || 1)) / (size.y || 1));
-    m.updateMatrixWorld(true);
-    const foot = m3dFootprint(m);                 // 足元の重心（マス中心が原点）
-    const b2 = new THREE.Box3().setFromObject(m);
-    m.position.x = -foot.x + (t.x || 0);          // x/z = マス中心からのズレ
-    m.position.z = -foot.z + (t.z || 0);
-    m.position.y = M3D_TOP - b2.min.y + (t.y || 0);
+    if (typeof b3dFitModel === 'function') {
+      /* ✅ ゲーム本体とまったく同じ関数で配置する。
+         エディタが独自に同じ計算を持っていたころは、片方だけ直して食い違う事故が
+         起きていた（マスの高さ・向きの単位など）。ここを共有にしたことで、
+         この画面での見え方＝盤面での見え方 になる。
+         rotY はエディタ内は「度」、共有ロジックは「ラジアン」なので一時的に変換して渡す。 */
+      const saved = CHAMP_MODEL_TUNE[id];
+      CHAMP_MODEL_TUNE[id] = {
+        scale: t.scale, x: t.x, y: t.y, z: t.z,
+        rotY: (t.rotY || 0) * Math.PI / 180,
+      };
+      try { b3dFitModel(m, id); }
+      finally { if (saved === undefined) delete CHAMP_MODEL_TUNE[id]; else CHAMP_MODEL_TUNE[id] = saved; }
+    } else {
+      // model-fit.js が読めていない場合の保険（従来の計算）
+      m.position.set(0, 0, 0); m.rotation.set(0, 0, 0); m.scale.set(1, 1, 1);
+      m.rotation.y = (t.rotY || 0) * Math.PI / 180;
+      m.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(m), size = new THREE.Vector3(); box.getSize(size);
+      m.scale.setScalar((M3D_BASE_HEIGHT * (t.scale || 1)) / (size.y || 1));
+      m.updateMatrixWorld(true);
+      const foot = m3dFootprint(m);
+      const b2 = new THREE.Box3().setFromObject(m);
+      m.position.x = -foot.x + (t.x || 0);
+      m.position.z = -foot.z + (t.z || 0);
+      m.position.y = M3D_TOP - b2.min.y + (t.y || 0);
+    }
   } finally {
     holder.position.copy(home); holder.updateMatrixWorld(true);
   }
