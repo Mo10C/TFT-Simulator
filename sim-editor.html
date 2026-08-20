@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TFT Simulator - データエディタ</title>
 <script src="sim-config.js"></script>
+<!-- 🧊 3Dモデルの調整値（board3d.js と共有。ここで編集してダウンロードし、このファイルを差し替える） -->
+<script src="data-model-tune.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -273,7 +275,7 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
       <span class="note" id="m3d-status">読み込み中…</span>
       <button onclick="m3dAutoAll()">✨ 全体を自動フィット</button>
       <button onclick="m3dLoadTune()">📂 設定を読み込む</button>
-      <button class="gold" onclick="m3dCopyTune()">📋 CHAMP_MODEL_TUNE をコピー</button>
+      <button class="gold" onclick="m3dDownloadTuneFile()">⬇ data-model-tune.js をダウンロード</button>
       <button onclick="m3dDownloadTune()">⬇ ファイルで書き出す</button>
       <button class="danger" onclick="m3dResetAll()">全部リセット</button>
     </div>
@@ -404,9 +406,9 @@ textarea{width:100%;min-height:56px;resize:vertical;line-height:1.5}
         </div>
         <div class="row" style="gap:6px">
           <button onclick="m3dReloadCurrent()" style="flex:1">🔄 反映して再読み込み</button>
-          <button class="gold" onclick="m3dCopyParts()" style="flex:1">📋 コピー</button>
+          <button class="gold" onclick="m3dDownloadTuneFile()" style="flex:1">⬇ data-model-tune.js</button>
         </div>
-        <div class="note" style="margin-top:6px">カンマ区切りで複数指定できます（大文字小文字は区別しません）。「コピー」で <b>B3D_KEEP_PARTS / B3D_HIDE_PARTS</b> を書き出せるので、board3d.js の同名の設定に貼り替えてください。</div>
+        <div class="note" style="margin-top:6px"><b>ふだんは上の一覧の「消」「残」ボタンを使ってください。</b>下の2つの入力欄は<u>リスト全体を書き換える</u>ので、手で直すと前に指定した分が消えて「消したパーツが戻る」原因になります。<br>カンマ区切りで複数指定でき、大文字小文字は区別しません。調整が終わったら「⬇ data-model-tune.js」でファイルを書き出し、同名のファイルを差し替えてください（board3d.js を触る必要はありません）。</div>
       </div>
     </div>
   </div>
@@ -728,9 +730,6 @@ function buildManagedBlock(kind, state) {
     ? `  ['silver','gold','prismatic'].forEach(t => (AUGMENTS_DATA[t] || []).forEach(a => {
     if (HIDDEN.includes(a.id)) a.hidden = true;
     if (TAGS[a.id]) a.setTag = TAGS[a.id];
-    // エディタで変更した画像をここで確実に反映する（本体の差し替えが効かなくても効く保険）
-    const e = EDITS[a.id];
-    if (e && e.imgName !== undefined) a.imgName = e.imgName;
   }));
   ADDED.forEach(a => { if (AUGMENTS_DATA[a.tier]) AUGMENTS_DATA[a.tier].push(a); });`
     : `  const mark = (it) => { if (!it || !it.id) return;
@@ -1190,7 +1189,6 @@ document.getElementById('wisp-file').addEventListener('change', async ev => {
 let augText = null, augEntries = [], augMB = { hidden: [], tags: {}, added: [] };
 function loadAugText(text) {
   augMB = parseManagedBlock(text);
-  augMB.edits = augMB.edits || {};
   augText = stripManagedBlock(text);
   augEntries = [];
   const idRe = /id:\s*'([^']+)'/g;
@@ -1205,11 +1203,8 @@ function loadAugText(text) {
     const desc = (seg.match(/desc:\s*'((?:[^'\\]|\\.)*)'/) || [])[1];
     const imgName = (seg.match(/imgName:\s*'((?:[^'\\]|\\.)*)'/) || [])[1] ?? '';
     if (name == null || tier == null) continue;
-    // 管理ブロックに画像の変更が記録されていれば、そちらを現在値として扱う
-    const edImg = (augMB.edits && augMB.edits[marks[i].id] && augMB.edits[marks[i].id].imgName !== undefined)
-      ? augMB.edits[marks[i].id].imgName : imgName;
-    augEntries.push({ id: marks[i].id, start, end, name, tier, desc: desc ?? '', imgName: edImg,
-                      newName: name, newTier: tier, newDesc: desc ?? '', newImg: edImg, isAdded: false });
+    augEntries.push({ id: marks[i].id, start, end, name, tier, desc: desc ?? '', imgName,
+                      newName: name, newTier: tier, newDesc: desc ?? '', newImg: imgName, isAdded: false });
   }
   // 管理ブロックの新規追加分もリストに合流
   augMB.added.forEach(a => augEntries.push({ id: a.id, name: a.name, tier: a.tier, desc: a.desc || '', imgName: a.imgName || '',
@@ -1311,9 +1306,6 @@ function downloadAugs() {
     if (a.newTier !== a.tier) seg = seg.replace(`tier: '${a.tier}'`, `tier: '${a.newTier}'`).replace(`tier:'${a.tier}'`, `tier:'${a.newTier}'`);
     if (a.newDesc !== a.desc && a.desc) seg = seg.replace(`desc: '${a.desc}'`, `desc: '${escQ(a.newDesc)}'`).replace(`desc:'${a.desc}'`, `desc:'${escQ(a.newDesc)}'`);
     if ((a.newImg || '') !== (a.imgName || '')) {
-      // 管理ブロックにも記録しておく（本体テキストの置換が失敗しても反映されるようにする）
-      augMB.edits = augMB.edits || {};
-      augMB.edits[a.id] = Object.assign({}, augMB.edits[a.id], { imgName: a.newImg || '' });
       const before = seg;
       // 元が空文字（imgName: ''）でも置換できるようにする
       seg = seg.replace(`imgName: '${a.imgName || ''}'`, `imgName: '${escQ(a.newImg || '')}'`)
@@ -1982,7 +1974,8 @@ function m3dSave() { try { localStorage.setItem(M3D_KEY, JSON.stringify(m3dTune)
 function m3dLoadTune() {
   try {
     const raw = localStorage.getItem(M3D_KEY);
-    m3dTune = raw ? JSON.parse(raw) : {};
+    // 保存が無ければ data-model-tune.js の値（＝ゲームで使われている値）から始める
+    m3dTune = raw ? JSON.parse(raw) : ((typeof MODEL_TUNE !== 'undefined') ? JSON.parse(JSON.stringify(MODEL_TUNE)) : {});
     showMsg('保存済みの設定を読み込みました');
   } catch (e) { m3dTune = {}; }
   m3dRenderList(); m3dSyncPanel(); m3dRebuild();
@@ -2114,7 +2107,7 @@ function m3dLoadModel(c) {
 const M3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
 /* ── 除去設定（エディタで編集可能・localStorageに自動保存） ──
    初期値は board3d.js の B3D_HIDE_PARTS / B3D_KEEP_PARTS と同じ内容にしておくこと。
-   エディタで編集したあと「📋 コピー」で書き出し、board3d.js 側に貼り替える運用。 */
+   エディタで編集したあと data-model-tune.js を書き出し、そのファイルを差し替える運用。 */
 const M3D_HIDE_PARTS_DEFAULT = {
   // 例) akali: ['kunai'], ashe: ['arrow'],
 };
@@ -2123,8 +2116,11 @@ const M3D_KEEP_PARTS_DEFAULT = {
   varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'
 };
 const M3D_PARTS_KEY = 'tft_model_parts_' + (CURRENT_SET || 'set18');
-let M3D_HIDE_PARTS = JSON.parse(JSON.stringify(M3D_HIDE_PARTS_DEFAULT));
-let M3D_KEEP_PARTS = JSON.parse(JSON.stringify(M3D_KEEP_PARTS_DEFAULT));
+/* data-model-tune.js が読み込まれていればそれを初期値にする（ゲームと同じ値からスタートする） */
+let M3D_HIDE_PARTS = JSON.parse(JSON.stringify(
+  (typeof MODEL_HIDE_PARTS !== 'undefined') ? MODEL_HIDE_PARTS : M3D_HIDE_PARTS_DEFAULT));
+let M3D_KEEP_PARTS = JSON.parse(JSON.stringify(
+  (typeof MODEL_KEEP_PARTS !== 'undefined') ? MODEL_KEEP_PARTS : M3D_KEEP_PARTS_DEFAULT));
 function m3dPartsLoad() {
   try {
     const raw = localStorage.getItem(M3D_PARTS_KEY);
@@ -2216,11 +2212,47 @@ function m3dRenderParts() {
   if (hideEl) hideEl.value = m3dPartsFor('hide', id);
   const rep = m3dPartsReport[id];
   if (!rep || !rep.length) { box.innerHTML = '<span class="note">パーツ情報がありません（モデル未読み込み）</span>'; return; }
-  box.innerHTML = rep.map(r => `<div style="display:flex;gap:6px;align-items:center;padding:2px 0;${r.removed ? 'color:var(--red)' : ''}">
+  const hideNow = (M3D_HIDE_PARTS[id] || []).map(x => x.toLowerCase());
+  const keepNow = (M3D_KEEP_PARTS[id] || []).map(x => x.toLowerCase());
+  box.innerHTML = rep.map(r => {
+    const ln = String(r.name).toLowerCase();
+    const inHide = hideNow.includes(ln), inKeep = keepNow.includes(ln);
+    return `<div style="display:flex;gap:6px;align-items:center;padding:2px 0;${r.removed ? 'color:var(--red)' : ''}">
     <span style="width:14px;flex-shrink:0">${r.removed ? '✕' : '○'}</span>
     <span style="flex:1;word-break:break-all">${esc(r.name)}</span>
-    <span class="note" style="flex-shrink:0">${esc(r.why)}</span>
-  </div>`).join('');
+    <span class="note" style="flex-shrink:0;min-width:88px;text-align:right">${esc(r.why)}</span>
+    <button style="padding:1px 6px;font-size:10px;${inHide ? 'background:var(--red);border-color:var(--red);color:#fff' : ''}"
+      title="このパーツだけを消す" onclick="m3dTogglePart('${esc(r.name)}','hide')">消</button>
+    <button style="padding:1px 6px;font-size:10px;${inKeep ? 'background:var(--gold);border-color:var(--gold)' : ''}"
+      title="このパーツを必ず残す" onclick="m3dTogglePart('${esc(r.name)}','keep')">残</button>
+  </div>`;
+  }).join('');
+}
+
+/* パーツ名ぴったりで 消す/残す を1件だけ切り替える。
+   ── テキスト欄を手で編集すると、書き直したときに前の指定が消えてしまい
+      「消したはずのパーツが戻る」ことがあるため、1件ずつ足し引きできるようにした。
+   ── 同じパーツを hide と keep の両方に入れると keep が勝つので、
+      切り替えたほうと反対側からは自動的に外す。 */
+function m3dTogglePart(rawName, kind) {
+  const id = m3dCurrentId();
+  if (!id) return;
+  const name = String(rawName).toLowerCase();
+  const target = kind === 'keep' ? M3D_KEEP_PARTS : M3D_HIDE_PARTS;
+  const other  = kind === 'keep' ? M3D_HIDE_PARTS : M3D_KEEP_PARTS;
+  const cur = (target[id] || []).map(x => x.toLowerCase());
+  const idx = cur.indexOf(name);
+  if (idx === -1) {
+    cur.push(name);
+    const oc = (other[id] || []).map(x => x.toLowerCase()).filter(x => x !== name);
+    if (oc.length) other[id] = oc; else delete other[id];
+  } else {
+    cur.splice(idx, 1);
+  }
+  if (cur.length) target[id] = cur; else delete target[id];
+  m3dPartsSave();
+  m3dRebuild();          // その場で見た目に反映
+  m3dRenderParts();
 }
 function m3dReloadCurrent() {
   const id = m3dCurrentId();
@@ -2228,13 +2260,50 @@ function m3dReloadCurrent() {
   m3dRebuild();          // モデルを組み直す＝新しい除去設定で読み込み直す
   showMsg('除去設定を反映して再読み込みしました');
 }
-function m3dCopyParts() {
-  const fmt = (obj) => Object.keys(obj).length === 0 ? '{\n}' :
-    '{\n' + Object.entries(obj).map(([k, v]) => `  ${k}: ${JSON.stringify(v)},`).join('\n') + '\n}';
-  const text = `const B3D_HIDE_PARTS = ${fmt(M3D_HIDE_PARTS)};\nconst B3D_KEEP_PARTS = ${fmt(M3D_KEEP_PARTS)};`;
-  navigator.clipboard.writeText(text)
-    .then(() => showMsg('B3D_HIDE_PARTS / B3D_KEEP_PARTS をコピーしました。board3d.js の同名の設定に貼り替えてください'))
-    .catch(() => showMsg('コピーに失敗しました', true));
+function m3dCopyParts() { m3dDownloadTuneFile(); }
+
+/* 📥 data-model-tune.js を書き出す。
+   ── 大きさ調整（MODEL_TUNE）とパーツの消す/残す（MODEL_HIDE/KEEP_PARTS）を1ファイルにまとめる。
+   ── これを差し替えるだけでゲームにもエディタにも反映される（board3d.js は触らない）。 */
+function m3dDownloadTuneFile() {
+  const champs = m3dChamps();
+  const tuneLines = champs.filter(c => m3dTune[c.id]).map(c => {
+    const t = m3dGet(c.id), parts = [];
+    if (t.scale !== 1) parts.push(`scale:${t.scale}`);
+    if (t.x) parts.push(`x:${t.x}`);
+    if (t.y) parts.push(`y:${t.y}`);
+    if (t.z) parts.push(`z:${t.z}`);
+    if (t.rotY) parts.push(`rotY:${t.rotY}`);
+    return parts.length ? `  ${c.id}: { ${parts.join(', ')} },   // ${c.jaName}` : null;
+  }).filter(Boolean);
+  const fmt = (obj) => {
+    const keys = Object.keys(obj).filter(k => (obj[k] || []).length);
+    return keys.length ? '{\n' + keys.map(k => `  ${k}: ${JSON.stringify(obj[k])},`).join('\n') + '\n}' : '{\n}';
+  };
+  const out = `/* ============================================================
+   データ: 3Dモデルの調整値 ── sim-editor.html の「🧊 3Dモデル」タブで編集する
+   ── board3d.js（ゲーム本体）と sim-editor.html（エディタ）の両方がこのファイルを読む。
+   ── エディタで調整 →「⬇ data-model-tune.js をダウンロード」→ このファイルを差し替え。
+      board3d.js を触る必要はない。
+
+   MODEL_TUNE       … 大きさ・位置・向きの微調整
+        scale … 1.0 が標準の背丈 / x・z … 立ち位置 / y … 高さ / rotY … 向き（ラジアン）
+   MODEL_HIDE_PARTS … 消したいパーツ（名前の一部でも可・大文字小文字は無視）
+   MODEL_KEEP_PARTS … 自動判定で消えてしまうが残したいパーツ
+   ============================================================ */
+
+const MODEL_TUNE = {
+${tuneLines.join('\n')}
+};
+
+const MODEL_HIDE_PARTS = ${fmt(M3D_HIDE_PARTS)};
+
+const MODEL_KEEP_PARTS = ${fmt(M3D_KEEP_PARTS)};
+`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([out], { type: 'text/javascript' }));
+  a.download = 'data-model-tune.js'; a.click();
+  showMsg('data-model-tune.js をダウンロードしました。このファイルを差し替えればゲームに反映されます');
 }
 
 /* 足元（下から25%）の重心＝立っている位置。board3d.js と同じ考え方 */
@@ -2516,7 +2585,8 @@ document.querySelector('.tab[data-page="models"]').addEventListener('click', () 
   setTimeout(() => {
     m3dInit();
     if (!m3dCompare.length) {
-      try { const raw = localStorage.getItem(M3D_KEY); m3dTune = raw ? JSON.parse(raw) : {}; } catch (e) {}
+      try { const raw = localStorage.getItem(M3D_KEY);
+            m3dTune = raw ? JSON.parse(raw) : ((typeof MODEL_TUNE !== 'undefined') ? JSON.parse(JSON.stringify(MODEL_TUNE)) : {}); } catch (e) {}
       const first = m3dChamps()[0];
       if (first) { m3dSel = first.id; m3dCompare = [first.id]; document.getElementById('m3d-current').textContent = first.jaName;
         document.getElementById('m3d-controls').style.opacity = 1; document.getElementById('m3d-controls').style.pointerEvents = 'auto'; }

@@ -473,67 +473,9 @@ function b3dRemoveItemDom(S, key){
       scale : 大きさの倍率（1が既定）
       rotY  : 向き（ラジアン。Math.PI で180度）
    例: hecarim: { x:0.1, z:-0.05, scale:1.1 } */
-const CHAMP_MODEL_TUNE = {
-  akali: { scale:0.89, z:0.98 },   // アカリ
-  cinderling: { scale:0.35 },   // シンダーリング
-  karma: { scale:1.1 },   // カルマ
-  kobuko: { scale:0.71, x:0.4, z:0.01 },   // コブコ
-  leona: { z:-0.75 },   // レオナ
-  ornn: { z:-0.66 },   // オーン
-  pebbles: { scale:0.71, z:0.14 },   // 小石
-  rakan: { x:-0.27, z:-0.19 },   // ラカン
-  reksai: { scale:0.79, x:0.22 },   // レク＝サイ
-  varus: { scale:1.2, y:-0.29, z:0.8 },   // ヴァルス
-  veigar: { scale:0.82 },   // ベイガー
-  xayah: { z:-0.3 },   // ザヤ
-  yorick: { scale:1.24, x:0.2, y:-0.17, z:-0.46 },   // ヨリック
-  caitlyn: { scale:0.87 },   // ケイトリン
-  elise: { x:-0.14, z:0.19 },   // エリス
-  gromp: { scale:0.69, x:-0.14, y:-0.24 },   // グロンプ
-  kayle: { x:-0.01, y:-0.48, rotY:-21 * Math.PI/180 },   // ケイル
-  leblanc: { scale:1.11, x:0.45, y:-0.2 },   // ルブラン
-  murkwolf: { scale:0.49, x:-0.19, rotY:2 * Math.PI/180 },   // マークウルフ
-  scuttlecrab: { scale:0.7 },   // スカトルクラブ
-  sejuani: { scale:1.18, y:-0.13 },   // セジュアニ
-  teemo: { scale:0.7, x:0.22, z:0.07 },   // ティーモ
-  yunara: { x:-0.03, y:-0.18 },   // ユナラ
-  azir: { scale:1.23, x:0.3, y:-0.29 },   // アジール
-  cassiopeia: { x:-1.55, z:0.18 },   // カシオペア
-  diana: { scale:1.12 },   // ダイアナ
-  fiddlesticks: { scale:1.05, x:0.07, y:-0.57, z:-0.34 },   // フィドルスティックス
-  hecarim: { scale:1.26 },   // ヘカリム
-  khazix: { scale:0.84, x:-0.19, z:0.22 },   // カ＝ジックス
-  kogmaw: { scale:0.64 },   // コグ＝マウ
-  krug: { scale:0.76, x:0.04 },   // クルーグ
-  mamabeak: { scale:0.6 },   // ラプター
-  masteryi: { x:0.08, z:-0.55 },   // マスター・イー
-  rammus: { z:-0.17 },   // ラムス
-  rengar: { scale:0.94, x:0.13, z:-0.17, rotY:10 * Math.PI/180 },   // レンガー
-  tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
-  ahri: { x:-0.81, z:-0.02 },   // アーリ
-  amumu: { x:-0.1, z:0.07 },   // アムム
-  aphelios: { scale:1.24, x:0.12, y:-1, z:1.5 },   // アフェリオス
-  brambleback: { scale:0.79, x:-0.2, z:0.3, rotY:-111 * Math.PI/180 },   // ブランブルバック
-  ezreal: { x:-0.14, z:0.01 },   // エズリアル
-  lillia: { scale:1.12 },   // リリア
-  malphite: { x:-0.15, z:-0.15 },   // マルファイト
-  morgana: { x:-0.17, z:0.24 },   // モルガナ
-  nidalee: { x:0.19, z:-0.24 },   // ニダリー
-  sentinel: { scale:0.8 },   // 古の番人
-  sett: { scale:0.97, x:0.01, z:-0.05 },   // セト
-  sivir: { scale:0.94, x:0.34, z:0.16 },   // シヴィア
-  soraka: { z:0.45 },   // ソラカ
-  zyra: { scale:0.98, z:-0.18 },   // ザイラ
-  alune: { y:-0.45 },   // アルーン
-  ashe: { scale:1.13, y:-0.09, z:-0.39 },   // アッシュ
-  draven: { x:-0.1 },   // ドレイヴン
-  elderdragon: { scale:1.07, x:-1.03, y:-0.83, z:-0.23, rotY:-4 * Math.PI/180 },   // エルダードラゴン
-  gnar: { scale:0.55, z:0.27 },   // ナー
-  ivern: { x:-0.16 },   // アイバーン
-  kennen: { scale:0.82, x:-0.17, z:0.04 },   // ケネン
-  lux: { z:0.6 },   // ラックス
-  maokai: { z:0.77 },   // マオカイ
-};
+/* 🧊 モデルの調整値は data-model-tune.js に集約した（エディタと共有）。
+   このファイルが読み込まれていない場合でも落ちないよう空で受ける。 */
+const CHAMP_MODEL_TUNE = (typeof MODEL_TUNE !== 'undefined') ? MODEL_TUNE : {};
 
 /* 足元（下から25%）の重心を求める。武器やエフェクトが横に張り出したモデルでも
    外接箱の中心ではなく「立っている位置」を中心として扱えるようにするため。 */
@@ -784,14 +726,8 @@ function b3dFixMaterials(root){
    ── ブラウザのコンソールで b3dListParts('akali') を実行すると、
       そのモデルのパーツ名・大きさ・除去判定を一覧できる。 */
 const B3D_STRAY_NAME = /missile|projectile|\bproj\b|_proj|kunai|shuriken|arrow|bolt|dart|spear_throw|throw|_mis\b|grenade|bomb|orb_cast/i;
-const B3D_HIDE_PARTS = {
-  // 例) akali: ['kunai'], ashe: ['arrow'],
-};
-const B3D_KEEP_PARTS = {
-  // 例) ashe: ['bow'],   ← 弓は手に持っているので消さない（通常は自動で残ります）
-  varus: ['weapon', 'bow', 'arrow'],   // 🏹 ヴァルス: 弓の実パーツ名は 'Weapon1'。本体から離れて持たれているため
-                                        //    「本体の箱に触れない＝浮遊パーツ」と誤判定されて消えていた。明示的に保護する。
-};
+const B3D_HIDE_PARTS = (typeof MODEL_HIDE_PARTS !== 'undefined') ? MODEL_HIDE_PARTS : {};
+const B3D_KEEP_PARTS = (typeof MODEL_KEEP_PARTS !== 'undefined') ? MODEL_KEEP_PARTS : {};
 /* 🗡️ 手に持つ装備の一般的なパーツ名。これに当てはまるものは
    「本体から離れている／極小」だけを理由には消さない（明らかな飛翔体名なら消す）。
    ヴァルスの弓 'Weapon1' のように、本体の当たり判定から外れた位置で
