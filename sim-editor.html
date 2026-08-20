@@ -728,6 +728,9 @@ function buildManagedBlock(kind, state) {
     ? `  ['silver','gold','prismatic'].forEach(t => (AUGMENTS_DATA[t] || []).forEach(a => {
     if (HIDDEN.includes(a.id)) a.hidden = true;
     if (TAGS[a.id]) a.setTag = TAGS[a.id];
+    // エディタで変更した画像をここで確実に反映する（本体の差し替えが効かなくても効く保険）
+    const e = EDITS[a.id];
+    if (e && e.imgName !== undefined) a.imgName = e.imgName;
   }));
   ADDED.forEach(a => { if (AUGMENTS_DATA[a.tier]) AUGMENTS_DATA[a.tier].push(a); });`
     : `  const mark = (it) => { if (!it || !it.id) return;
@@ -1187,6 +1190,7 @@ document.getElementById('wisp-file').addEventListener('change', async ev => {
 let augText = null, augEntries = [], augMB = { hidden: [], tags: {}, added: [] };
 function loadAugText(text) {
   augMB = parseManagedBlock(text);
+  augMB.edits = augMB.edits || {};
   augText = stripManagedBlock(text);
   augEntries = [];
   const idRe = /id:\s*'([^']+)'/g;
@@ -1201,8 +1205,11 @@ function loadAugText(text) {
     const desc = (seg.match(/desc:\s*'((?:[^'\\]|\\.)*)'/) || [])[1];
     const imgName = (seg.match(/imgName:\s*'((?:[^'\\]|\\.)*)'/) || [])[1] ?? '';
     if (name == null || tier == null) continue;
-    augEntries.push({ id: marks[i].id, start, end, name, tier, desc: desc ?? '', imgName,
-                      newName: name, newTier: tier, newDesc: desc ?? '', newImg: imgName, isAdded: false });
+    // 管理ブロックに画像の変更が記録されていれば、そちらを現在値として扱う
+    const edImg = (augMB.edits && augMB.edits[marks[i].id] && augMB.edits[marks[i].id].imgName !== undefined)
+      ? augMB.edits[marks[i].id].imgName : imgName;
+    augEntries.push({ id: marks[i].id, start, end, name, tier, desc: desc ?? '', imgName: edImg,
+                      newName: name, newTier: tier, newDesc: desc ?? '', newImg: edImg, isAdded: false });
   }
   // 管理ブロックの新規追加分もリストに合流
   augMB.added.forEach(a => augEntries.push({ id: a.id, name: a.name, tier: a.tier, desc: a.desc || '', imgName: a.imgName || '',
@@ -1304,6 +1311,9 @@ function downloadAugs() {
     if (a.newTier !== a.tier) seg = seg.replace(`tier: '${a.tier}'`, `tier: '${a.newTier}'`).replace(`tier:'${a.tier}'`, `tier:'${a.newTier}'`);
     if (a.newDesc !== a.desc && a.desc) seg = seg.replace(`desc: '${a.desc}'`, `desc: '${escQ(a.newDesc)}'`).replace(`desc:'${a.desc}'`, `desc:'${escQ(a.newDesc)}'`);
     if ((a.newImg || '') !== (a.imgName || '')) {
+      // 管理ブロックにも記録しておく（本体テキストの置換が失敗しても反映されるようにする）
+      augMB.edits = augMB.edits || {};
+      augMB.edits[a.id] = Object.assign({}, augMB.edits[a.id], { imgName: a.newImg || '' });
       const before = seg;
       // 元が空文字（imgName: ''）でも置換できるようにする
       seg = seg.replace(`imgName: '${a.imgName || ''}'`, `imgName: '${escQ(a.newImg || '')}'`)
