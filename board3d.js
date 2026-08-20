@@ -381,8 +381,8 @@ function b3dBuildArena(THREE, A, renderer){
 }
 
 const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
-const B3D_HEX_EDGE_OPACITY = 0.55;
-const B3D_HEX_EDGE_WIDTH = 2.5;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
+const B3D_HEX_EDGE_OPACITY = 0.80;
+const B3D_HEX_EDGE_WIDTH = 4.0;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
 /* 🆕 淵の線だけだと見づらいので、駒を持ち上げている間はマス全体を
    同じ色でうっすら塗りつぶす。淵より薄めにして、駒やホバー色が埋もれないようにする。 */
 const B3D_HEX_FILL_OPACITY = 0.40;
