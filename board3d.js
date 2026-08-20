@@ -186,7 +186,7 @@ const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
 const B3D_ENEMY_EDGE_OPACITY = 0.22;
 
 /* 🪑 ベンチの枠の色（石のくぼみ）。アリーナの石材と揃えてある */
-const B3D_BENCH_COLORS = { frame: 0x272016, inner: 0x14110b };
+const B3D_BENCH_COLORS = { frame: 0x6e6352, inner: 0x4a4336 };
 
 /* ✏️ 六角形の淵（駒を持ち上げている間だけ見える線）の色と濃さ */
 
@@ -197,9 +197,8 @@ const B3D_BENCH_COLORS = { frame: 0x272016, inner: 0x14110b };
    ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面は横約14・奥行約9。
    ── 色は本家アリーナ画像から色を拾い、「ライトを当てた後にその色に見える」よう
       逆算した値を既定にしている（そのまま画像の色を入れると明るくなりすぎるため）。
-      ※ three r128 はマテリアル色を sRGB として解釈せず、hex/255 をそのまま
-        線形の明るさとして扱う。そのため見た目より かなり暗い値になっている。
-        ここを普通の色感覚で明るくすると一気に白飛びするので注意。
+      ※ 明るさ全体は sim-config.js の light.exposure で調整できる。
+        明るすぎる場合は exposure を、暗すぎる場合は逆に上げる。
       ライトの強さ（B3D_LIGHT）を大きく変えたときは色も合わなくなる点に注意。
    ── 色や大きさは sim-config.js の arena で変えられる。
    ═══════════════════════════════════════════════════════════════ */
@@ -217,14 +216,14 @@ function b3dBuildArena(THREE, A, renderer){
 
   /* ── ① 外側の草地（広めの板）── */
   const grass = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2, innerD + A.grassMargin*2),
-                               mat(C.grass || 0x080904));
+                               mat(C.grass || 0x333522));
   grass.rotation.x = -Math.PI/2;
   grass.position.set(ox, y - 0.06, oz);
   grass.receiveShadow = true;
   g.add(grass);
 
   /* ── ② 内側の石畳（駒が立つ面。影はここが受ける）── */
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(innerW, innerD), mat(C.floor || 0x1c150a, 1));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(innerW, innerD), mat(C.floor || 0x5d5137, 1));
   floor.rotation.x = -Math.PI/2;
   floor.position.set(ox, y, oz);
   floor.receiveShadow = true;
@@ -232,7 +231,7 @@ function b3dBuildArena(THREE, A, renderer){
 
   // 石畳の上に、色味の違う大きな石を散らして単調さを消す（見た目だけ・影は受けない）
   if (A.stones !== false) {
-    const stoneMat = [mat(C.stone1 || 0x261d0e, 1), mat(C.stone2 || 0x1d1309, 1), mat(C.stone3 || 0x17150b, 1)];
+    const stoneMat = [mat(C.stone1 || 0x6c5f42, 1), mat(C.stone2 || 0x5f4e33, 1), mat(C.stone3 || 0x55513a, 1)];
     let seed = 20260820;
     const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
     for (let i = 0; i < (A.stoneCount || 26); i++) {
@@ -246,7 +245,7 @@ function b3dBuildArena(THREE, A, renderer){
   }
 
   /* ── ③ 四方の石壁 ── */
-  const wallMat = mat(C.wall || 0x272016, 0.9);
+  const wallMat = mat(C.wall || 0x6e6352, 0.9);
   const addWall = (w, d, x, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMat);
     m.position.set(x, y + wallH/2, z);
@@ -262,7 +261,7 @@ function b3dBuildArena(THREE, A, renderer){
 
   // 左右の壁の上に、本家のような小さな窪みブロックを並べる
   if (A.merlons !== false) {
-    const merlonMat = mat(C.merlon || 0x15130c, 0.9);
+    const merlonMat = mat(C.merlon || 0x504d3e, 0.9);
     const n = A.merlonCount || 6;
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n;
@@ -278,7 +277,7 @@ function b3dBuildArena(THREE, A, renderer){
 
   /* ── ④ 四隅の台座とかがり火 ── */
   if (A.torches !== false) {
-    const pedMat = mat(C.pedestal || 0x2e1b0f, 0.9);
+    const pedMat = mat(C.pedestal || 0x765c45, 0.9);
     const flameMat = new THREE.MeshBasicMaterial({ color: C.flame || 0xff8a3d, toneMapped: false });
     const pedS = wallT * 2.4;
     [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
@@ -304,7 +303,7 @@ function b3dBuildArena(THREE, A, renderer){
   /* ── ⑤ さらに外側の水面（草地の外周を囲む）── */
   if (A.water !== false) {
     const water = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2 + 24, innerD + A.grassMargin*2 + 24),
-                                 mat(C.water || 0x060c0d, 0.35, 0.1));
+                                 mat(C.water || 0x2c3e40, 0.35, 0.1));
     water.rotation.x = -Math.PI/2;
     water.position.set(ox, y - 0.5, oz);
     g.add(water);
