@@ -133,7 +133,7 @@ const B3D_ARENA = Object.assign(
     mode:'built',          // 'built'（組み立て）または 'image'（1枚絵）
     // ── built のときに使う値 ──
     innerWidth:20,         // 石畳（戦うところ）の横幅。盤面＋ベンチは横17.2なので余白込みで20
-    innerDepth:13,         // 石畳の奥行き。盤面＋ベンチは奥行9.7なので余白込みで13
+    innerDepth:18,         // 石畳の奥行き。敵陣4列＋自陣4列＋ベンチで奥行15.5あるので余白込みで18
     wallThickness:0.75,    // 石壁の厚み
     wallHeight:0.85,       // 石壁の高さ
     grassMargin:6,         // 石畳の外に広がる草地の幅
@@ -143,7 +143,7 @@ const B3D_ARENA = Object.assign(
     // ── image のときに使う値 ──
     image:'TFT-arena.jpg', width:26, depth:17,
     // ── 共通 ──
-    x:0, y:-0.09, z:1.0,
+    x:0, y:-0.09, z:-3.3,   // z は敵陣が増えたぶん奥へずらしてある
   },
   (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.arena) || {}
 );
@@ -161,6 +161,13 @@ const B3D_LIGHT = Object.assign(
   (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.light) || {}
 );
 
+/* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
+const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
+const B3D_ENEMY_EDGE_OPACITY = 0.22;
+
+/* 🪑 ベンチの枠の色（石のくぼみ）。アリーナの石材と揃えてある */
+const B3D_BENCH_COLORS = { frame: 0x6e6352, inner: 0x4a4336 };
+
 /* ✏️ 六角形の淵（駒を持ち上げている間だけ見える線）の色と濃さ */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -168,6 +175,9 @@ const B3D_LIGHT = Object.assign(
    ── 本家のステージを参考にした構成:
         草地 → 石畳の床 → 四方を囲む石壁 → 角のかがり火 → 外周の水面
    ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面は横約14・奥行約9。
+   ── 色は本家アリーナ画像から色を拾い、「ライトを当てた後にその色に見える」よう
+      逆算した値を既定にしている（そのまま画像の色を入れると明るくなりすぎるため）。
+      ライトの強さ（B3D_LIGHT）を大きく変えたときは色も合わなくなる点に注意。
    ── 色や大きさは sim-config.js の arena で変えられる。
    ═══════════════════════════════════════════════════════════════ */
 function b3dBuildArena(THREE, A, renderer){
@@ -184,14 +194,14 @@ function b3dBuildArena(THREE, A, renderer){
 
   /* ── ① 外側の草地（広めの板）── */
   const grass = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2, innerD + A.grassMargin*2),
-                               mat(C.grass || 0x5f8f4a));
+                               mat(C.grass || 0x333522));
   grass.rotation.x = -Math.PI/2;
   grass.position.set(ox, y - 0.06, oz);
   grass.receiveShadow = true;
   g.add(grass);
 
   /* ── ② 内側の石畳（駒が立つ面。影はここが受ける）── */
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(innerW, innerD), mat(C.floor || 0xbfb289, 1));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(innerW, innerD), mat(C.floor || 0x5d5137, 1));
   floor.rotation.x = -Math.PI/2;
   floor.position.set(ox, y, oz);
   floor.receiveShadow = true;
@@ -199,7 +209,7 @@ function b3dBuildArena(THREE, A, renderer){
 
   // 石畳の上に、色味の違う大きな石を散らして単調さを消す（見た目だけ・影は受けない）
   if (A.stones !== false) {
-    const stoneMat = [mat(C.stone1 || 0xc8c4a6, 1), mat(C.stone2 || 0xb3ad8b, 1), mat(C.stone3 || 0xa89a76, 1)];
+    const stoneMat = [mat(C.stone1 || 0x6c5f42, 1), mat(C.stone2 || 0x5f4e33, 1), mat(C.stone3 || 0x55513a, 1)];
     let seed = 20260820;
     const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
     for (let i = 0; i < (A.stoneCount || 26); i++) {
@@ -213,7 +223,7 @@ function b3dBuildArena(THREE, A, renderer){
   }
 
   /* ── ③ 四方の石壁 ── */
-  const wallMat = mat(C.wall || 0xcfc6ad, 0.9);
+  const wallMat = mat(C.wall || 0x6e6352, 0.9);
   const addWall = (w, d, x, z) => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMat);
     m.position.set(x, y + wallH/2, z);
@@ -229,7 +239,7 @@ function b3dBuildArena(THREE, A, renderer){
 
   // 左右の壁の上に、本家のような小さな窪みブロックを並べる
   if (A.merlons !== false) {
-    const merlonMat = mat(C.merlon || 0xbdb49b, 0.9);
+    const merlonMat = mat(C.merlon || 0x504d3e, 0.9);
     const n = A.merlonCount || 6;
     for (let i = 0; i < n; i++) {
       const t = (i + 0.5) / n;
@@ -245,8 +255,8 @@ function b3dBuildArena(THREE, A, renderer){
 
   /* ── ④ 四隅の台座とかがり火 ── */
   if (A.torches !== false) {
-    const pedMat = mat(C.pedestal || 0xd6cdb4, 0.9);
-    const flameMat = new THREE.MeshBasicMaterial({ color: C.flame || 0xff7a1a });
+    const pedMat = mat(C.pedestal || 0x765c45, 0.9);
+    const flameMat = new THREE.MeshBasicMaterial({ color: C.flame || 0xff8a3d });
     const pedS = wallT * 2.4;
     [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
       const x = ox + sx * (hw + outer), z = oz + sz * (hd + outer);
@@ -262,7 +272,7 @@ function b3dBuildArena(THREE, A, renderer){
       flame.userData.b3dFlame = true;     // アニメーション用の目印
       g.add(flame);
 
-      const light = new THREE.PointLight(C.flame || 0xff7a1a, A.torchIntensity || 0.85, pedS * 9, 2);
+      const light = new THREE.PointLight(C.flame || 0xff8a3d, A.torchIntensity || 0.85, pedS * 9, 2);
       light.position.copy(flame.position);
       g.add(light);
     });
@@ -271,7 +281,7 @@ function b3dBuildArena(THREE, A, renderer){
   /* ── ⑤ さらに外側の水面（草地の外周を囲む）── */
   if (A.water !== false) {
     const water = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2 + 24, innerD + A.grassMargin*2 + 24),
-                                 mat(C.water || 0x2b7f96, 0.35, 0.1));
+                                 mat(C.water || 0x2c3e40, 0.35, 0.1));
     water.rotation.x = -Math.PI/2;
     water.position.set(ox, y - 0.5, oz);
     g.add(water);
@@ -1191,8 +1201,52 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         m.userData={kind:'bench',idx:i,x,y:-0.06,z}; boardGroup.add(m); benchSlots.push(m); slots.push(m);
         addHexEdge(benchGeo, x, -0.06, z);
       }
+      /* ⚠️ 中心合わせは「自陣の盤面＋ベンチ」だけで計算する。
+         このあとに足す敵陣やベンチの枠は見た目だけの飾りなので、
+         ここに含めると盤面全体がズレて既定カメラ・アリーナ位置が狂う。 */
       const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
       boardGroup.position.set(-ctr.x,0,-ctr.z);
+
+      /* ── 🛡️ 敵陣（奥側の4列）── 見た目だけ。slots に入れないので駒は置けない。
+         自陣の列（z = r*VSP）の裏側へ、六角形の並びを崩さないよう続ける。 */
+      const enemyEdgeMat = new THREE.LineBasicMaterial({ color:B3D_ENEMY_EDGE_COLOR, transparent:true, opacity:B3D_ENEMY_EDGE_OPACITY });
+      const enemyGroup = new THREE.Group(); enemyGroup.visible = false; boardGroup.add(enemyGroup);
+      for(let e=1;e<=4;e++) for(let c=0;c<7;c++){
+        const x=c*B3D.HSP+((e%2)?B3D.HSP/2:0), z=-e*B3D.VSP;
+        const line=new THREE.LineSegments(new THREE.EdgesGeometry(hexGeo), enemyEdgeMat);
+        line.rotation.y=Math.PI/6; line.position.set(x, 0.012, z);
+        enemyGroup.add(line);
+      }
+
+      /* ── 🪑 ベンチの枠 ── 本家と同じく、1体ごとに石のくぼみを用意する。
+         こちらは常に見えている（ドラッグ中だけ出る盤面の淵とは別物）。 */
+      const benchFrameGroup = new THREE.Group(); boardGroup.add(benchFrameGroup);
+      {
+        const stone = new THREE.MeshStandardMaterial({ color:B3D_BENCH_COLORS.frame, roughness:0.95, flatShading:true });
+        const inner = new THREE.MeshStandardMaterial({ color:B3D_BENCH_COLORS.inner, roughness:1, flatShading:true });
+        const bw = B3D.R*0.92;
+        benchSlots.forEach(s => {
+          const { x, z } = s.userData;
+          // 外枠（少し大きい六角柱）
+          const frame = new THREE.Mesh(new THREE.CylinderGeometry(bw*1.16, bw*1.22, 0.34, 6), stone);
+          frame.rotation.y = Math.PI/6; frame.position.set(x, -0.22, z);
+          frame.castShadow = true; frame.receiveShadow = true;
+          benchFrameGroup.add(frame);
+          // くぼみの底（駒が乗る面）
+          const dish = new THREE.Mesh(new THREE.CylinderGeometry(bw*0.98, bw*0.98, 0.06, 6), inner);
+          dish.rotation.y = Math.PI/6; dish.position.set(x, -0.07, z);
+          dish.receiveShadow = true;
+          benchFrameGroup.add(dish);
+        });
+
+        /* ── 盤面とベンチの境界（石の帯）── どこからがベンチか一目で分かるようにする */
+        const divZ = (3*B3D.VSP + benchZ) / 2;                 // 盤面最前列とベンチの中間
+        const divW = Math.max(benchSpan, 6*B3D.HSP + B3D.HSP) + B3D.HSP*0.6;
+        const divider = new THREE.Mesh(new THREE.BoxGeometry(divW, 0.30, B3D.VSP*0.34), stone);
+        divider.position.set((0 + 6*B3D.HSP + B3D.HSP/2)/2, -0.15, divZ);
+        divider.castShadow = true; divider.receiveShadow = true;
+        benchFrameGroup.add(divider);
+      }
 
       /* 🏟️ アリーナ。駒の影はここが受ける。
          ── sim-config.js の arena.mode で切り替え:
@@ -1221,7 +1275,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const pickSlot=()=>{ const hit=ray.intersectObjects(slots,false)[0]; return hit?hit.object:null; };
       const clearHover=()=>{ if(hovered){ hovered.material = mkInvisible(); hovered=null; } };
       // 六角形の淵は「駒を持ち上げている / 何かをドラッグしている」間だけ見せる
-      const showHexEdges=(on)=>{ hexEdgeGroup.visible = !!on; };
+      const showHexEdges=(on)=>{ hexEdgeGroup.visible = !!on; if (enemyGroup) enemyGroup.visible = !!on; };
 
       const onDown=(e)=>{
         down=[e.clientX,e.clientY];

@@ -56,7 +56,7 @@ window.SIM_CONFIG = {
 
     // 組み立て（built）用
     innerWidth: 20,        // 石畳の横幅（壁の内側）
-    innerDepth: 13,        // 石畳の奥行き
+    innerDepth: 18,        // 石畳の奥行き（敵陣4列＋自陣4列＋ベンチが収まる広さ）
     wallThickness: 0.75,   // 石壁の厚み
     wallHeight: 0.85,      // 石壁の高さ
     grassMargin: 6,        // 石畳の外に広がる草地の幅
@@ -72,7 +72,7 @@ window.SIM_CONFIG = {
     // 共通
     x: 0.3,
     y: -0.09,
-    z: -0.2,
+    z: -3.3,
   },
 
   /* 💡 3D盤面の明るさ（任意・省略すると既定値）
