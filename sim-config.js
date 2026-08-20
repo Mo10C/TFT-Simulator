@@ -86,7 +86,7 @@ window.SIM_CONFIG = {
           動作が重い場合は 1.5 や 1 に下げる。
      ── maxPixelRatio: 上限。高解像度の端末で描画量が増えすぎるのを防ぐ。
      ── anisotropy: 斜めに見た面のテクスチャのボケ・ちらつきを抑える。
-     quality: { superSample: 2, maxPixelRatio: 3, anisotropy: true }, */
+     quality: { superSample: 1.3, maxPixelRatio: 3, anisotropy: true }, */
 
   /* 📊 みんなの結果（Firestore）
      Firebase コンソール > プロジェクトの設定 > 全般 の値 */
