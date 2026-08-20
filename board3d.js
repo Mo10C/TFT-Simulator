@@ -1446,11 +1446,12 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
       );
       disc.rotation.x = -Math.PI/2; disc.position.y = 0.01; scene.add(disc);
 
-      /* 🧭 向きは盤面と同じ設定（data-model-tune.js の rotY）を使う。
-         ここが盤面と別管理だったため、「遭遇では前を向くのに盤面では別の向き」になっていた。
-         faceY を明示的に渡したときだけ、そちらを優先する。 */
-      const tunedRotY = (champId && CHAMP_MODEL_TUNE[champId] && CHAMP_MODEL_TUNE[champId].rotY) || 0;
-      const pivot = new THREE.Group(); pivot.rotation.y = faceY || tunedRotY; scene.add(pivot);
+      /* 🧭 向き・立ち位置・大きさは、盤面／エディタと同じ b3dFitModel（model-fit.js）に揃える。
+         以前はここだけ独自に「高さ2.6へ正規化 → bboxの中心を軸に合わせる」という別計算をしていたため、
+         エディタで合わせた立ち位置（tune.x/y/z）が遭遇の演出画面には反映されていなかった。
+         targetHeight だけ盤面（B3D.R*2.3）より少し大きい 2.6 を渡して「大きく映す」演出は維持しつつ、
+         立ち位置の計算そのものは b3dFitModel に一本化する（tune.x/y/z も高さの比率に合わせて自動で拡大される）。 */
+      const pivot = new THREE.Group(); scene.add(pivot);
       let mixer = null;
       const clock = new THREE.Clock();
 
@@ -1458,15 +1459,11 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
         if(disposed) return;
         const m = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone)
           ? THREE.SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
-        b3dPruneStrayParts(m, champId || (url.match(/([a-z0-9]+)_\(tft_set/i) || [])[1] || '');
+        const resolvedChampId = champId || (url.match(/([a-z0-9]+)_\(tft_set/i) || [])[1] || '';
+        b3dPruneStrayParts(m, resolvedChampId);           // 先に余計なパーツを消す（大きさ・位置の計算が狂うため）
+        b3dFitModel(m, resolvedChampId, { targetHeight: 2.6 });   // 盤面・エディタと同じ計算で立ち位置を決める
+        if(faceY) m.rotation.y = faceY;                   // 明示的に渡された時だけ tune.rotY を上書きする
         b3dFixMaterials(m);
-        // 高さ2.6になるよう正規化し、足元を原点に、中心を軸に合わせる（非表示パーツは無視される）
-        const box = new THREE.Box3().setFromObject(m);
-        const sz  = new THREE.Vector3(); box.getSize(sz);
-        const ctr = new THREE.Vector3(); box.getCenter(ctr);
-        const s = 2.6 / Math.max(sz.y || 1, 0.001);
-        m.scale.setScalar(s);
-        m.position.set(-ctr.x*s, -box.min.y*s, -ctr.z*s);
         pivot.add(m);
         if(gltf.animations && gltf.animations.length){
           mixer = new THREE.AnimationMixer(m);

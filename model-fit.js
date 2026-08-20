@@ -81,8 +81,11 @@ function b3dFootprintCenter(obj){
   return { x:sx/n, z:sz/n };
 }
 
-function b3dFitModel(obj, champId){
+function b3dFitModel(obj, champId, opts){
   const tune = (champId && CHAMP_MODEL_TUNE[champId]) || {};
+  // targetHeightBase … scale=1 のときの基準の高さ。省略時は盤面と同じ B3D.R*2.3。
+  //   遭遇のクローズアップ演出のように、盤面より大きく見せたい場面だけ opts.targetHeight を渡す。
+  const targetHeightBase = (opts && opts.targetHeight) || (B3D.R * 2.3);
 
   // 1. 初期化
   obj.position.set(0, 0, 0);
@@ -95,16 +98,20 @@ function b3dFitModel(obj, champId){
   const size = new THREE.Vector3();
   box.getSize(size);
   const height = size.y || 1;
-  const targetHeight = B3D.R * 2.3 * (tune.scale || 1);
+  const targetHeight = targetHeightBase * (tune.scale || 1);
   obj.scale.setScalar(targetHeight / height);
 
   // 3. 位置合わせ：足元の重心を六角形の中心に、底面をマスの上面に置く
+  //    ── tune.x/y/z は「盤面の高さ(B3D.R*2.3)」を基準に決められた調整値なので、
+  //       targetHeightBase がそれと異なる（＝盤面より大きく/小さく映す）場合は、
+  //       見た目の比率がズレないよう調整値も同じ比率で拡大縮小してから適用する。
+  const tuneScaleRatio = targetHeightBase / (B3D.R * 2.3);
   obj.updateMatrixWorld(true);
   const foot = b3dFootprintCenter(obj);
   const scaledBox = new THREE.Box3().setFromObject(obj);
-  obj.position.x = -foot.x + (tune.x || 0);
-  obj.position.z = -foot.z + (tune.z || 0);
-  obj.position.y = B3D.TOP - scaledBox.min.y + (tune.y || 0);
+  obj.position.x = -foot.x + (tune.x || 0) * tuneScaleRatio;
+  obj.position.z = -foot.z + (tune.z || 0) * tuneScaleRatio;
+  obj.position.y = B3D.TOP - scaledBox.min.y + (tune.y || 0) * tuneScaleRatio;
 
   // 4. マテリアル・影設定
   obj.traverse(n => {
