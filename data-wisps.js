@@ -30,13 +30,13 @@ const WISP_CATEGORY_JA = {
 
 /* ── カテゴリ カラー ── */
 const WISP_CATEGORY_COLORS = {
-  economy: '#ffd76e',
-  shop: '#44cc66',
-  champion: '#ff9f43',
-  item: '#7fd0ff',
+  economy: '#4B52E3',
+  shop: '#FFBA38',
+  champion: '#E13062',
+  item: '#11ECB9',
   risky: '#c084fc',
-  combat: '#dc3545',
-  misc: '#94a3b8',
+  combat: '#F56653 ',
+  misc: '#99F252',
 };
 
 /* ── カテゴリ → アイコンURLのスラッグ（MetaTFTのカード分類アイコン用・URL形式は確認済み） ──
