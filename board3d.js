@@ -315,8 +315,12 @@ function b3dBuildArena(THREE, A, renderer){
   return g;
 }
 
-const B3D_HEX_EDGE_COLOR = 0xffe9a8;
+const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
 const B3D_HEX_EDGE_OPACITY = 0.55;
+/* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
+   線の色を変えてもハイライトの色は変わらない。 */
+const B3D_HEX_HOVER_COLOR = 0xffe9a8;
+const B3D_HEX_HOVER_OPACITY = 0.18;
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
 const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
 
@@ -1169,7 +1173,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const hexMat = mkInvisible();
       const benchMat = mkInvisible();
       // ドラッグ中にカーソルが乗っているマスだけ、うっすら光らせる
-      const hexHover = new THREE.MeshBasicMaterial({ color:B3D_HEX_EDGE_COLOR, transparent:true, opacity:0.18, depthWrite:false });
+      const hexHover = new THREE.MeshBasicMaterial({ color:B3D_HEX_HOVER_COLOR, transparent:true, opacity:B3D_HEX_HOVER_OPACITY, depthWrite:false });
 
       /* ✏️ 六角形の淵（駒を持ち上げている間だけ表示） */
       const hexEdgeGroup = new THREE.Group(); hexEdgeGroup.visible = false; boardGroup.add(hexEdgeGroup);
