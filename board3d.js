@@ -191,39 +191,78 @@ const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && type
 
 /* ✨ カーソルが乗った駒を水色の縁で囲む設定 */
 const B3D_OUTLINE_COLOR = 0x7fd8ff;
-const B3D_OUTLINE_SCALE = 1.045;   // 元のメッシュを少しだけ膨らませて縁にする
+const B3D_OUTLINE_WIDTH = 0.035;   // 縁の太さ（ワールド単位。0.02〜0.06 くらいが目安）
 
-/* モデルを裏面だけ描いた一回り大きいコピーを重ね、輪郭線のように見せる。
-   ── 後処理(EffectComposer)を使わずに済むので軽く、r128 でもそのまま動く。
-   ── スキン付きメッシュは skeleton を共有して同じポーズで動かす。 */
+/* モデルを裏面だけ描いたコピーを重ねて輪郭線にする。
+   ── ⚠️ 単純に「一回り大きく拡大する」方式は使えない。
+      ボーンで動くモデル(SkinnedMesh)は、拡大がボーンの基準位置ごと引き伸ばすため、
+      パーツが四方に飛び散ってしまう（実際そうなった）。
+   ── 正しくは「各頂点をその法線の向きへ一定距離だけ押し出す」。
+      スキニング後の法線を使う必要があるので、three の skinning 用インクルードを
+      組み込んだ自前シェーダで行う。これならポーズが変わっても縁がぴったり追従する。 */
+const B3D_OUTLINE_VERT = `
+  #include <common>
+  #include <skinning_pars_vertex>
+  uniform float outlineWidth;
+  void main() {
+    #include <beginnormal_vertex>
+    #include <skinbase_vertex>
+    #include <skinnormal_vertex>
+    #include <defaultnormal_vertex>
+    #include <begin_vertex>
+    #include <skinning_vertex>
+    vec4 mvPosition = modelViewMatrix * vec4( transformed, 1.0 );
+    mvPosition.xyz += normalize( transformedNormal ) * outlineWidth;
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+const B3D_OUTLINE_FRAG = `
+  uniform vec3 outlineColor;
+  void main() { gl_FragColor = vec4( outlineColor, 1.0 ); }
+`;
+
 function b3dAddOutline(group){
   if(!group || group.userData.b3dOutline) return;
-  const mat = new THREE.MeshBasicMaterial({
-    color: B3D_OUTLINE_COLOR, side: THREE.BackSide,
-    transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false,
-  });
   const made = [];
+  const mats = [];
   const srcs = [];
   group.traverse(n => { if((n.isMesh || n.isSkinnedMesh) && n.geometry) srcs.push(n); });
   srcs.forEach(m => {
+    if(m.userData.b3dOutlinePart) return;
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: B3D_OUTLINE_VERT,
+      fragmentShader: B3D_OUTLINE_FRAG,
+      uniforms: {
+        outlineColor: { value: new THREE.Color(B3D_OUTLINE_COLOR) },
+        outlineWidth: { value: B3D_OUTLINE_WIDTH },
+      },
+      side: THREE.BackSide,
+      depthWrite: true,
+    });
     const o = m.isSkinnedMesh ? new THREE.SkinnedMesh(m.geometry, mat) : new THREE.Mesh(m.geometry, mat);
-    if(m.isSkinnedMesh && m.skeleton){ o.bind(m.skeleton, m.bindMatrix); o.bindMode = m.bindMode; }
-    o.position.copy(m.position); o.quaternion.copy(m.quaternion);
-    o.scale.copy(m.scale).multiplyScalar(B3D_OUTLINE_SCALE);
+    if(m.isSkinnedMesh && m.skeleton){
+      mat.skinning = true;                 // three r128: これでスキニング用の定義が有効になる
+      o.bind(m.skeleton, m.bindMatrix);
+      o.bindMode = m.bindMode;
+    }
+    // 拡大はしない。位置・回転・大きさは本体とまったく同じにして、押し出しはシェーダに任せる
+    o.position.copy(m.position);
+    o.quaternion.copy(m.quaternion);
+    o.scale.copy(m.scale);
     o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false;
-    o.renderOrder = -1;                   // 本体より先に描いて、はみ出した裏面だけが縁として残る
+    o.renderOrder = (m.renderOrder || 0) - 1;
     o.userData.b3dOutlinePart = true;
     if(m.parent) m.parent.add(o);
-    made.push(o);
+    made.push(o); mats.push(mat);
   });
-  group.userData.b3dOutline = { meshes: made, material: mat };
+  group.userData.b3dOutline = { meshes: made, materials: mats };
 }
 
 function b3dRemoveOutline(group){
   const o = group && group.userData.b3dOutline;
   if(!o) return;
   o.meshes.forEach(m => { if(m.parent) m.parent.remove(m); });
-  if(o.material) o.material.dispose();
+  (o.materials || []).forEach(m => { if(m && m.dispose) m.dispose(); });
   delete group.userData.b3dOutline;
 }
 
