@@ -1970,12 +1970,25 @@ function m3dModelUrls(c) {
   return ['models/' + f, f];      // board3d.js と同じく両方の置き場を試す
 }
 
+/* data-model-tune.js は rotY を「ラジアン」で持つが、エディタ内は「度」で扱う。
+   読み込むときに変換しないと、向きの数値が実際の角度と食い違う。 */
+function m3dTuneFromFile() {
+  if (typeof MODEL_TUNE === 'undefined') return {};
+  const out = {};
+  Object.entries(MODEL_TUNE).forEach(([id, t]) => {
+    const v = Object.assign({}, t);
+    if (typeof v.rotY === 'number') v.rotY = Math.round(v.rotY * 180 / Math.PI);
+    out[id] = v;
+  });
+  return out;
+}
+
 function m3dSave() { try { localStorage.setItem(M3D_KEY, JSON.stringify(m3dTune)); } catch (e) {} }
 function m3dLoadTune() {
   try {
     const raw = localStorage.getItem(M3D_KEY);
     // 保存が無ければ data-model-tune.js の値（＝ゲームで使われている値）から始める
-    m3dTune = raw ? JSON.parse(raw) : ((typeof MODEL_TUNE !== 'undefined') ? JSON.parse(JSON.stringify(MODEL_TUNE)) : {});
+    m3dTune = raw ? JSON.parse(raw) : m3dTuneFromFile();
     showMsg('保存済みの設定を読み込みました');
   } catch (e) { m3dTune = {}; }
   m3dRenderList(); m3dSyncPanel(); m3dRebuild();
@@ -2273,7 +2286,9 @@ function m3dDownloadTuneFile() {
     if (t.x) parts.push(`x:${t.x}`);
     if (t.y) parts.push(`y:${t.y}`);
     if (t.z) parts.push(`z:${t.z}`);
-    if (t.rotY) parts.push(`rotY:${t.rotY}`);
+    // ⚠️ エディタ内では rotY を「度」で持っているが、board3d.js は「ラジアン」で読む。
+    //    ここで変換式を付けて書き出さないと、向きがまったく別の角度になる。
+    if (t.rotY) parts.push(`rotY:${t.rotY} * Math.PI/180`);
     return parts.length ? `  ${c.id}: { ${parts.join(', ')} },   // ${c.jaName}` : null;
   }).filter(Boolean);
   const fmt = (obj) => {
@@ -2586,7 +2601,7 @@ document.querySelector('.tab[data-page="models"]').addEventListener('click', () 
     m3dInit();
     if (!m3dCompare.length) {
       try { const raw = localStorage.getItem(M3D_KEY);
-            m3dTune = raw ? JSON.parse(raw) : ((typeof MODEL_TUNE !== 'undefined') ? JSON.parse(JSON.stringify(MODEL_TUNE)) : {}); } catch (e) {}
+            m3dTune = raw ? JSON.parse(raw) : m3dTuneFromFile(); } catch (e) {}
       const first = m3dChamps()[0];
       if (first) { m3dSel = first.id; m3dCompare = [first.id]; document.getElementById('m3d-current').textContent = first.jaName;
         document.getElementById('m3d-controls').style.opacity = 1; document.getElementById('m3d-controls').style.pointerEvents = 'auto'; }
