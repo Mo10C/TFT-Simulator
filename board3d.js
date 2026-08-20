@@ -192,6 +192,41 @@ const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && type
 /* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
 const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
 const B3D_ENEMY_EDGE_OPACITY = 0.22;
+const B3D_ENEMY_EDGE_WIDTH = 1.5;         // 敵陣グリッド線の太さ（画面ピクセル単位）
+
+/* ── 🖊️ 太さ指定つきグリッド線の生成ヘルパー ──
+   ── 通常の THREE.LineBasicMaterial は WebGL のほとんどの実装で linewidth を無視し、
+      常に1pxで描かれてしまう（three.js の既知の制約）。
+      実際に太さを変えるには three/examples/js/lines/ の「Fat Lines」
+      （LineSegmentsGeometry + LineMaterial + LineSegments2）を使う必要がある。
+   ── index.html に以下の3つを追加すると自動的にこちらが使われる（太さが反映される）。
+      追加していない場合は自動で従来の LineBasicMaterial にフォールバックし、
+      太さの指定だけが効かない状態（今までと同じ見た目）で動き続ける。
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script> */
+const B3D_HAS_FAT_LINES = (typeof THREE !== 'undefined') &&
+  !!THREE.LineMaterial && !!THREE.LineSegments2 && !!THREE.LineSegmentsGeometry;
+
+function b3dMakeEdgeMaterial(color, opacity, width, resW, resH){
+  if(B3D_HAS_FAT_LINES){
+    return new THREE.LineMaterial({
+      color, transparent:true, opacity, linewidth:width,
+      resolution: new THREE.Vector2(resW, resH),
+    });
+  }
+  // フォールバック：太さは反映されないが、動作だけは保証する
+  return new THREE.LineBasicMaterial({ color, transparent:true, opacity });
+}
+
+function b3dMakeEdgeMesh(geo, mat){
+  const edgesGeo = new THREE.EdgesGeometry(geo);
+  if(B3D_HAS_FAT_LINES){
+    const lineGeo = new THREE.LineSegmentsGeometry().setPositions(edgesGeo.attributes.position.array);
+    return new THREE.LineSegments2(lineGeo, mat);
+  }
+  return new THREE.LineSegments(edgesGeo, mat);
+}
 
 /* 🪑 ベンチの枠の色（石のくぼみ）。アリーナの石材と揃えてある */
 const B3D_BENCH_COLORS = { frame: 0x6e6352, inner: 0x4a4336 };
@@ -347,6 +382,7 @@ function b3dBuildArena(THREE, A, renderer){
 
 const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
 const B3D_HEX_EDGE_OPACITY = 0.55;
+const B3D_HEX_EDGE_WIDTH = 2.5;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
 /* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
    線の色を変えてもハイライトの色は変わらない。 */
 const B3D_HEX_HOVER_COLOR = 0xffe9a8;
@@ -1063,14 +1099,9 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
 
       /* ✏️ 六角形の淵（駒を持ち上げている間だけ表示） */
       const hexEdgeGroup = new THREE.Group(); hexEdgeGroup.visible = false; boardGroup.add(hexEdgeGroup);
-      const hexEdgeMat = new THREE.LineBasicMaterial({ 
-         color:B3D_HEX_EDGE_COLOR, 
-         transparent:true, 
-         opacity:B3D_HEX_EDGE_OPACITY,
-         linewidth: 2  // ← ここを追加/変更
-            });
+      const hexEdgeMat = b3dMakeEdgeMaterial(B3D_HEX_EDGE_COLOR, B3D_HEX_EDGE_OPACITY, B3D_HEX_EDGE_WIDTH, W, H);
       const addHexEdge = (geo, x, y, z) => {
-        const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), hexEdgeMat);
+        const e = b3dMakeEdgeMesh(geo, hexEdgeMat);
         e.rotation.y = Math.PI/6; e.position.set(x, y + 0.012, z);   // 地面と重なってチラつかないよう少し浮かせる
         hexEdgeGroup.add(e);
       };
@@ -1104,11 +1135,11 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
 
       /* ── 🛡️ 敵陣（奥側の4列）── 見た目だけ。slots に入れないので駒は置けない。
          自陣の列（z = r*VSP）の裏側へ、六角形の並びを崩さないよう続ける。 */
-      const enemyEdgeMat = new THREE.LineBasicMaterial({ color:B3D_ENEMY_EDGE_COLOR, transparent:true, opacity:B3D_ENEMY_EDGE_OPACITY });
+      const enemyEdgeMat = b3dMakeEdgeMaterial(B3D_ENEMY_EDGE_COLOR, B3D_ENEMY_EDGE_OPACITY, B3D_ENEMY_EDGE_WIDTH, W, H);
       const enemyGroup = new THREE.Group(); enemyGroup.visible = false; boardGroup.add(enemyGroup);
       for(let e=1;e<=4;e++) for(let c=0;c<7;c++){
         const x=c*B3D.HSP+((e%2)?B3D.HSP/2:0), z=-e*B3D.VSP;
-        const line=new THREE.LineSegments(new THREE.EdgesGeometry(hexGeo), enemyEdgeMat);
+        const line=b3dMakeEdgeMesh(hexGeo, enemyEdgeMat);
         line.rotation.y=Math.PI/6; line.position.set(x, 0.012, z);
         enemyGroup.add(line);
       }
@@ -1279,6 +1310,8 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         // ブラウザの拡大率を変えると devicePixelRatio も変わるので、その都度入れ直す
         renderer.setPixelRatio(b3dPixelRatio());
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
+        // 🖊️ Fat Lines（グリッド線）は画面サイズが変わると太さの見え方もズレるため、都度合わせ直す
+        if(B3D_HAS_FAT_LINES){ hexEdgeMat.resolution.set(w,h); enemyEdgeMat.resolution.set(w,h); }
         if(S.current) S.current.viewSize={w,h};
         // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
         if(S.current && !S.current.freeView){
