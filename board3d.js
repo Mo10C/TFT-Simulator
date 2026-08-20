@@ -187,7 +187,7 @@ let B3D_MAX_ANISO = 1;
    ── ここはモデルのマテリアルにだけ掛かるので、アリーナの色は変わらない。
    ── sim-config.js の modelTint で上書きできる。例: modelTint: 0.8 */
 const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && typeof window.SIM_CONFIG.modelTint === 'number')
-  ? window.SIM_CONFIG.modelTint : 0.68;
+  ? window.SIM_CONFIG.modelTint : 1;   // 既定は無調整
 
 /* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
 const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
