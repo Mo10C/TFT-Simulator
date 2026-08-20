@@ -191,7 +191,7 @@ const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && type
 
 /* ✨ カーソルが乗った駒を水色の縁で囲む設定 */
 const B3D_OUTLINE_COLOR = 0x7fd8ff;
-const B3D_OUTLINE_WIDTH = 0.01;   // 縁の太さ（ワールド単位。0.02〜0.06 くらいが目安）
+const B3D_OUTLINE_WIDTH = 0.1;   // 縁の太さ（ワールド単位。0.02〜0.06 くらいが目安）
 
 /* モデルを裏面だけ描いたコピーを重ねて輪郭線にする。
    ── ⚠️ 単純に「一回り大きく拡大する」方式は使えない。
@@ -458,7 +458,7 @@ function b3dBuildArena(THREE, A, renderer){
 }
 
 const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
-const B3D_HEX_EDGE_OPACITY = 0.80;
+const B3D_HEX_EDGE_OPACITY = 1;
 const B3D_HEX_EDGE_WIDTH = 4.0;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
 /* 🆕 淵の線だけだと見づらいので、駒を持ち上げている間はマス全体を
    同じ色でうっすら塗りつぶす。淵より薄めにして、駒やホバー色が埋もれないようにする。 */
@@ -466,7 +466,7 @@ const B3D_HEX_FILL_OPACITY = 0.40;
 /* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
    線の色を変えてもハイライトの色は変わらない。 */
 const B3D_HEX_HOVER_COLOR = 0xffe9a8;
-const B3D_HEX_HOVER_OPACITY = 0.80;
+const B3D_HEX_HOVER_OPACITY = 1.1;
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
 const B3D_COST_CSS = { 1:'#9aa7b5', 2:'#2ec77e', 3:'#2f9bff', 4:'#c46bff', 5:'#f4c04a' };
 
