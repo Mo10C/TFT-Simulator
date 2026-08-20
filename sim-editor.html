@@ -1297,12 +1297,22 @@ function downloadAugs() {
   const sorted = augEntries.filter(a => !a.isAdded).sort((a, b) => b.start - a.start);
   const escQ = (t) => t.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   for (const a of sorted) {
-    if (a.newName === a.name && a.newTier === a.tier && a.newDesc === a.desc) continue;
+    // 🐛 画像(imgName)だけを直したときも保存されるよう、判定に newImg を必ず含める
+    if (a.newName === a.name && a.newTier === a.tier && a.newDesc === a.desc && (a.newImg || '') === (a.imgName || '')) continue;
     let seg = out.slice(a.start, a.end);
     if (a.newName !== a.name) seg = seg.replace(`name: '${a.name}'`, `name: '${escQ(a.newName)}'`).replace(`name:'${a.name}'`, `name:'${escQ(a.newName)}'`);
     if (a.newTier !== a.tier) seg = seg.replace(`tier: '${a.tier}'`, `tier: '${a.newTier}'`).replace(`tier:'${a.tier}'`, `tier:'${a.newTier}'`);
     if (a.newDesc !== a.desc && a.desc) seg = seg.replace(`desc: '${a.desc}'`, `desc: '${escQ(a.newDesc)}'`).replace(`desc:'${a.desc}'`, `desc:'${escQ(a.newDesc)}'`);
-    if (a.newImg !== a.imgName && a.imgName) seg = seg.replace(`imgName: '${a.imgName}'`, `imgName: '${escQ(a.newImg)}'`).replace(`imgName:'${a.imgName}'`, `imgName:'${escQ(a.newImg)}'`);
+    if ((a.newImg || '') !== (a.imgName || '')) {
+      const before = seg;
+      // 元が空文字（imgName: ''）でも置換できるようにする
+      seg = seg.replace(`imgName: '${a.imgName || ''}'`, `imgName: '${escQ(a.newImg || '')}'`)
+               .replace(`imgName:'${a.imgName || ''}'`, `imgName:'${escQ(a.newImg || '')}'`);
+      // imgName の項目自体が無いエントリには、id の直後に差し込む
+      if (seg === before) {
+        seg = seg.replace(/(id:\s*'[^']*',)/, `$1 imgName: '${escQ(a.newImg || '')}',`);
+      }
+    }
     out = out.slice(0, a.start) + seg + out.slice(a.end);
   }
   // 新規分のname/desc/tier編集を反映
