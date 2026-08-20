@@ -509,7 +509,7 @@ const CHAMP_MODEL_TUNE = {
   tristana: { scale:0.73, x:0.17, y:0.04, z:0.1 },   // トリスターナ
   ahri: { x:-0.81, z:-0.02 },   // アーリ
   amumu: { x:-0.1, z:0.07 },   // アムム
-  aphelios: { scale:1.58, y:-1.5, z:1.17 },   // アフェリオス
+  aphelios: { scale:1.24, x:0.12, y:-1, z:1.5 },   // アフェリオス
   brambleback: { scale:0.79, x:-0.2, z:0.3, rotY:-111 * Math.PI/180 },   // ブランブルバック
   ezreal: { x:-0.14, z:0.01 },   // エズリアル
   lillia: { scale:1.12 },   // リリア
