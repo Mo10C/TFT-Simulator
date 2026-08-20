@@ -1680,13 +1680,30 @@ const ChampionTooltip = ({ data }) => {
   );
 };
 
-const TraitTooltip = ({ data }) => {
+/* ── 🐾 プライマル「4つの祝福」──
+   プライマル2到達時にこの4つから1つ選択、プライマル4到達時に残りの3つから
+   さらに1つ選択する（本家の「精霊の遺物」のような選択式パッシブ）。
+   icon は仮のダミーURL。実際の画像が用意できたらここを差し替えるだけでよい。 */
+const PRIMAL_BLESSINGS = [
+  { id:'turtle',  jaName:'カメの祝福',        desc:'味方全員の防御力・魔法防御が上昇する。',                                icon:'https://example.com/images/primal-blessing-turtle.png' },
+  { id:'bear',    jaName:'クマの祝福',        desc:'味方全員の最大体力が上昇する。',                                        icon:'https://example.com/images/primal-blessing-bear.png' },
+  { id:'tiger',   jaName:'トラの祝福',        desc:'味方全員の攻撃力・攻撃速度が上昇する。',                                icon:'https://example.com/images/primal-blessing-tiger.png' },
+  { id:'phoenix', jaName:'フェニックスの祝福', desc:'味方チャンピオンが戦闘不能になったとき、1度だけ体力を回復して復活する。', icon:'https://example.com/images/primal-blessing-phoenix.png' },
+];
+const getPrimalBlessing = (id) => PRIMAL_BLESSINGS.find(b => b.id === id);
+
+const TraitTooltip = ({ data, primalBlessings = [] }) => {
   if (!data) return null;
   const { trait, count, x, y } = data;
   const jaName = getTraitJaName(trait);
   
   let desc = (typeof TRAIT_DESCS !== 'undefined' && TRAIT_DESCS[trait]) || "特性の詳細は現在解析中です...";
   
+  // 🐾 プライマルは固定の説明文の代わりに、しきい値と選択済みの祝福を明示する
+  const isPrimal = trait === 'Primal';
+  if (isPrimal) {
+    desc = 'プライマル2で祝福を1つ、プライマル4でさらに1つ選択できる。';
+  }
 
   const members = CHAMPS.filter(c => c.traits.includes(trait));
   return (
@@ -1699,6 +1716,33 @@ const TraitTooltip = ({ data }) => {
 
 
       <div style={{ whiteSpace:'pre-wrap', fontSize:11, color:'var(--textdim)', lineHeight:1.6, marginBottom:12 }}>{desc}</div>
+
+      {/* 🐾 プライマル: 獲得済みの祝福をここで明示する */}
+      {isPrimal && (
+        <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10, marginBottom:12 }}>
+          <div style={{ fontSize:10, color:'var(--textdim)', marginBottom:6 }}>獲得した祝福:</div>
+          {primalBlessings.length === 0 ? (
+            <div style={{ fontSize:11, color:'var(--textdim)' }}>まだ選択していません（プライマル2で選択）</div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {primalBlessings.map((bid, i) => {
+                const b = getPrimalBlessing(bid);
+                if (!b) return null;
+                return (
+                  <div key={bid} style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(68,204,102,0.12)', border:'1px solid rgba(68,204,102,0.4)', borderRadius:6, padding:'4px 6px' }}>
+                    <img src={b.icon} style={{ width:22, height:22, borderRadius:4, flexShrink:0 }} onError={(e)=>{e.target.style.display='none';}} />
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:11, fontWeight:900, color:'#8fe0a0' }}>✅ {b.jaName}</div>
+                      <div style={{ fontSize:9, color:'var(--textdim)', lineHeight:1.3 }}>{b.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div style={{ borderTop:'1px solid rgba(255,255,255,0.1)', paddingTop:10 }}>
         <div style={{ fontSize:10, color:'var(--textdim)', marginBottom:6 }}>対象チャンピオン:</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
@@ -4520,6 +4564,10 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [mfTargetUid, setMfTargetUid] = useState(null);
   const [anvilOptions, setAnvilOptions] = useState(null);
 
+  // 🐾 プライマル「4つの祝福」── 選択済みの祝福id配列（選んだ順）と、選択UIを開いているか
+  const [primalBlessings, setPrimalBlessings] = useState([]);
+  const [primalChoiceOpen, setPrimalChoiceOpen] = useState(false);
+
   // スマホ横持ち対応：ウィンドウリサイズ時に再レンダリング
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
   useEffect(() => {
@@ -4564,6 +4612,10 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       unitTraits.forEach(t => { traitCounts[t] = (traitCounts[t]||0)+1; }); 
     } 
   });
+
+  // 🐾 プライマルの現在の人数（祝福の選択トリガーに使う。実際の useEffect / ハンドラは
+  //    showMsg 定義後にまとめて置く。ここでは値だけ拾っておく）
+  const primalCount = traitCounts['Primal'] || 0;
 
 
 
@@ -4610,6 +4662,29 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     // 新しいタイマーをセット
     dropMsgTimer.current = setTimeout(() => setDropMsg(null), duration);
   }, []);
+
+  // 🐾 プライマル2/4のしきい値に到達したら「祝福」の選択UIを開く
+  //    ── プライマル2で1つ目、プライマル4で（残りの3つから）2つ目を選ぶ。
+  useEffect(() => {
+    if (primalChoiceOpen) return;
+    if (primalCount >= 2 && primalBlessings.length === 0) {
+      setPrimalChoiceOpen(true);
+    } else if (primalCount >= 4 && primalBlessings.length === 1) {
+      setPrimalChoiceOpen(true);
+    }
+  }, [primalCount, primalBlessings, primalChoiceOpen]);
+
+  // 🐾 祝福を1つ選択して確定する
+  const handlePrimalBlessingSelect = useCallback((blessing) => {
+    setPrimalBlessings(prev => prev.includes(blessing.id) ? prev : [...prev, blessing.id]);
+    setPrimalChoiceOpen(false);
+    showMsg(
+      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        <img src={blessing.icon} style={{ width:18, height:18, borderRadius:3 }} onError={(e)=>{e.target.style.display='none';}} />
+        <span>🐾 プライマル: 【{blessing.jaName}】を獲得！</span>
+      </div>
+    );
+  }, [showMsg]);
 
   // 🌟 html2canvas は clip-path 非対応（六角形→四角になる）ため、
   //    キャプチャ前に「六角形クリップ済み＋グラデ焼き込み」のPNGをcanvasで生成しておき、
@@ -6411,7 +6486,7 @@ const handleAugmentPick = (aug, historyContext) => {
 
       <ChampionTooltip data={tooltipData} />
 
-      <TraitTooltip data={traitTooltipData} />
+      <TraitTooltip data={traitTooltipData} primalBlessings={primalBlessings} />
       {showAugment && !noMoreAugments && <AugmentScreen onPick={handleAugmentPick} rng={rngAug} augmentTierBoost={augmentTierBoost} forceTier={encounter?.augmentForceTier || (gameOverrides && gameOverrides.augmentTier) || null} rerollBonus={encounter?.augmentRerollBonus || 0} augmentPicks={gameOverrides && gameOverrides.augmentPicks} />}
       {dropMsg && <div style={{ position:'fixed', top:'15%', left:'50%', transform:'translateX(-50%)', background:'rgba(26,159,255,.9)', border:'1px solid white', borderRadius:10, padding:'10px 20px', zIndex:3000, fontFamily:'Noto Sans JP', fontSize:14, fontWeight:900, color:'white', textAlign:'center', maxWidth:'90%', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>{dropMsg}</div>}
       {mergeToast && <div style={{ position:'fixed', top:'25%', left:'50%', transform:'translateX(-50%)', background:'rgba(8,13,26,.97)', border:`1px solid ${STAR_COLORS[mergeToast.star]}`, borderRadius:12, padding:20, zIndex:4000, animation:'starUpAnim .4s ease', display:'flex', alignItems:'center', gap:15 }}><img src={boardIcon(mergeToast.id)} style={{ width:60, height:60, borderRadius:8, objectFit:'cover', border:`2px solid ${STAR_COLORS[mergeToast.star]}` }}/><div><div style={{ fontFamily:'Noto Sans JP', fontSize:11, color:STAR_COLORS[mergeToast.star] }}>スター昇格！</div><div style={{ fontSize:20, fontWeight:900, color:'white' }}>{mergeToast.jaName}</div></div></div>}
@@ -7092,6 +7167,45 @@ const handleAugmentPick = (aug, historyContext) => {
                   >
                     <img src={getTraitIconUrl(mode)} style={{ width: 44, height: 44, marginBottom: 4, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.5))' }} onError={e => e.target.style.display='none'} />
                     <div style={{ fontWeight: 900, fontSize: '11px', fontFamily: 'Noto Sans JP', lineHeight: 1.1 }}>{TRAIT_JA[mode]}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : primalChoiceOpen ? (
+            /* 🐾 プライマル「4つの祝福」選択UI（ショップエリアを置き換え）
+               ── プライマル2到達時は4択、プライマル4到達時は残りの3択から選ぶ。 */
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '8px 10px', background: 'rgba(15,23,42,0.95)' }}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: '#6fcf7c', textAlign: 'center', marginBottom: 8, fontFamily: 'Noto Sans JP', flexShrink: 0 }}>
+                🐾 プライマル{primalBlessings.length === 0 ? '2' : '4'}：祝福を1つ選択してください
+              </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'stretch', flex: 1, paddingBottom: 4, flexWrap: 'wrap' }}>
+                {PRIMAL_BLESSINGS.filter(b => !primalBlessings.includes(b.id)).map(b => (
+                  <div
+                    key={b.id}
+                    onClick={() => handlePrimalBlessingSelect(b)}
+                    style={{
+                      flex: 1,
+                      maxWidth: 140,
+                      background: 'rgba(30,45,74,0.6)',
+                      border: '2px solid #4caf50',
+                      borderRadius: 8,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '4px 6px',
+                      textAlign: 'center',
+                      color: 'white',
+                      transition: 'all 0.2s',
+                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.background = 'rgba(40,60,100,0.9)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.background = 'rgba(30,45,74,0.6)'; }}
+                  >
+                    <img src={b.icon} style={{ width: 40, height: 40, borderRadius: 6, marginBottom: 4, filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.4))' }} onError={e => e.target.style.display = 'none'} />
+                    <div style={{ fontWeight: 900, fontSize: 11, fontFamily: 'Noto Sans JP', lineHeight: 1.1 }}>{b.jaName}</div>
+                    <div style={{ fontSize: 9, color: 'var(--textdim)', marginTop: 3, lineHeight: 1.3 }}>{b.desc}</div>
                   </div>
                 ))}
               </div>
