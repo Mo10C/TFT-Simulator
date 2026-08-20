@@ -383,6 +383,9 @@ function b3dBuildArena(THREE, A, renderer){
 const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
 const B3D_HEX_EDGE_OPACITY = 0.55;
 const B3D_HEX_EDGE_WIDTH = 2.5;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
+/* 🆕 淵の線だけだと見づらいので、駒を持ち上げている間はマス全体を
+   同じ色でうっすら塗りつぶす。淵より薄めにして、駒やホバー色が埋もれないようにする。 */
+const B3D_HEX_FILL_OPACITY = 0.16;
 /* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
    線の色を変えてもハイライトの色は変わらない。 */
 const B3D_HEX_HOVER_COLOR = 0xffe9a8;
@@ -1092,10 +1095,12 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
             完全透明なマテリアル（opacity:0 / depthWrite:false）で「描かれないが当たる」状態にする。 */
       const hexGeo = new THREE.CylinderGeometry(B3D.R,B3D.R,B3D.TH,6);
       const mkInvisible = () => new THREE.MeshBasicMaterial({ transparent:true, opacity:0, depthWrite:false });
-      const hexMat = mkInvisible();
-      const benchMat = mkInvisible();
+      // 普段（何も持っていない時）のマス＝完全に透明な当たり判定のみ。1個を全マスで共有する。
+      const hexInvisibleMat = mkInvisible();
       // ドラッグ中にカーソルが乗っているマスだけ、うっすら光らせる
       const hexHover = new THREE.MeshBasicMaterial({ color:B3D_HEX_HOVER_COLOR, transparent:true, opacity:B3D_HEX_HOVER_OPACITY, depthWrite:false });
+      // 🆕 駒を持ち上げている間、カーソルが乗っていないマスも淵と同じ色でうっすら塗りつぶす
+      const hexFillMat = new THREE.MeshBasicMaterial({ color:B3D_HEX_EDGE_COLOR, transparent:true, opacity:B3D_HEX_FILL_OPACITY, depthWrite:false });
 
       /* ✏️ 六角形の淵（駒を持ち上げている間だけ表示） */
       const hexEdgeGroup = new THREE.Group(); hexEdgeGroup.visible = false; boardGroup.add(hexEdgeGroup);
@@ -1110,7 +1115,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const slots=[];
       for(let r=0;r<4;r++) for(let c=0;c<7;c++){
         const x=c*B3D.HSP+(r%2?B3D.HSP/2:0), z=r*B3D.VSP;
-        const m=new THREE.Mesh(hexGeo, hexMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,0,z);
+        const m=new THREE.Mesh(hexGeo, hexInvisibleMat); m.rotation.y=Math.PI/6; m.position.set(x,0,z);
         m.userData={kind:'board',idx:r*7+c,x,y:0,z}; boardGroup.add(m); hexes.push(m); slots.push(m);
         addHexEdge(hexGeo, x, 0, z);
       }
@@ -1123,7 +1128,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const benchSlots=[];
       for(let i=0;i<9;i++){
         const x=benchX0 + i*B3D.HSP*0.98, z=benchZ;
-        const m=new THREE.Mesh(benchGeo, benchMat.clone()); m.rotation.y=Math.PI/6; m.position.set(x,-0.06,z);
+        const m=new THREE.Mesh(benchGeo, hexInvisibleMat); m.rotation.y=Math.PI/6; m.position.set(x,-0.06,z);
         m.userData={kind:'bench',idx:i,x,y:-0.06,z}; boardGroup.add(m); benchSlots.push(m); slots.push(m);
         addHexEdge(benchGeo, x, -0.06, z);
       }
@@ -1199,9 +1204,15 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const setPtr=(e)=>{ const b=renderer.domElement.getBoundingClientRect();
         ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1; ray.setFromCamera(ptr,camera); };
       const pickSlot=()=>{ const hit=ray.intersectObjects(slots,false)[0]; return hit?hit.object:null; };
-      const clearHover=()=>{ if(hovered){ hovered.material = mkInvisible(); hovered=null; } };
-      // 六角形の淵は「駒を持ち上げている / 何かをドラッグしている」間だけ見せる
-      const showHexEdges=(on)=>{ hexEdgeGroup.visible = !!on; if (enemyGroup) enemyGroup.visible = !!on; };
+      // 塗りつぶしを今出しているかどうか（clearHover で元に戻す色を決めるのに使う）
+      let hexFillOn = false;
+      const clearHover=()=>{ if(hovered){ hovered.material = hexFillOn ? hexFillMat : hexInvisibleMat; hovered=null; } };
+      // 六角形の淵＋塗りつぶしは「駒を持ち上げている / 何かをドラッグしている」間だけ見せる
+      const showHexEdges=(on)=>{
+        hexEdgeGroup.visible = !!on; if (enemyGroup) enemyGroup.visible = !!on;
+        hexFillOn = !!on;
+        slots.forEach(s => { if(s !== hovered) s.material = on ? hexFillMat : hexInvisibleMat; });
+      };
 
       const onDown=(e)=>{
         down=[e.clientX,e.clientY];
