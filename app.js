@@ -1685,10 +1685,10 @@ const ChampionTooltip = ({ data }) => {
    さらに1つ選択する（本家の「精霊の遺物」のような選択式パッシブ）。
    icon は仮のダミーURL。実際の画像が用意できたらここを差し替えるだけでよい。 */
 const PRIMAL_BLESSINGS = [
-  { id:'turtle',  jaName:'カメの祝福',        desc:'味方全員の防御力・魔法防御が上昇する。',                                icon:'https://example.com/images/primal-blessing-turtle.png' },
-  { id:'bear',    jaName:'クマの祝福',        desc:'味方全員の最大体力が上昇する。',                                        icon:'https://example.com/images/primal-blessing-bear.png' },
-  { id:'tiger',   jaName:'トラの祝福',        desc:'味方全員の攻撃力・攻撃速度が上昇する。',                                icon:'https://example.com/images/primal-blessing-tiger.png' },
-  { id:'phoenix', jaName:'フェニックスの祝福', desc:'味方チャンピオンが戦闘不能になったとき、1度だけ体力を回復して復活する。', icon:'https://example.com/images/primal-blessing-phoenix.png' },
+  { id:'turtle',  jaName:'カメの祝福',        desc:'味方チームが4秒ごとに最大体力の4%を回復する。。',                                icon:'https://tftips.b-cdn.net/blessing/18_primal_turtle.avif' },
+  { id:'bear',    jaName:'クマの祝福',        desc:'「プライマル」ダメージで体力が12%未満の敵にとどめを刺す。',                                        icon:'https://tftips.b-cdn.net/blessing/18_primal_bear.avif' },
+  { id:'tiger',   jaName:'トラの祝福',        desc:'6秒後、「プライマル」のチャンピオンは攻撃速度を35%獲得し、味方チームは攻撃速度を15%獲得する。',                                icon:'https://tftips.b-cdn.net/blessing/18_primal_tiger.avif' },
+  { id:'phoenix', jaName:'フェニックスの祝福', desc:'「プライマル」がキルまたはアシストを15回獲得するごとに、素材アイテムを1個獲得する。最大4個。', icon:'https://tftips.b-cdn.net/blessing/18_primal_phoenix.avif' },
 ];
 const getPrimalBlessing = (id) => PRIMAL_BLESSINGS.find(b => b.id === id);
 
