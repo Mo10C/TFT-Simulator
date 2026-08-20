@@ -385,7 +385,7 @@ const B3D_HEX_EDGE_OPACITY = 0.55;
 const B3D_HEX_EDGE_WIDTH = 2.5;           // グリッド線の太さ（画面ピクセル単位。THREE.LineMaterial が使える時だけ効く）
 /* 🆕 淵の線だけだと見づらいので、駒を持ち上げている間はマス全体を
    同じ色でうっすら塗りつぶす。淵より薄めにして、駒やホバー色が埋もれないようにする。 */
-const B3D_HEX_FILL_OPACITY = 0.16;
+const B3D_HEX_FILL_OPACITY = 0.40;
 /* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
    線の色を変えてもハイライトの色は変わらない。 */
 const B3D_HEX_HOVER_COLOR = 0xffe9a8;
