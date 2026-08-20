@@ -335,7 +335,7 @@ function b3dBuildArena(THREE, A, renderer){
   return g;
 }
 
-const B3D_HEX_EDGE_COLOR = 0x7fd8ff;      // 自陣グリッド線（水色）
+const B3D_HEX_EDGE_COLOR = 1e90ff;      // 自陣グリッド線（水色）
 const B3D_HEX_EDGE_OPACITY = 0.80;
 /* カーソルが乗ったマスの光る色。グリッド線とは別に持たせてあるので、
    線の色を変えてもハイライトの色は変わらない。 */
