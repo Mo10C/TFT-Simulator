@@ -80,6 +80,14 @@ window.SIM_CONFIG = {
      ── toneMapping:false にすると明るい面が白く飛びやすくなるので基本は true のまま。
      light: { hemi: 0.55, ambient: 0.25, key: 1.15, rim: 0.35, exposure: 1.0, toneMapping: true }, */
 
+  /* 🔍 3D描画のきめ細かさ（任意・省略すると既定値）
+     ── superSample: 画面の何倍の解像度で描いてから縮小するか。
+          2 = 縦横2倍（＝4倍のピクセル）でモデルのギザつきがほぼ消える。
+          動作が重い場合は 1.5 や 1 に下げる。
+     ── maxPixelRatio: 上限。高解像度の端末で描画量が増えすぎるのを防ぐ。
+     ── anisotropy: 斜めに見た面のテクスチャのボケ・ちらつきを抑える。
+     quality: { superSample: 2, maxPixelRatio: 3, anisotropy: true }, */
+
   /* 📊 みんなの結果（Firestore）
      Firebase コンソール > プロジェクトの設定 > 全般 の値 */
   firebase: {

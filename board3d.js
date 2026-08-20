@@ -161,6 +161,26 @@ const B3D_LIGHT = Object.assign(
   (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.light) || {}
 );
 
+/* ═══ 🔍 描画のきめ細かさ ═══
+   ── ブラウザの拡大率100%だとモデルがギザついて見えるのは、
+      表示するピクセル数と同じ数しか描いていないため（等倍描画）。
+      拡大率33%で綺麗に見えるのは、小さく表示されるぶん実質的に
+      高解像度で描いた絵を縮小しているのと同じ状態になるから。
+   ── そこで superSample 倍の解像度で描いてから画面サイズに縮小する。
+      2 にすると縦横2倍＝4倍のピクセルを描くので、その分だけ重くなる。
+   ── sim-config.js の quality で上書きできる。重い場合は superSample を下げる。 */
+const B3D_QUALITY = Object.assign(
+  { superSample: 2, maxPixelRatio: 3, anisotropy: true },
+  (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.quality) || {}
+);
+/* 実際に使うピクセル比。端末の解像度 × superSample を上限で頭打ちにする */
+function b3dPixelRatio(){
+  const dpr = (typeof window!=='undefined' && window.devicePixelRatio) || 1;
+  return Math.min(dpr * B3D_QUALITY.superSample, B3D_QUALITY.maxPixelRatio);
+}
+/* テクスチャの異方性フィルタの最大値。斜めに見た面のボケ・ちらつきを抑える */
+let B3D_MAX_ANISO = 1;
+
 /* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
 const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
 const B3D_ENEMY_EDGE_OPACITY = 0.22;
@@ -710,8 +730,18 @@ function b3dFixMaterials(root){
     const mats = Array.isArray(n.material) ? n.material : [n.material];
     mats.forEach(m=>{
       if(!m) return;
-      if(m.map){ b3dSetSRGB(m.map); m.map.needsUpdate=true; }
-      if(m.emissiveMap) b3dSetSRGB(m.emissiveMap);
+      // 🔍 テクスチャを鮮明に：異方性フィルタ＋ミップマップを効かせる
+      const sharpen = (t) => {
+        if(!t) return;
+        if(B3D_QUALITY.anisotropy && B3D_MAX_ANISO > 1) t.anisotropy = B3D_MAX_ANISO;
+        if(t.generateMipmaps !== false && THREE.LinearMipmapLinearFilter !== undefined){
+          t.minFilter = THREE.LinearMipmapLinearFilter;
+        }
+        t.needsUpdate = true;
+      };
+      if(m.map){ b3dSetSRGB(m.map); sharpen(m.map); }
+      if(m.emissiveMap){ b3dSetSRGB(m.emissiveMap); sharpen(m.emissiveMap); }
+      sharpen(m.normalMap); sharpen(m.roughnessMap); sharpen(m.metalnessMap); sharpen(m.alphaMap);
       if(typeof m.metalness==='number' && m.metalness>0.25) m.metalness=0.15;  // 環境マップ無しの黒化を防ぐ
       if(typeof m.roughness==='number' && m.roughness<0.35) m.roughness=0.6;
       if(m.color && m.color.getHex()===0x000000 && m.map) m.color.setHex(0xffffff); // 黒ベースカラーで潰れるのを回避
@@ -1127,7 +1157,8 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const scene = new THREE.Scene(); scene.background = null;
       const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 500); camera.position.set(0, 11.5, 14);
       const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
-      renderer.setSize(W, H); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+      renderer.setSize(W, H); renderer.setPixelRatio(b3dPixelRatio());
+      if (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) B3D_MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
       renderer.shadowMap.enabled = true; if (THREE.PCFSoftShadowMap) renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       // 色空間：r128 は outputEncoding、r152+ は outputColorSpace。両対応にしないとモデルが暗くなる
       if (THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -1385,6 +1416,8 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       }; loop();
        
       const ro=new ResizeObserver(()=>{ const w=mount.clientWidth||W, h=mount.clientHeight||H;
+        // ブラウザの拡大率を変えると devicePixelRatio も変わるので、その都度入れ直す
+        renderer.setPixelRatio(b3dPixelRatio());
         camera.aspect=w/h; camera.updateProjectionMatrix(); renderer.setSize(w,h);
         if(S.current) S.current.viewSize={w,h};
         // 自由視点でなければ、画面いっぱいに収まるよう合わせ直す
@@ -1498,7 +1531,8 @@ function EncounterModel3D({ url, color, width, height, onFail, spin = 0, faceY =
 
       renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
       renderer.setSize(W, H);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.setPixelRatio(b3dPixelRatio());
+      if (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) B3D_MAX_ANISO = renderer.capabilities.getMaxAnisotropy();
       if(THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
       else if(THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
       mount.appendChild(renderer.domElement);
