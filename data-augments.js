@@ -1915,6 +1915,7 @@ const AUGMENTS_DATA = {
   ]
 };
 
+
 /* ═══ SIM-EDITOR MANAGED BLOCK START（自動生成・手動で編集しない） ═══ */
 (function(){
   const HIDDEN = ["stellar_combo","terminal_velocity","shield_maiden","afk","augment_power","one_two_three","continuous_magic","small_giant","critical_success","savings_account","pro_boxer","fan_the_flames","charge","warlords_honor","anima_commander","advance_payment","two_tanks","sunfire_board","big_bang","heavy_is_the_crown","divine_forge","pro_assassin","root_singularity","self_destruction","focus","aura_training","galactic_journey","blood_offering","high_voltage","heat_death","timestream","treasure_hunt","reach_for_the_stars","sacrifice","sublime_adventure","wise_spending","swarm_heart","expected_surprise"];
