@@ -4189,7 +4189,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
   // カーソル下の駒を売却
   const doSellHovered = () => {
-    if (phaseRef.current === 'drop') return; // 素材ドロップ中は無効
+    // 素材ドロップ中も売却できる（以前はここで弾いていたため E が効かなかった）。
+    // ドロップ中に制限があるのは「盤面の駒の移動」と「合成」だけで、売却は別。
     const h = hoveredUnitRef.current;
     if (!h) return;
     const arr = h.type === 'bench' ? bench : board;
