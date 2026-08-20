@@ -113,7 +113,6 @@ const AUGMENTS_DATA = {
       desc: 'ランダムな完成アイテム1個を獲得。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
-        // タクティシャン系（王冠・ケープ・盾）と紋章はランダム完成アイテムから除外
         const recipes = Object.values(ITEM_RECIPES).filter(r => !r.hidden && !r.grantedTrait
           && !(typeof isTacticianItem === 'function' && isTacticianItem(r)));
         const item = {...recipes[Math.floor(rng() * recipes.length)], type:'completed'};
@@ -268,7 +267,7 @@ const AUGMENTS_DATA = {
       effect: (state, rng, helpers) => {}
     },
     {
-      id: 'dice_of_fortune', name: 'ちょっとだけ魔法のダイス', tier: 'silver', category: 'economy', imgName: '',
+      id: 'dice_of_fortune', name: 'ちょっとだけ魔法のダイス', tier: 'silver', category: 'economy', imgName: 'loadeddice',
       desc: 'ダイスを振る。出た目に応じて報酬を獲得する。',
       icon: '🎲',
       effect: (state, rng, helpers) => {
@@ -279,7 +278,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'kana_to_kane', name: 'カナとカネ', tier: 'silver', category: 'item', imgName: '',
+      id: 'kana_to_kane', name: 'カナとカネ', tier: 'silver', category: 'item', imgName: 'anvilsandgold_i',
       desc: '「素材アイテムの金床」を1個と3ゴールドを獲得する。',
       icon: '💰',
       effect: (state, rng, helpers) => {
@@ -288,7 +287,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'capital_gain1', name: 'キャピタルゲイン I', tier: 'silver', category: 'economy', imgName: '',
+      id: 'capital_gain1', name: 'キャピタルゲイン I', tier: 'silver', category: 'economy', imgName: 'capitalgainsi',
       desc: '獲得した利子に等しいゴールドを蓄える。3-3で、獲得した利子の100%に等しいゴールドを蓄える。即座に1ゴールドを獲得する。',
       icon: '📈',
       effect: (state, rng, helpers) => {
@@ -297,7 +296,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'quick_streak', name: 'クイックストリーク', tier: 'silver', category: 'combat', imgName: '',
+      id: 'quick_streak', name: 'クイックストリーク', tier: 'silver', category: 'combat', imgName: 'quickstreak_i',
       desc: '連勝および連敗のカウントが2倍になる。2ゴールドを獲得する。',
       icon: '🔥',
       effect: (state, rng, helpers) => {
@@ -306,7 +305,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'call_shot', name: 'コールショット', tier: 'silver', category: 'combat', imgName: '',
+      id: 'call_shot', name: 'コールショット', tier: 'silver', category: 'combat', imgName: 'calltheshot_i',
       desc: '連勝数を+4に設定する。4ゴールドを獲得する。',
       icon: '📣',
       effect: (state, rng, helpers) => {
@@ -315,7 +314,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'fate_silver', name: 'シルバーの運命', tier: 'silver', category: 'economy', imgName: '',
+      id: 'fate_silver', name: 'シルバーの運命', tier: 'silver', category: 'economy', imgName: 'silverdestiny_i',
       desc: 'ランダムなシルバーオーグメントを1個と2ゴールドを獲得する。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
@@ -329,7 +328,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'pandoras_items1', name: 'パンドラのアイテム I', tier: 'silver', category: 'item', imgName: '',
+      id: 'pandoras_items1', name: 'パンドラのアイテム I', tier: 'silver', category: 'item', imgName: 'pandora1',
       desc: 'ラウンド開始時、ベンチのアイテムがランダムに変更される。ランダムな素材アイテムを1個獲得する。',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -339,7 +338,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'pandoras_bench', name: 'パンドラのベンチ', tier: 'silver', category: 'economy', imgName: '',
+      id: 'pandoras_bench', name: 'パンドラのベンチ', tier: 'silver', category: 'economy', imgName: 'pandorasbench2',
       desc: '各ラウンドの開始時に、ベンチの右側3スロットにいるチャンピオンが、同じコストのランダムなチャンピオンに変化する。4ゴールドを獲得する。',
       icon: '🎰',
       effect: (state, rng, helpers) => {
@@ -348,7 +347,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'one_one_two_three', name: 'ワンワン、ツー、スリー', tier: 'silver', category: 'item', imgName: '',
+      id: 'one_one_two_three', name: 'ワンワン、ツー、スリー', tier: 'silver', category: 'item', imgName: 'oneonetwothree_i',
       desc: 'コスト1のチャンピオンを2体、コスト2のチャンピオンを1体、コスト3のチャンピオンを1体獲得する。',
       icon: '1️⃣',
       effect: (state, rng, helpers) => {
@@ -358,7 +357,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'delivery_champ', name: '宅配チャンピオン', tier: 'silver', category: 'item', imgName: '',
+      id: 'delivery_champ', name: '宅配チャンピオン', tier: 'silver', category: 'item', imgName: 'championdelivery_i',
       desc: 'コスト2のチャンピオンを3体獲得する。6ラウンド後、さらに3体獲得する。',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -367,7 +366,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'virtue_of_patience', name: '忍耐の美徳', tier: 'silver', category: 'economy', imgName: '',
+      id: 'virtue_of_patience', name: '忍耐の美徳', tier: 'silver', category: 'economy', imgName: 'virtueofpatience_i',
       desc: '即座に4回分のリロールを獲得する。直前のラウンドでチャンピオンを購入していない場合、毎ラウンド1回分のリロールを無料で獲得する。',
       icon: '⏳',
       effect: (state, rng, helpers) => {
@@ -376,7 +375,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'discharge_1', name: '放電 I', tier: 'silver', category: 'combat', imgName: '',
+      id: 'discharge_1', name: '放電 I', tier: 'silver', category: 'combat', imgName: 'electrocharge-i',
       desc: '味方が4回攻撃を受けるたびに、周囲の敵に30-90(現在のステージに応じて)の魔法ダメージを与える(クールダウン1秒)。',
       icon: '⚡',
       effect: (state, rng, helpers) => {
@@ -384,7 +383,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'focus_on_future', name: '未来に集中', tier: 'silver', category: 'economy', imgName: '',
+      id: 'focus_on_future', name: '未来に集中', tier: 'silver', category: 'economy', imgName: 'focusonthefuture_i',
       desc: 'タクティシャンは体力を20失うが、対人戦ラウンドを5回終えるとコスト4のチャンピオン3体と、8ゴールドを獲得する。',
       icon: '🔮',
       effect: (state, rng, helpers) => {
@@ -392,7 +391,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'future_forge', name: '未来の鍛冶場', tier: 'silver', category: 'item', imgName: '',
+      id: 'future_forge', name: '未来の鍛冶場', tier: 'silver', category: 'item', imgName: 'futureforge_i',
       desc: '対人戦を8回終えると、「アーティファクトの金床」を1個獲得する。',
       icon: '🔨',
       effect: (state, rng, helpers) => {
@@ -400,7 +399,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'its_burning', name: '炎上！', tier: 'silver', category: 'combat', imgName: '',
+      id: 'its_burning', name: '炎上！', tier: 'silver', category: 'combat', imgName: 'itsburning_i',
       desc: '前回の戦闘で最も多くのダメージを与えた「インフェルノ」チャンピオンが燃え上がり、攻撃速度が55%増加する。ヴァルスとアカリを1体ずつ獲得する。',
       icon: '🔥',
       effect: (state, rng, helpers) => {
@@ -412,7 +411,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'kingslayer', name: '王殺し', tier: 'silver', category: 'economy', imgName: '',
+      id: 'kingslayer', name: '王殺し', tier: 'silver', category: 'economy', imgName: 'kingslayer_i',
       desc: '対人戦に勝利すると、1ゴールドを獲得する。相手プレイヤーの体力が自身よりも多かった場合は、代わりに6ゴールドを獲得する。1ゴールドを獲得する。',
       icon: '👑',
       effect: (state, rng, helpers) => {
@@ -421,7 +420,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'free_spirit', name: '自由奔放', tier: 'silver', category: 'economy', imgName: '',
+      id: 'free_spirit', name: '自由奔放', tier: 'silver', category: 'economy', imgName: 'freespirit_i',
       desc: 'ドラフトラウンドで常に自由に移動できる。5ゴールドを獲得する。',
       icon: '🕊️',
       effect: (state, rng, helpers) => {
@@ -429,7 +428,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'residual_magic', name: '魔法の残滓', tier: 'silver', category: 'combat', imgName: '',
+      id: 'residual_magic', name: '魔法の残滓', tier: 'silver', category: 'combat', imgName: 'residualmagic_i',
       desc: '味方チームの体力が60増加する。ウィスプを購入するたびに、この効果が10増加する。',
       icon: '✨',
       effect: (state, rng, helpers) => {
@@ -497,16 +496,14 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'strategic_loss' });
       }
     },
-{
+    {
       id: 'pandoras_items2', name: 'パンドラのアイテム II', tier: 'gold', category: 'item', imgName: 'pandora2',
       desc: 'ラウンド開始時: ベンチのアイテムがランダムに変更される。ランダムな素材アイテムを2個獲得する。。',
       icon: '📦',
       effect: (state, rng, helpers) => {
-        // 🌟 素材アイテムを2個即座に獲得する処理を追加
         const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
-        
         helpers.addPassiveBuff({ type: 'pandoras_items' });
       }
     },
@@ -515,11 +512,9 @@ const AUGMENTS_DATA = {
       desc: '素材アイテムを2個獲得する。5勝するたびに、素材アイテムを1個獲得する。',
       icon: '🥊',
       effect: (state, rng, helpers) => {
-        // 🌟 素材アイテムを2個即座に獲得する処理を追加
         const comps = ITEMS.filter(x => x.type === 'comp' && x.id !== 'spatula' && x.id !== 'pan');
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
         helpers.addItem({ ...comps[Math.floor(rng() * comps.length)] });
-        
         helpers.addPassiveBuff({ type: 'pro_boxer' });
       }
     },
@@ -550,7 +545,7 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'redemption_soul' });
       }
     },
-{
+    {
       id: 'charge', name: '出陣', tier: 'gold', category: 'combat', imgName: 'warpath_ii',
       desc: 'ランダムな★★の2コストチャンピオンを獲得する。',
       icon: '⚡',
@@ -559,8 +554,6 @@ const AUGMENTS_DATA = {
         const chosen = pool[Math.floor(rng() * pool.length)];
         const unitData = { ...chosen, star: 2, uid: rng(), items: [] };
         helpers.addChampToBenchDirect(unitData);
-        
-        // 🌟 「チャンピオン獲得」に特化したリッチなPOPアップ
         helpers.showMsg(
           <div className="champ-pop-up">
             <div style={{
@@ -585,7 +578,6 @@ const AUGMENTS_DATA = {
               }}>
                 Unit Acquired
               </div>
-              
               <div style={{ position: 'relative', width: 84, height: 84, marginTop: 5 }}>
                 <img 
                   src={boardIcon(chosen.img)} 
@@ -597,7 +589,6 @@ const AUGMENTS_DATA = {
                     objectFit: 'cover'
                   }} 
                 />
-                {/* 2つ星の表示 */}
                 <div style={{ 
                   position: 'absolute', 
                   bottom: -8, 
@@ -612,7 +603,6 @@ const AUGMENTS_DATA = {
                   ))}
                 </div>
               </div>
-
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '20px', fontWeight: 900, color: 'white', marginBottom: 2 }}>{chosen.jaName}</div>
                 <div style={{ fontSize: '10px', color: 'var(--textdim)', fontWeight: 700 }}>2コスト / ★2</div>
@@ -685,7 +675,6 @@ const AUGMENTS_DATA = {
         const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
         const availableEmblemTraits = emblems.map(e => e.grantedTrait);
         
-        // タンク特性を持たず、かつ最後の特性の紋章が存在する3コストチャンピオンを抽出
         const validPool = CHAMPS.filter(c => {
           if (c.cost !== 3) return false;
           if (c.traits.some(t => tankTraits.includes(t))) return false;
@@ -713,7 +702,6 @@ const AUGMENTS_DATA = {
         const emblems = Object.values(ITEM_RECIPES).filter(r => r.grantedTrait);
         const availableEmblemTraits = emblems.map(e => e.grantedTrait);
         
-        // タンク特性を持ち、かつ最後の特性の紋章が存在する1コストチャンピオンを抽出
         const validPool = CHAMPS.filter(c => {
           if (c.cost !== 1) return false;
           if (!c.traits.some(t => tankTraits.includes(t))) return false;
@@ -760,20 +748,6 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'no_scouting_no_pivoting' });
       }
     },
-    /*
-    {
-      id: 'two_for_one', name: 'お得な2', tier: 'gold', category: 'economy', imgName: 'twomuchvalue_ii',
-      desc: '前回の対人戦でボード上に配置していた種類の異なるコスト2のチャンピオン2体ごとに、1回のリロールを獲得する。コスト2のチャンピオンを1体獲得する。',
-      icon: '✌️',
-      effect: (state, rng, helpers) => {
-        helpers.addPassiveBuff({ type: 'two_for_one' });
-        // コスト2のチャンピオンを1体獲得
-        const pool = CHAMPS.filter(c => c.cost === 2);
-        const chosen = pool[Math.floor(rng() * pool.length)];
-        helpers.addPendingUnits([{ ...chosen, star: 1, uid: rng(), items: [] }]);
-      }
-    },
-    */
     {
       id: 'advance_payment', name: '前借り', tier: 'gold', category: 'economy', imgName: 'advancedloan_ii',
       desc: '20ゴールドを獲得する。次のオーグメントのティアが1つ低くなる。',
@@ -826,7 +800,7 @@ const AUGMENTS_DATA = {
       icon: '🎉',
       effect: (state, rng, helpers) => {
         helpers.addGold(3);
-        helpers.addPassiveBuff({ type: 'birthday_reunion' });  // レベル5到達で★2コスト2（app.js側で処理）
+        helpers.addPassiveBuff({ type: 'birthday_reunion' });
         helpers.showMsg('🎉 バースデー リユニオン: 3G獲得！レベル5で★2のコスト2を獲得します');
       }
     },
@@ -876,7 +850,7 @@ const AUGMENTS_DATA = {
           { w: 13.5, l: [{c:1,s:1,n:2}, {c:2,s:1,n:2}, {c:3,s:1,n:2}] },
           { w: 13.5, l: [{c:1,s:2,n:1}, {c:1,s:1,n:3}, {c:3,s:1,n:2}] },
           { w: 13.5, l: [{c:1,s:2,n:2}, {c:3,s:1,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] },
-          { w: 16.0, l: [{c:2,s:2,n:1}, {c:3,s:1,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] }, // 8%のパターン×2を統合
+          { w: 16.0, l: [{c:2,s:2,n:1}, {c:3,s:1,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] },
           { w: 1.5,  l: [{c:3,s:2,n:1}, {c:1,s:1,n:1}, {c:2,s:1,n:1}] },
           { w: 1.5,  l: [{c:1,s:1,n:3}, {c:3,s:1,n:1}, {c:4,s:1,n:1}, {c:2,s:1,n:1}] }
         ];
@@ -955,9 +929,7 @@ const AUGMENTS_DATA = {
       effect: (state, rng, helpers) => {
         const pool = CHAMPS.filter(c => c.cost === 1);
         const chosenUnit = pool[Math.floor(rng() * pool.length)];
-        
         helpers.addChampToBenchDirect({ ...chosenUnit, star: 1, uid: rng(), items: [] });
-        
         helpers.showMsg(
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <img src={boardIcon(chosenUnit.img)} style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--blue)' }} />
@@ -1045,7 +1017,7 @@ const AUGMENTS_DATA = {
         helpers.showMsg('⚡ 放電 II: 味方が攻撃を受けると魔法ダメージを放ちます！');
       }
     },
-  {
+    {
       id: 'aura_training', name: 'オーラ育成中', tier: 'gold', category: 'combat', imgName: 'aurafarming_ii',
       desc: '推奨アイテムを装備した★2のコスト5チャンピオンを1体獲得する。これは、ステージ4-3までボードに配置できない。',
       icon: '🌀',
@@ -1061,7 +1033,6 @@ const AUGMENTS_DATA = {
           { champId: 'blitzcrank', itemId: 'jeweled' }
         ];
         
-        // このゲームに存在するチャンピオンのみをフィルタ（エラー回避用）
         const validPool = pool.filter(p => CHAMPS.some(c => c.id === p.champId));
         if (validPool.length === 0) return; 
         
@@ -1224,7 +1195,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'item_extraction', name: 'アイテム抽出', tier: 'gold', category: 'item', imgName: '',
+      id: 'item_extraction', name: 'アイテム抽出', tier: 'gold', category: 'item', imgName: 'itemextraction_ii',
       desc: '「ブラックソーン」のマスでチャンピオンを生贄にしたとき、最初の3回まではそのチャンピオンが装備している素材アイテムのコピーをランダムで1つ獲得する。ベイガーとレク＝サイを1体ずつ獲得する。',
       icon: '🗡️',
       effect: (state, rng, helpers) => {
@@ -1236,7 +1207,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'war_path', name: 'ウォーパス', tier: 'gold', category: 'combat', imgName: '',
+      id: 'war_path', name: 'ウォーパス', tier: 'gold', category: 'combat', imgName: 'warpath_ii',
       desc: '★2のコスト2チャンピオンを1体獲得する。プレイヤーに80ダメージを与えると、高コストのチャンピオンとアイテムが入ったチェストを1個獲得する。',
       icon: '⚔️',
       effect: (state, rng, helpers) => {
@@ -1247,7 +1218,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'omega_riftbeast', name: 'オメガ リフトビースト', tier: 'gold', category: 'combat', imgName: '',
+      id: 'omega_riftbeast', name: 'オメガ リフトビースト', tier: 'gold', category: 'combat', imgName: 'omegariftbeast_ii',
       desc: '2体目の「アルファ リフトビースト」を選択できるようになる。スカトルクラブ、シンダーリング、小石を1体ずつ獲得する。',
       icon: '🐉',
       effect: (state, rng, helpers) => {
@@ -1259,7 +1230,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'capital_gain2', name: 'キャピタルゲイン II', tier: 'gold', category: 'economy', imgName: '',
+      id: 'capital_gain2', name: 'キャピタルゲイン II', tier: 'gold', category: 'economy', imgName: 'capitalgains_ii',
       desc: '獲得した利子に等しいゴールドを蓄える。3-3で、獲得した利子の125%に等しいゴールドを蓄える。即座に1ゴールドを獲得する。',
       icon: '📈',
       effect: (state, rng, helpers) => {
@@ -1268,7 +1239,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'fate_gold', name: 'ゴールドの運命', tier: 'gold', category: 'economy', imgName: '',
+      id: 'fate_gold', name: 'ゴールドの運命', tier: 'gold', category: 'economy', imgName: 'golddestiny_ii',
       desc: 'ランダムなゴールドオーグメントを1個と3ゴールドを獲得する。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
@@ -1282,7 +1253,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'double_trouble', name: 'ダブルトラブル', tier: 'gold', category: 'combat', imgName: '',
+      id: 'double_trouble', name: 'ダブルトラブル', tier: 'gold', category: 'combat', imgName: 'doubletrouble2',
       desc: 'フィールド上にまったく同じチャンピオンを2体配置すると、両者の攻撃力と魔力が25%、物理防御と魔法防御が25増加する。★3にアップグレードすると、★2のコピーを1体獲得する。',
       icon: '👯',
       effect: (state, rng, helpers) => {
@@ -1290,7 +1261,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'bonus_gift', name: 'ボーナスギフト', tier: 'gold', category: 'item', imgName: '',
+      id: 'bonus_gift', name: 'ボーナスギフト', tier: 'gold', category: 'item', imgName: 'bonusgift_ii',
       desc: '戦利品オーブを開けるたびに、25%の確率でグレーの戦利品オーブを1個獲得する。グレーの戦利品オーブを2個獲得する。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
@@ -1298,7 +1269,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'haggling_expert', name: '値切り上手', tier: 'gold', category: 'economy', imgName: '',
+      id: 'haggling_expert', name: '値切り上手', tier: 'gold', category: 'economy', imgName: 'masterhaggler_ii',
       desc: 'ドラフトの報酬を選択できなくなる。ドラフトラウンドごとに、プレイヤー体力が6増加し、8ゴールドを獲得する。ドラフト報酬を選択しなかった場合、ピックされなかったチャンピオンとそれが所有するアイテムを獲得する。',
       icon: '🤝',
       effect: (state, rng, helpers) => {
@@ -1306,7 +1277,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'natural_shelter', name: '天然シェルター', tier: 'gold', category: 'combat', imgName: '',
+      id: 'natural_shelter', name: '天然シェルター', tier: 'gold', category: 'combat', imgName: 'naturalshelter_ii',
       desc: '戦闘開始時に「エルダーウッド」の植物に隣接しているチャンピオンは、攻撃速度が15%増加し、2秒ごとに自身の最大体力の2%を回復する。アリスター、オーン、ザヤを1体ずつ獲得する。',
       icon: '🌳',
       effect: (state, rng, helpers) => {
@@ -1318,7 +1289,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'with_solar_blessing', name: '太陽の加護と共に', tier: 'gold', category: 'combat', imgName: '',
+      id: 'with_solar_blessing', name: '太陽の加護と共に', tier: 'gold', category: 'combat', imgName: 'solarblessing_ii',
       desc: 'レオナ、ケイル、セジュアニを1体ずつ獲得する。レオナが毎ラウンド60の最大体力を恒久的に獲得する。この効果は配置した種類の異なる★3のチャンピオン1体につき10増加する。',
       icon: '☀️',
       effect: (state, rng, helpers) => {
@@ -1330,7 +1301,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'small_fluffy_friend', name: '小さなモフモフのお友達', tier: 'gold', category: 'combat', imgName: '',
+      id: 'small_fluffy_friend', name: '小さなモフモフのお友達', tier: 'gold', category: 'combat', imgName: 'smallfluffyfriend_ii',
       desc: '「スプライキン」が発動中は、35%の強さを持つ2体目の「大きなモフモフのお友達」を召喚する。ティーモ、ベイガー、コブコを1体ずつ獲得する。',
       icon: '🐾',
       effect: (state, rng, helpers) => {
@@ -1342,7 +1313,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'guardians_blessing', name: '庇護者の祝福', tier: 'gold', category: 'item', imgName: '',
+      id: 'guardians_blessing', name: '庇護者の祝福', tier: 'gold', category: 'item', imgName: 'guardiansblessing_ii',
       desc: 'レベル5、6、7、8に到達した際に「素材アイテムの金床」を1個獲得する。',
       icon: '🙏',
       effect: (state, rng, helpers) => {
@@ -1350,7 +1321,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'investment_strategy1', name: '投資戦略 I', tier: 'gold', category: 'economy', imgName: '',
+      id: 'investment_strategy1', name: '投資戦略 I', tier: 'gold', category: 'economy', imgName: 'investmentstrategy_ii',
       desc: '獲得した利子1ゴールドにつき、味方チャンピオンの最大体力が8恒久的に増加する。即座に4ゴールドを獲得する。',
       icon: '💹',
       effect: (state, rng, helpers) => {
@@ -1359,7 +1330,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'predator_plant', name: '捕食植物', tier: 'gold', category: 'item', imgName: '',
+      id: 'predator_plant', name: '捕食植物', tier: 'gold', category: 'item', imgName: 'predatoryplants_ii',
       desc: '「フローラ・ファターリスの紋章」を1個獲得する。この紋章を装備しているチャンピオンは、「フローラ・ファターリス」の特性から得られる効果が2倍になる。3ゴールドを獲得する。',
       icon: '🌿',
       effect: (state, rng, helpers) => {
@@ -1370,7 +1341,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'cooking_pot', name: '料理鍋', tier: 'gold', category: 'item', imgName: '',
+      id: 'cooking_pot', name: '料理鍋', tier: 'gold', category: 'item', imgName: 'cookingpot_ii',
       desc: '各ラウンド開始時に、「フライパン」か「へら」アイテムを装備したすべての味方が最も近くにいるチャンピオンの体力を恒久的に60増加させる。「フライパン」を1個獲得する。',
       icon: '🍳',
       effect: (state, rng, helpers) => {
@@ -1380,7 +1351,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'time_skip', name: '時間スキップ', tier: 'gold', category: 'economy', imgName: '',
+      id: 'time_skip', name: '時間スキップ', tier: 'gold', category: 'economy', imgName: 'timeskip_ii',
       desc: '次の3ラウンドの間、自分のショップが無効になる。その後、32XPを獲得する。',
       icon: '⏭️',
       effect: (state, rng, helpers) => {
@@ -1388,7 +1359,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'magnify', name: '極大化', tier: 'gold', category: 'combat', imgName: '',
+      id: 'magnify', name: '極大化', tier: 'gold', category: 'combat', imgName: 'magnify_ii',
       desc: '「フェイ」の妖精が大きくなり、付与する攻撃力と魔力が50%増加する。「フェイ」チャンピオンの攻撃力と魔力が即座に10%増加する。ザヤとラカンを1体ずつ獲得する。',
       icon: '🧚',
       effect: (state, rng, helpers) => {
@@ -1400,7 +1371,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'unrivaled_existence', name: '比類なき存在', tier: 'gold', category: 'combat', imgName: '',
+      id: 'unrivaled_existence', name: '比類なき存在', tier: 'gold', category: 'combat', imgName: 'unrivaledexistence_ii',
       desc: 'レンガーとカ＝ジックスを一緒にボードに出してもペナルティを受けない。さらにお互いのスキル発動時にボーナスを獲得する。レンガーとカ＝ジックスを1体ずつ獲得する。',
       icon: '⚔️',
       effect: (state, rng, helpers) => {
@@ -1412,7 +1383,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'guaranteed_protection', name: '確約された守護', tier: 'gold', category: 'item', imgName: '',
+      id: 'guaranteed_protection', name: '確約された守護', tier: 'gold', category: 'item', imgName: 'guaranteedprotection_ii',
       desc: '「プロテクターの誓い」を1個獲得する。「プロテクターの誓い」の装備者は、あらゆるソースから獲得するマナが20%、最大体力が200増加する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -1422,7 +1393,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'dark_ritual', name: '闇の儀式', tier: 'gold', category: 'combat', imgName: '',
+      id: 'dark_ritual', name: '闇の儀式', tier: 'gold', category: 'combat', imgName: 'darkritual_ii',
       desc: '「魔女」エッセンスを報酬に変換すると、「魔女」チャンピオンが戦利品の代わりに魔力を獲得する。カミール、エリス、ケイトリンを1体ずつ獲得する。',
       icon: '🌑',
       effect: (state, rng, helpers) => {
@@ -1434,7 +1405,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'witchs_familiar', name: '魔女の従者', tier: 'gold', category: 'combat', imgName: '',
+      id: 'witchs_familiar', name: '魔女の従者', tier: 'gold', category: 'combat', imgName: 'witchsfamiliar_ii',
       desc: '「魔女」のエッセンスを集め続けることを選択すると、タクティシャンの体力を2回復する。カミール、エリス、ケイトリンを1体ずつ獲得する。',
       icon: '🐈\u200d⬛',
       effect: (state, rng, helpers) => {
@@ -1524,7 +1495,7 @@ const AUGMENTS_DATA = {
         helpers.addPassiveBuff({ type: 'scarier_cap' });
       }
     },
-{
+    {
       id: 'sublime_adventure', 
       name: '崇高の冒険', 
       tier: 'prismatic', 
@@ -1533,7 +1504,6 @@ const AUGMENTS_DATA = {
       desc: 'コスト2のチャンピオンを3体獲得する。そのうち2体を★3にすると、戦利品が詰まったオーブを1個獲得する。次の2ステージ開始時に、「小型チャンピオン複製器」を1個獲得する。',
       icon: '🏔️',
       effect: (state, rng, helpers) => {
-        // 🌟 コスト2のチャンピオンから重複しないように3種類選ぶ
         const pool2 = CHAMPS.filter(c => c.cost === 2);
         const selectedTypes = [];
         const tempPool = [...pool2];
@@ -1544,10 +1514,8 @@ const AUGMENTS_DATA = {
           selectedTypes.push(tempPool.splice(idx, 1)[0]);
         }
 
-        // 🌟 獲得した3体をベンチ（または待機列）に追加
         const units = selectedTypes.map(c => ({ ...c, star: 1, uid: rng(), items: [] }));
         helpers.addPendingUnits(units);
-
         helpers.showMsg('コスト2チャンピオンを3種類獲得しました！');
       }
     },
@@ -1578,18 +1546,13 @@ const AUGMENTS_DATA = {
     },
     {
       id: 'worth_the_wait2', name: '待つ価値あり II', tier: 'prismatic', category: 'combat', imgName: 'worththewait_iii',
-      desc: 'ランダムなコスト2のチャンピオン1種類を2体獲得する。', // 説明文もシンプルに
+      desc: 'ランダムなコスト2のチャンピオン1種類を2体獲得する。',
       effect: (state, rng, helpers) => {
-        // 1. 2コストのプールから1種類だけ選ぶ
         const pool = CHAMPS.filter(c => c.cost === 2);
         const chosenUnit = pool[Math.floor(rng() * pool.length)];
-
-        // 2. 同じユニットを2体ベンチに追加（即時実行のみ）
         const unitData = { ...chosenUnit, star: 1, uid: rng(), items: [] };
         helpers.addChampToBenchDirect(unitData);
-        helpers.addChampToBenchDirect({ ...unitData, uid: rng() }); // uidだけ変えてもう1体
-
-        // 通知メッセージ
+        helpers.addChampToBenchDirect({ ...unitData, uid: rng() });
         helpers.showMsg(
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <img src={boardIcon(chosenUnit.img)} style={{ width:20, height:20, borderRadius:4, border:'1px solid var(--blue)' }} />
@@ -1634,7 +1597,6 @@ const AUGMENTS_DATA = {
           const idx = Math.floor(rng() * tempEmblems.length);
           selectedEmblems.push(tempEmblems.splice(idx, 1)[0]);
         }
-        
         selectedEmblems.forEach(emblem => helpers.addItem({ ...emblem, type: 'completed' }));
       }
     },
@@ -1706,11 +1668,9 @@ const AUGMENTS_DATA = {
       icon: '❤️',
       effect: (state, rng, helpers) => {
         helpers.addGold(3);
-        
         const recipes = Object.values(ITEM_RECIPES);
         const emblems = recipes.filter(r => r.grantedTrait);
         
-        // 指定された紋章とチャンピオンのペア
         const pairs = [
           { trait: 'Vanguard', champIds: ['mordekaiser'] },
           { trait: 'Psionic', champIds: ['gragas', 'pyke'] },
@@ -1719,18 +1679,16 @@ const AUGMENTS_DATA = {
           { trait: 'Dark Star', champIds: ['mordekaiser'] },
           { trait: 'Bastion', champIds: ['jax'] },
           { trait: 'Meeple', champIds: ['gnar', 'meepsie'] },
-          { trait: 'Shepherd', champIds: ['miipsy', 'meepsie'] }, // 導き手
-          { trait: 'Marauder', champIds: ['akali', 'belveth'] } // 略奪者
+          { trait: 'Shepherd', champIds: ['miipsy', 'meepsie'] },
+          { trait: 'Marauder', champIds: ['akali', 'belveth'] }
         ];
 
-        // データ内に存在するペアだけをフィルタリング
         const validPairs = pairs.filter(p => {
           const hasEmblem = emblems.some(e => e.grantedTrait === p.trait);
           const hasChamp = p.champIds.some(cid => CHAMPS.some(c => c.id === cid));
           return hasEmblem && hasChamp;
         });
 
-        // 抽選と獲得
         const chosenPair = validPairs.length > 0 ? validPairs[Math.floor(rng() * validPairs.length)] : { trait: emblems[Math.floor(rng() * emblems.length)].grantedTrait, champIds: [] };
         const chosenEmblem = { ...emblems.find(e => e.grantedTrait === chosenPair.trait), type: 'completed' };
         const validChamps = chosenPair.champIds.map(cid => CHAMPS.find(c => c.id === cid)).filter(Boolean);
@@ -1834,7 +1792,7 @@ const AUGMENTS_DATA = {
           const idx = Math.floor(rng() * tempPool.length);
           newShop.push({ ...tempPool.splice(idx, 1)[0], star: 1, uid: rng() });
         }
-        newShop.push(null); // ショップは通常5枠なので、最後を空(null)にする
+        newShop.push(null);
         if (helpers.setShop) helpers.setShop(newShop);
         helpers.showMsg('📦 サブスクリプション: 6Gとコスト4が並ぶ特別ショップを獲得しました！');
       }
@@ -1873,7 +1831,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'star_up', name: 'スターアップ', tier: 'prismatic', category: 'combat', imgName: '',
+      id: 'star_up', name: 'スターアップ', tier: 'prismatic', category: 'combat', imgName: 'starup_iii',
       desc: '★3チャンピオンを5体揃えると、自分のレベルが9になる。このオーグメント獲得時、および各ラウンド開始時に2回分のリロールを獲得する。',
       icon: '⭐',
       effect: (state, rng, helpers) => {
@@ -1882,7 +1840,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'fate_prismatic', name: 'プリズムの運命', tier: 'prismatic', category: 'economy', imgName: '',
+      id: 'fate_prismatic', name: 'プリズムの運命', tier: 'prismatic', category: 'economy', imgName: 'prismaticdestiny_iii',
       desc: 'ランダムなプリズムオーグメントを1個と4ゴールドを獲得する。',
       icon: '🎁',
       effect: (state, rng, helpers) => {
@@ -1896,7 +1854,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'radiant_relic', name: 'レディアントの遺物', tier: 'prismatic', category: 'item', imgName: '',
+      id: 'radiant_relic', name: 'レディアントの遺物', tier: 'prismatic', category: 'item', imgName: 'radiantrelic3',
       desc: '5個のレディアントアイテムの中から1個を選択する。「磁力式除去装置」を1個獲得する。',
       icon: '💎',
       effect: (state, rng, helpers) => {
@@ -1906,7 +1864,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'nesting_doll', name: '入れ子人形', tier: 'prismatic', category: 'combat', imgName: '',
+      id: 'nesting_doll', name: '入れ子人形', tier: 'prismatic', category: 'combat', imgName: 'nestingdolls_iii',
       desc: '戦闘でチャンピオンが倒れると、そのチャンピオンのコピーを出現させる。スターレベルは1つ低くなり、体力は70%になる。3回分の無料リロールを獲得する。',
       icon: '🪆',
       effect: (state, rng, helpers) => {
@@ -1915,7 +1873,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'investment_strategy2', name: '投資戦略 II', tier: 'prismatic', category: 'economy', imgName: '',
+      id: 'investment_strategy2', name: '投資戦略 II', tier: 'prismatic', category: 'economy', imgName: 'investmentstrategy_iii',
       desc: '獲得した利子1ゴールドにつき、味方チャンピオンの最大体力が8恒久的に増加する。最大利子が2増加する。即座に8ゴールドを獲得する。',
       icon: '💹',
       effect: (state, rng, helpers) => {
@@ -1924,7 +1882,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'trait_ladder', name: '特性ラダー', tier: 'prismatic', category: 'item', imgName: '',
+      id: 'trait_ladder', name: '特性ラダー', tier: 'prismatic', category: 'item', imgName: 'traitladder_iii',
       desc: 'ランダムな紋章を1個獲得する。プレイヤーとの戦闘で2種類の重複しない特性を発動させると、報酬を獲得する。その後、必要な特性の数と報酬の量が増加する。',
       icon: '🪜',
       effect: (state, rng, helpers) => {
@@ -1935,7 +1893,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'component_quest', name: '素材アイテムクエスト', tier: 'prismatic', category: 'item', imgName: '',
+      id: 'component_quest', name: '素材アイテムクエスト', tier: 'prismatic', category: 'item', imgName: 'componentquest_iii',
       desc: 'ランダムな素材アイテムを1個と1ゴールドを獲得する。対人戦で勝利するたびに、異なるランダムな素材アイテムを1個獲得する（最大7回）。その後、5ゴールドを獲得する。',
       icon: '🧩',
       effect: (state, rng, helpers) => {
@@ -1946,7 +1904,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'shopping_spree', name: '買い物三昧', tier: 'prismatic', category: 'economy', imgName: '',
+      id: 'shopping_spree', name: '買い物三昧', tier: 'prismatic', category: 'economy', imgName: 'shoppingspree3',
       desc: 'レベルアップした際、自身のレベル+1と同じ数の無料リロールを獲得する。6ゴールドを獲得する。',
       icon: '🛍️',
       effect: (state, rng, helpers) => {
