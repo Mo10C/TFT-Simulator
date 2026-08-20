@@ -40,17 +40,36 @@ window.SIM_CONFIG = {
      例: board3dView: {"pos":[0,12.4,15.1],"target":[0,1.1,0.3]}, */
   board3dView: {"pos":[-0.66,10.58,11.63],"target":[-0.66,-0.13,1.29]},
 
-  /* 🏟️ 3D盤面のアリーナ画像（任意）
-     ── 盤面の下に敷く地面。index.html と同じ場所に画像を置けばファイル名だけでOK。
-        http〜 の完全URLも使える。image:'' にすると画像なし（影だけ）になる。
-     ── width/depth を大きくすると地面が広がる。盤面がアリーナの内側（草地の部分）に
-        ちょうど収まるよう width/depth/x/z を微調整する。
-     ── y は地面の高さ。ベンチ列より下でないと駒の足が埋まるので -0.09 前後にしておく。
-     ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面は横およそ13・奥行およそ6。 */
+  /* 🏟️ 3D盤面のアリーナ（任意）
+     ── mode: 'built' … 石壁・草地・かがり火を three.js で組み立てる（既定・画像ファイル不要）
+              'image' … 1枚絵を敷く従来方式（image / width / depth を使う）
+     ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面＋ベンチは横17.2・奥行9.7。
+     ── x / z は全体のズラし。y は地面の高さ（ベンチ列より下にすること）。
+     ── colors で色を変えられる（省略可）:
+          grass 草地 / floor 石畳 / wall 石壁 / merlon 壁の窪み /
+          pedestal かがり火の台座 / flame 炎 / water 水面 /
+          stone1〜3 床に散らす石
+     ── stones:false で床の石を、merlons:false で壁の窪みを、
+        torches:false でかがり火を、water:false で水面を消せる。 */
   arena: {
+    mode: 'built',
+
+    // 組み立て（built）用
+    innerWidth: 20,        // 石畳の横幅（壁の内側）
+    innerDepth: 13,        // 石畳の奥行き
+    wallThickness: 0.75,   // 石壁の厚み
+    wallHeight: 0.85,      // 石壁の高さ
+    grassMargin: 6,        // 石畳の外に広がる草地の幅
+    stoneCount: 26,        // 床に散らす石の数
+    merlonCount: 6,        // 左右の壁に並べる窪みブロックの数
+    torchIntensity: 0.85,  // かがり火の明るさ
+
+    // 1枚絵（image）用
     image: 'TFT-arena.jpg',
     width: 28.8,
     depth: 17,
+
+    // 共通
     x: 0.3,
     y: -0.09,
     z: -0.2,

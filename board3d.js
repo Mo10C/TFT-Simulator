@@ -129,11 +129,169 @@ const B3D = { R:1.0, TH:0.02, GAP:1.10, get HSP(){return Math.sqrt(3)*this.R*thi
       y … 地面の高さ。ベンチ列(-0.06)より下でないと駒の足が地面に埋まるので既定は -0.09。
    ── 数値は「六角マス1個の半径=1.0」が基準。盤面は横約13・奥行約6の大きさ。 */
 const B3D_ARENA = Object.assign(
-  { image:'tft-arena-skin-runic.webp', width:26, depth:17, x:0, y:-0.09, z:1.0 },
+  {
+    mode:'built',          // 'built'（組み立て）または 'image'（1枚絵）
+    // ── built のときに使う値 ──
+    innerWidth:20,         // 石畳（戦うところ）の横幅。盤面＋ベンチは横17.2なので余白込みで20
+    innerDepth:13,         // 石畳の奥行き。盤面＋ベンチは奥行9.7なので余白込みで13
+    wallThickness:0.75,    // 石壁の厚み
+    wallHeight:0.85,       // 石壁の高さ
+    grassMargin:6,         // 石畳の外に広がる草地の幅
+    stoneCount:26,         // 床に散らす石の数（0 や stones:false で無し）
+    merlonCount:6,         // 左右の壁に並べる窪みブロックの数
+    torchIntensity:0.85,   // かがり火の明るさ
+    // ── image のときに使う値 ──
+    image:'TFT-arena.jpg', width:26, depth:17,
+    // ── 共通 ──
+    x:0, y:-0.09, z:1.0,
+  },
   (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.arena) || {}
 );
 
 /* ✏️ 六角形の淵（駒を持ち上げている間だけ見える線）の色と濃さ */
+
+/* ═══════════════════════════════════════════════════════════════
+   🏟️ アリーナを組み立てる（画像を貼らず、箱と板だけで作る簡易版）
+   ── 本家のステージを参考にした構成:
+        草地 → 石畳の床 → 四方を囲む石壁 → 角のかがり火 → 外周の水面
+   ── 数値の基準は「六角マス1個の半径 = 1.0」。盤面は横約14・奥行約9。
+   ── 色や大きさは sim-config.js の arena で変えられる。
+   ═══════════════════════════════════════════════════════════════ */
+function b3dBuildArena(THREE, A, renderer){
+  const g = new THREE.Group();
+  const C = A.colors || {};
+  const mat = (color, rough, metal) => new THREE.MeshStandardMaterial({
+    color, roughness: rough === undefined ? 0.95 : rough, metalness: metal === undefined ? 0 : metal, flatShading: true });
+
+  const innerW = A.innerWidth, innerD = A.innerDepth;   // 石畳（戦うところ）の広さ
+  const wallT  = A.wallThickness, wallH = A.wallHeight; // 壁の厚み・高さ
+  const y = A.y;                                        // 地面の高さ
+  const hw = innerW/2, hd = innerD/2;                   // 内側の半分の大きさ
+  const ox = A.x, oz = A.z;                             // 全体のズラし
+
+  /* ── ① 外側の草地（広めの板）── */
+  const grass = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2, innerD + A.grassMargin*2),
+                               mat(C.grass || 0x5f8f4a));
+  grass.rotation.x = -Math.PI/2;
+  grass.position.set(ox, y - 0.06, oz);
+  grass.receiveShadow = true;
+  g.add(grass);
+
+  /* ── ② 内側の石畳（駒が立つ面。影はここが受ける）── */
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(innerW, innerD), mat(C.floor || 0xbfb289, 1));
+  floor.rotation.x = -Math.PI/2;
+  floor.position.set(ox, y, oz);
+  floor.receiveShadow = true;
+  g.add(floor);
+
+  // 石畳の上に、色味の違う大きな石を散らして単調さを消す（見た目だけ・影は受けない）
+  if (A.stones !== false) {
+    const stoneMat = [mat(C.stone1 || 0xc8c4a6, 1), mat(C.stone2 || 0xb3ad8b, 1), mat(C.stone3 || 0xa89a76, 1)];
+    let seed = 20260820;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    for (let i = 0; i < (A.stoneCount || 26); i++) {
+      const r = 0.55 + rnd() * 1.15;
+      const s = new THREE.Mesh(new THREE.CircleGeometry(r, 6), stoneMat[i % 3]);
+      s.rotation.x = -Math.PI/2; s.rotation.z = rnd() * Math.PI;
+      s.position.set(ox + (rnd() - 0.5) * (innerW - 1.5), y + 0.005 + i * 0.0004, oz + (rnd() - 0.5) * (innerD - 1.5));
+      s.scale.set(1, 0.72, 1);
+      g.add(s);
+    }
+  }
+
+  /* ── ③ 四方の石壁 ── */
+  const wallMat = mat(C.wall || 0xcfc6ad, 0.9);
+  const addWall = (w, d, x, z) => {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, wallH, d), wallMat);
+    m.position.set(x, y + wallH/2, z);
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+  const outer = wallT/2;
+  addWall(innerW + wallT*2, wallT, ox,               oz - hd - outer);  // 奥
+  addWall(innerW + wallT*2, wallT, ox,               oz + hd + outer);  // 手前
+  addWall(wallT, innerD,           ox - hw - outer,  oz);               // 左
+  addWall(wallT, innerD,           ox + hw + outer,  oz);               // 右
+
+  // 左右の壁の上に、本家のような小さな窪みブロックを並べる
+  if (A.merlons !== false) {
+    const merlonMat = mat(C.merlon || 0xbdb49b, 0.9);
+    const n = A.merlonCount || 6;
+    for (let i = 0; i < n; i++) {
+      const t = (i + 0.5) / n;
+      const z = oz - hd + t * innerD;
+      [-1, 1].forEach(side => {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(wallT * 1.5, wallH * 0.45, innerD / n * 0.62), merlonMat);
+        m.position.set(ox + side * (hw + outer), y + wallH + wallH * 0.22, z);
+        m.castShadow = true; m.receiveShadow = true;
+        g.add(m);
+      });
+    }
+  }
+
+  /* ── ④ 四隅の台座とかがり火 ── */
+  if (A.torches !== false) {
+    const pedMat = mat(C.pedestal || 0xd6cdb4, 0.9);
+    const flameMat = new THREE.MeshBasicMaterial({ color: C.flame || 0xff7a1a });
+    const pedS = wallT * 2.4;
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx, sz]) => {
+      const x = ox + sx * (hw + outer), z = oz + sz * (hd + outer);
+      const ped = new THREE.Mesh(new THREE.BoxGeometry(pedS, wallH * 1.5, pedS), pedMat);
+      ped.position.set(x, y + wallH * 0.75, z);
+      ped.castShadow = true; ped.receiveShadow = true;
+      g.add(ped);
+
+      // 炎（板ではなく小さな多面体。常に明るく光って見えるよう Basic マテリアル）
+      const flame = new THREE.Mesh(new THREE.OctahedronGeometry(pedS * 0.3, 0), flameMat);
+      flame.position.set(x, y + wallH * 1.5 + pedS * 0.28, z);
+      flame.scale.set(1, 1.5, 1);
+      flame.userData.b3dFlame = true;     // アニメーション用の目印
+      g.add(flame);
+
+      const light = new THREE.PointLight(C.flame || 0xff7a1a, A.torchIntensity || 0.85, pedS * 9, 2);
+      light.position.copy(flame.position);
+      g.add(light);
+    });
+  }
+
+  /* ── ⑤ さらに外側の水面（草地の外周を囲む）── */
+  if (A.water !== false) {
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(innerW + A.grassMargin*2 + 24, innerD + A.grassMargin*2 + 24),
+                                 mat(C.water || 0x2b7f96, 0.35, 0.1));
+    water.rotation.x = -Math.PI/2;
+    water.position.set(ox, y - 0.5, oz);
+    g.add(water);
+  }
+
+  /* ── 従来の「1枚絵を敷く」方式も残す ── */
+  if (A.mode === 'image' && A.image) {
+    // 組み立てた地面は消して、画像だけにする
+    g.clear();
+    const planeGeo = new THREE.PlaneGeometry(1,1);
+    const catcher = new THREE.Mesh(planeGeo, new THREE.ShadowMaterial({ opacity:0.34 }));
+    catcher.rotation.x = -Math.PI/2;
+    catcher.position.set(ox, y, oz);
+    catcher.scale.set(A.width, A.depth, 1);
+    catcher.receiveShadow = true;
+    g.add(catcher);
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin && loader.setCrossOrigin('anonymous');
+    loader.load(A.image, (tex) => {
+      b3dSetSRGB(tex);
+      tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+      tex.anisotropy = (renderer && renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 1;
+      const ground = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map:tex, toneMapped:false }));
+      ground.rotation.x = -Math.PI/2;
+      ground.position.set(ox, y - 0.01, oz);
+      ground.scale.set(A.width, A.depth, 1);
+      g.add(ground);
+    }, undefined, () => {});
+  }
+
+  return g;
+}
+
 const B3D_HEX_EDGE_COLOR = 0xffe9a8;
 const B3D_HEX_EDGE_OPACITY = 0.55;
 const B3D_COST = { 1:0x9aa7b5, 2:0x2ec77e, 3:0x2f9bff, 4:0xc46bff, 5:0xf4c04a };
@@ -1015,35 +1173,16 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const bb=new THREE.Box3().setFromObject(boardGroup), ctr=new THREE.Vector3(); bb.getCenter(ctr);
       boardGroup.position.set(-ctr.x,0,-ctr.z);
 
-      /* 🏟️ アリーナの地面（画像を1枚貼った板）。駒の影はここが受ける。
-         ── 画像・大きさ・位置は sim-config.js の arena で調整できる（B3D_ARENA 参照）。 */
-      const arenaGroup = new THREE.Group(); scene.add(arenaGroup);
-      {
-        const A = B3D_ARENA;
-        const planeGeo = new THREE.PlaneGeometry(1,1);
-        // 影を受ける面（画像の有無に関わらず必要）
-        const shadowCatcher = new THREE.Mesh(planeGeo, new THREE.ShadowMaterial({ opacity:0.34 }));
-        shadowCatcher.rotation.x = -Math.PI/2;
-        shadowCatcher.position.set(A.x, A.y, A.z);
-        shadowCatcher.scale.set(A.width, A.depth, 1);
-        shadowCatcher.receiveShadow = true;
-        arenaGroup.add(shadowCatcher);
-
-        if (A.image) {
-          const texLoader = new THREE.TextureLoader();
-          texLoader.setCrossOrigin && texLoader.setCrossOrigin('anonymous');
-          texLoader.load(A.image, (tex) => {
-            b3dSetSRGB(tex);
-            if (THREE.LinearFilter) { tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; }
-            tex.anisotropy = (renderer.capabilities && renderer.capabilities.getMaxAnisotropy) ? renderer.capabilities.getMaxAnisotropy() : 1;
-            const ground = new THREE.Mesh(planeGeo, new THREE.MeshBasicMaterial({ map:tex, toneMapped:false }));
-            ground.rotation.x = -Math.PI/2;
-            ground.position.set(A.x, A.y - 0.01, A.z);  // 影を受ける面のさらに下
-            ground.scale.set(A.width, A.depth, 1);
-            arenaGroup.add(ground);
-          }, undefined, () => { /* 画像が無ければ影だけ出す */ });
-        }
-      }
+      /* 🏟️ アリーナ。駒の影はここが受ける。
+         ── sim-config.js の arena.mode で切り替え:
+              'built' … 石壁・草地・かがり火を three.js の箱と板で組み立てる（既定）
+              'image' … 1枚絵を敷く（従来方式。arena.image を使う）
+         ── 詳しくは B3D_ARENA のコメントを参照。 */
+      const arenaGroup = b3dBuildArena(THREE, B3D_ARENA, renderer);
+      scene.add(arenaGroup);
+      // 🔥 かがり火はゆらゆら揺らす（描画ループから参照する）
+      const arenaFlames = [];
+      arenaGroup.traverse(n => { if (n.userData && n.userData.b3dFlame) arenaFlames.push(n); });
 
       // 選択中マスのハイライト枠
       const selMarker=new THREE.LineSegments(
@@ -1139,6 +1278,15 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
          // 🌟 追加: すべてのモデルのアニメーションを進める
          if (S.current.mixers) {
             S.current.mixers.forEach(mixer => mixer.update(delta));
+         }
+         // 🔥 かがり火の炎を少しだけ揺らす（本数が少ないので負荷はほぼ無し）
+         if (arenaFlames.length) {
+            const t = performance.now() * 0.004;
+            arenaFlames.forEach((f, i) => {
+              const s = 1 + Math.sin(t + i * 1.7) * 0.16;
+              f.scale.set(s, 1.5 / s, s);
+              f.rotation.y += delta * 1.6;
+            });
          }
          // 🌟 購入直後などで新しく置かれた駒を、上からストンと着地させる
          if (S.current.spawning && S.current.spawning.size) {
