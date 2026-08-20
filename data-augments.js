@@ -10,7 +10,7 @@ const TIER_COLORS = { silver: 'var(--silver)', gold: 'var(--gold2)', prismatic: 
 const AUGMENTS_DATA = {
   silver: [
     {
-      id: 'protectors_pact', name: '庇護者のお供', tier: 'silver', category: 'combat', imgName: 'caretaker_s-chosen-i',
+      id: 'protectors_pact', name: '庇護者のお供', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_caretakersally.avif?v=1',
       desc: '即座にランダムなコスト2のチャンピオンを1体獲得する。レベルアップするごとに同じユニットをもう1体獲得する。',
       icon: '🤝',
       effect: (state, rng, helpers) => {
@@ -101,7 +101,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'thieves_guild', name: '盗賊団', tier: 'silver', category: 'item', imgName: 'bandthieves1',
+      id: 'thieves_guild', name: '盗賊団', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_bandofthieves.avif?v=1',
       desc: '「盗賊のグローブ」1個を獲得。',
       icon: '🧤',
       effect: (state, rng, helpers) => {
@@ -144,7 +144,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'makeshift_armor1', name: '即席アーマー I', tier: 'silver', category: 'combat', imgName: 'makeshift1',
+      id: 'makeshift_armor1', name: '即席アーマー I', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_makeshiftarmori.avif?v=1',
       desc: 'アイテムを装備していない味方の物理防御と魔法防御が30増加する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -180,7 +180,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'team_building', name: 'チーム構築', tier: 'silver', category: 'combat', imgName: 'building-an-army-i',
+      id: 'team_building', name: 'チーム構築', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_teambuilding.avif?v=1',
       desc: '「小型チャンピオン複製器」を1個獲得する。対人戦を5回行うと、さらにもう1個獲得する。',
       icon: '👥',
       effect: (state, rng, helpers) => {
@@ -227,7 +227,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'support_bow', name: '援護の弓', tier: 'silver', category: 'item', imgName: 'recurvewrecker_i',
+      id: 'support_bow', name: '援護の弓', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_backupbows.avif?v=1',
       desc: '「リカーブ ボウ」を1個獲得する。味方チームが通常攻撃を1000回行うと、さらに2個獲得する。',
       icon: '🏹',
       effect: (state, rng, helpers) => {
@@ -235,7 +235,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'flowing_tears', name: '流れる涙', tier: 'silver', category: 'item', imgName: 'griefofthegreatgoddess_i',
+      id: 'flowing_tears', name: '流れる涙', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_flowingtears.avif?v=1',
       desc: '「女神の涙」を1個獲得する。味方チームが6500マナを使用すると、さらに2個獲得する。',
       icon: '💧',
       effect: (state, rng, helpers) => {
@@ -261,7 +261,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'loaded_dice', name: 'イカサマダイス', tier: 'silver', category: 'economy', imgName: 't_augmenticon_loaded_dice',
+      id: 'loaded_dice', name: 'イカサマダイス', tier: 'silver', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_loadeddice.avif?v=1',
       desc: 'ダイスを振ると、出た目の数と同じ量のゴールドを獲得する。その後コインを投げ、表が出ると1ゴールドを獲得する。ダイスは常に6の目を出し、コインは常に表が出る。',
       icon: '🎲',
       effect: (state, rng, helpers) => {}
@@ -278,7 +278,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'kana_to_kane', name: 'カナとカネ', tier: 'silver', category: 'item', imgName: 'anvilsandgold_i',
+      id: 'kana_to_kane', name: 'カナとカネ', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_ironassets.avif?v=1',
       desc: '「素材アイテムの金床」を1個と3ゴールドを獲得する。',
       icon: '💰',
       effect: (state, rng, helpers) => {
@@ -287,7 +287,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'capital_gain1', name: 'キャピタルゲイン I', tier: 'silver', category: 'economy', imgName: 'capitalgainsi',
+      id: 'capital_gain1', name: 'キャピタルゲイン I', tier: 'silver', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_capitalgainsi.avif?v=1',
       desc: '獲得した利子に等しいゴールドを蓄える。3-3で、獲得した利子の100%に等しいゴールドを蓄える。即座に1ゴールドを獲得する。',
       icon: '📈',
       effect: (state, rng, helpers) => {
@@ -296,7 +296,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'quick_streak', name: 'クイックストリーク', tier: 'silver', category: 'combat', imgName: 'quickstreak_i',
+      id: 'quick_streak', name: 'クイックストリーク', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_quickstreaks.avif?v=1',
       desc: '連勝および連敗のカウントが2倍になる。2ゴールドを獲得する。',
       icon: '🔥',
       effect: (state, rng, helpers) => {
@@ -305,7 +305,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'call_shot', name: 'コールショット', tier: 'silver', category: 'combat', imgName: 'calltheshot_i',
+      id: 'call_shot', name: 'コールショット', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_calledshot.avif?v=1',
       desc: '連勝数を+4に設定する。4ゴールドを獲得する。',
       icon: '📣',
       effect: (state, rng, helpers) => {
@@ -328,7 +328,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'pandoras_items1', name: 'パンドラのアイテム I', tier: 'silver', category: 'item', imgName: 'pandora1',
+      id: 'pandoras_items1', name: 'パンドラのアイテム I', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_pandorasitemsi.avif?v=1',
       desc: 'ラウンド開始時、ベンチのアイテムがランダムに変更される。ランダムな素材アイテムを1個獲得する。',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -347,7 +347,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'one_one_two_three', name: 'ワンワン、ツー、スリー', tier: 'silver', category: 'item', imgName: 'oneonetwothree_i',
+      id: 'one_one_two_three', name: 'ワンワン、ツー、スリー', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_onestwosthree.avif?v=1',
       desc: 'コスト1のチャンピオンを2体、コスト2のチャンピオンを1体、コスト3のチャンピオンを1体獲得する。',
       icon: '1️⃣',
       effect: (state, rng, helpers) => {
@@ -357,7 +357,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'delivery_champ', name: '宅配チャンピオン', tier: 'silver', category: 'item', imgName: 'championdelivery_i',
+      id: 'delivery_champ', name: '宅配チャンピオン', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_champdelivery.avif?v=1',
       desc: 'コスト2のチャンピオンを3体獲得する。6ラウンド後、さらに3体獲得する。',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -366,7 +366,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'virtue_of_patience', name: '忍耐の美徳', tier: 'silver', category: 'economy', imgName: 'virtueofpatience_i',
+      id: 'virtue_of_patience', name: '忍耐の美徳', tier: 'silver', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_patienceisavirtue.avif?v=1',
       desc: '即座に4回分のリロールを獲得する。直前のラウンドでチャンピオンを購入していない場合、毎ラウンド1回分のリロールを無料で獲得する。',
       icon: '⏳',
       effect: (state, rng, helpers) => {
@@ -375,7 +375,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'discharge_1', name: '放電 I', tier: 'silver', category: 'combat', imgName: 'electrocharge-i',
+      id: 'discharge_1', name: '放電 I', tier: 'silver', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_electrochargei.avif?v=1',
       desc: '味方が4回攻撃を受けるたびに、周囲の敵に30-90(現在のステージに応じて)の魔法ダメージを与える(クールダウン1秒)。',
       icon: '⚡',
       effect: (state, rng, helpers) => {
@@ -383,7 +383,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'focus_on_future', name: '未来に集中', tier: 'silver', category: 'economy', imgName: 'focusonthefuture_i',
+      id: 'focus_on_future', name: '未来に集中', tier: 'silver', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_futurefocused.avif?v=1',
       desc: 'タクティシャンは体力を20失うが、対人戦ラウンドを5回終えるとコスト4のチャンピオン3体と、8ゴールドを獲得する。',
       icon: '🔮',
       effect: (state, rng, helpers) => {
@@ -391,7 +391,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'future_forge', name: '未来の鍛冶場', tier: 'silver', category: 'item', imgName: 'futureforge_i',
+      id: 'future_forge', name: '未来の鍛冶場', tier: 'silver', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_latentforge.avif?v=1',
       desc: '対人戦を8回終えると、「アーティファクトの金床」を1個獲得する。',
       icon: '🔨',
       effect: (state, rng, helpers) => {
@@ -1922,7 +1922,7 @@ const AUGMENTS_DATA = {
   const TAGS = {"protectors_pact":"set18","silver_spoon":"set18","cognitive_tax":"set18","thieves_guild":"set18","pave_the_way":"set18","extra_buckle":"set18","makeshift_armor1":"set18","focused_fire":"set18","the_tower":"set18","team_building":"set18","branching_out":"set18","kickstart":"set18","ordinary_days":"set18","well_earned_1":"set18","support_bow":"set18","flowing_tears":"set18","masterful_crafting":"set18","loaded_dice":"set18","legion_of_three":"set18","epoch":"set18","trade_sector":"set18","slam_dunk":"set18","strategic_loss":"set18","pandoras_items2":"set18","seraphims_staff":"set18","redemption_soul":"set18","makeshift_armor2":"set18","bodyguard_training":"set18","infinity_guardian":"set18","urf":"set18","backline_blueprint":"set18","frontline_foundation":"set18","spreading_roots":"set18","early_education":"set18","no_scouting_no_pivoting":"set18","cluttered_mind":"set18","salvage_bin":"set18","birthday_reunion":"set18","studious":"set18","hustler":"set18","booster_pack":"set18","heroic_grab_bag":"set18","portable_forge":"set18","duplication":"set18","worth_the_wait":"set18","single_plate":"set18","solo_leveling":"set18","discharge_2":"set18","lategame_scaling":"set18","heart_of_steel":"set18","spun_magic":"set18","cry_all_you_want":"set18","fast_double_kill":"set18","clear_mind_2":"set18","money_hungry":"set18","upward_mobility":"set18","hedge_fund":"set18","prism_ticket":"set18","make_friends":"set18","level_up":"set18","thieves_guild2":"set18","scarier_cap":"set18","deadlier_blade":"set18","cursed_crown":"set18","last_stand":"set18","worth_the_wait2":"set18","birthday_gift":"set18","tacticians_kitchen":"set18","trait_tree":"set18","pandoras_items3":"set18","lucky_gloves":"set18","speculative_buying":"set18","flexibility":"set18","heart_and_soul":"set18","living_forge":"set18","shimmerscale_essence":"set18","golden_gamble":"set18","forged_in_force":"set18","always_together":"set18","subscription":"set18","item_loot_bag":"set18","buried_treasures":"set18","dice_of_fortune":"set18","kana_to_kane":"set18","capital_gain1":"set18","quick_streak":"set18","call_shot":"set18","fate_silver":"set18","pandoras_items1":"set18","pandoras_bench":"set18","one_one_two_three":"set18","delivery_champ":"set18","virtue_of_patience":"set18","discharge_1":"set18","focus_on_future":"set18","future_forge":"set18","its_burning":"set18","kingslayer":"set18","free_spirit":"set18","residual_magic":"set18","item_extraction":"set18","war_path":"set18","omega_riftbeast":"set18","capital_gain2":"set18","fate_gold":"set18","double_trouble":"set18","bonus_gift":"set18","haggling_expert":"set18","natural_shelter":"set18","with_solar_blessing":"set18","small_fluffy_friend":"set18","guardians_blessing":"set18","investment_strategy1":"set18","predator_plant":"set18","cooking_pot":"set18","time_skip":"set18","magnify":"set18","unrivaled_existence":"set18","guaranteed_protection":"set18","dark_ritual":"set18","witchs_familiar":"set18","star_up":"set18","fate_prismatic":"set18","radiant_relic":"set18","nesting_doll":"set18","investment_strategy2":"set18","trait_ladder":"set18","component_quest":"set18","shopping_spree":"set18","stellar_combo":"set17","terminal_velocity":"set17","shield_maiden":"set17","afk":"set17","augment_power":"set17","one_two_three":"set17","continuous_magic":"set17","small_giant":"set17","critical_success":"set17","savings_account":"set17","pro_boxer":"set17","fan_the_flames":"set17","charge":"set17","warlords_honor":"set17","anima_commander":"set17","advance_payment":"set17","two_tanks":"set17","sunfire_board":"set17","big_bang":"set17","heavy_is_the_crown":"set17","divine_forge":"set17","pro_assassin":"set17","root_singularity":"set17","self_destruction":"set17","focus":"set17","aura_training":"set17","galactic_journey":"set17","blood_offering":"set17","high_voltage":"set17","heat_death":"set17","timestream":"set17","treasure_hunt":"set17","reach_for_the_stars":"set17","sacrifice":"set17","sublime_adventure":"set17","wise_spending":"set17","swarm_heart":"set17","expected_surprise":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
-  const EDITS = {"free_spirit":{"imgName":"https://tftips.b-cdn.net/aug/18_youngandwildandfree.avif?v=1"},"its_burning":{"imgName":"https://tftips.b-cdn.net/aug/18_infernotraitaugment.avif?v=1"}};
+  const EDITS = {"free_spirit":{"imgName":"https://tftips.b-cdn.net/aug/18_youngandwildandfree.avif?v=1"},"its_burning":{"imgName":"https://tftips.b-cdn.net/aug/18_infernotraitaugment.avif?v=1"},"future_forge":{"imgName":"https://tftips.b-cdn.net/aug/18_latentforge.avif?v=1"},"focus_on_future":{"imgName":"https://tftips.b-cdn.net/aug/18_futurefocused.avif?v=1"},"discharge_1":{"imgName":"https://tftips.b-cdn.net/aug/18_electrochargei.avif?v=1"},"virtue_of_patience":{"imgName":"https://tftips.b-cdn.net/aug/18_patienceisavirtue.avif?v=1"},"delivery_champ":{"imgName":"https://tftips.b-cdn.net/aug/18_champdelivery.avif?v=1"},"one_one_two_three":{"imgName":"https://tftips.b-cdn.net/aug/18_onestwosthree.avif?v=1"},"pandoras_items1":{"imgName":"https://tftips.b-cdn.net/aug/18_pandorasitemsi.avif?v=1"},"call_shot":{"imgName":"https://tftips.b-cdn.net/aug/18_calledshot.avif?v=1"},"quick_streak":{"imgName":"https://tftips.b-cdn.net/aug/18_quickstreaks.avif?v=1"},"capital_gain1":{"imgName":"https://tftips.b-cdn.net/aug/18_capitalgainsi.avif?v=1"},"kana_to_kane":{"imgName":"https://tftips.b-cdn.net/aug/18_ironassets.avif?v=1"},"loaded_dice":{"imgName":"https://tftips.b-cdn.net/aug/18_loadeddice.avif?v=1"},"flowing_tears":{"imgName":"https://tftips.b-cdn.net/aug/18_flowingtears.avif?v=1"},"support_bow":{"imgName":"https://tftips.b-cdn.net/aug/18_backupbows.avif?v=1"},"team_building":{"imgName":"https://tftips.b-cdn.net/aug/18_teambuilding.avif?v=1"},"makeshift_armor1":{"imgName":"https://tftips.b-cdn.net/aug/18_makeshiftarmori.avif?v=1"},"thieves_guild":{"imgName":"https://tftips.b-cdn.net/aug/18_bandofthieves.avif?v=1"},"protectors_pact":{"imgName":"https://tftips.b-cdn.net/aug/18_caretakersally.avif?v=1"}};
   ['silver','gold','prismatic'].forEach(t => (AUGMENTS_DATA[t] || []).forEach(a => {
     if (HIDDEN.includes(a.id)) a.hidden = true;
     if (TAGS[a.id]) a.setTag = TAGS[a.id];
