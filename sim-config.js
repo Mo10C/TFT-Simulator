@@ -75,6 +75,11 @@ window.SIM_CONFIG = {
     z: -0.2,
   },
 
+  /* 💡 3D盤面の明るさ（任意・省略すると既定値）
+     ── 白飛びする場合は exposure か key を下げる。暗い場合は上げる。
+     ── toneMapping:false にすると明るい面が白く飛びやすくなるので基本は true のまま。
+     light: { hemi: 0.55, ambient: 0.25, key: 1.15, rim: 0.35, exposure: 1.0, toneMapping: true }, */
+
   /* 📊 みんなの結果（Firestore）
      Firebase コンソール > プロジェクトの設定 > 全般 の値 */
   firebase: {

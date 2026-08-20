@@ -148,6 +148,19 @@ const B3D_ARENA = Object.assign(
   (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.arena) || {}
 );
 
+/* ═══ 💡 明るさの設定 ═══
+   ── 合計が強すぎると明るい面が白飛びする（1.0 で頭打ちになるため）。
+      toneMapping を切ると、その頭打ちがそのまま出るので白飛びしやすくなる。
+   ── sim-config.js の light で上書きできる。例:
+        light: { key: 1.0, exposure: 0.9 }
+      hemi … 空と地面からの環境光 / ambient … 全体の底上げ
+      key … 主光源（影を作る） / rim … 逆光側の青い縁取り
+      exposure … 全体の露出。暗ければ上げ、明るすぎれば下げる。 */
+const B3D_LIGHT = Object.assign(
+  { hemi:0.55, ambient:0.25, key:1.15, rim:0.35, exposure:1.0, toneMapping:true },
+  (typeof window!=='undefined' && window.SIM_CONFIG && window.SIM_CONFIG.light) || {}
+);
+
 /* ✏️ 六角形の淵（駒を持ち上げている間だけ見える線）の色と濃さ */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1106,6 +1119,12 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       if (THREE.SRGBColorSpace !== undefined) renderer.outputColorSpace = THREE.SRGBColorSpace;
       else if (THREE.sRGBEncoding !== undefined) renderer.outputEncoding = THREE.sRGBEncoding;
       renderer.physicallyCorrectLights = false;
+      /* 🌗 トーンマッピング。これが無いと明るい面（石畳・石壁など）が
+         そのまま 1.0 で頭打ちになり、真っ白に飛んでしまう。 */
+      if (B3D_LIGHT.toneMapping && THREE.ACESFilmicToneMapping !== undefined) {
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = B3D_LIGHT.exposure;
+      }
       mount.appendChild(renderer.domElement);
       // 装備アイテムのアイコンを3Dの上に重ねる層（CORS不要でCDN画像をそのまま出せる）
       const itemLayer=document.createElement('div');
@@ -1117,13 +1136,15 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       controls.minDistance = 4; controls.maxDistance = 80; controls.maxPolarAngle = Math.PI*0.49;
       controls.target.set(0,0,0);
 
-      scene.add(new THREE.HemisphereLight(0xdCE8ff, 0x33405c, 1.15));
-      scene.add(new THREE.AmbientLight(0xffffff, 0.55));   // 影側が黒く潰れないよう底上げ
-      const keyL = new THREE.DirectionalLight(0xffffff, 1.8); keyL.position.set(6,14,7);
-      keyL.castShadow = true; keyL.shadow.mapSize.set(1024,1024);
+      /* 💡 明るさは B3D_LIGHT で一括管理（sim-config.js の light で上書きできる）。
+         合計が強すぎると白飛びするので、環境光は控えめ・キーライト主体にする。 */
+      scene.add(new THREE.HemisphereLight(0xdCE8ff, 0x33405c, B3D_LIGHT.hemi));
+      scene.add(new THREE.AmbientLight(0xffffff, B3D_LIGHT.ambient));   // 影側が黒く潰れないよう底上げ
+      const keyL = new THREE.DirectionalLight(0xffffff, B3D_LIGHT.key); keyL.position.set(6,14,7);
+      keyL.castShadow = true; keyL.shadow.mapSize.set(2048,2048);
       keyL.shadow.camera.left=-12; keyL.shadow.camera.right=12; keyL.shadow.camera.top=12; keyL.shadow.camera.bottom=-12;
       scene.add(keyL);
-      const rimL = new THREE.DirectionalLight(0x1a9fff, 0.5); rimL.position.set(-8,6,-8); scene.add(rimL);
+      const rimL = new THREE.DirectionalLight(0x1a9fff, B3D_LIGHT.rim); rimL.position.set(-8,6,-8); scene.add(rimL);
 
 
       const boardGroup = new THREE.Group(); scene.add(boardGroup);
