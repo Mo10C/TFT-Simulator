@@ -6706,7 +6706,7 @@ const handleAugmentPick = (aug, historyContext) => {
       <div className="sp-main-area" style={{ flex:1, display:'flex', overflow:'hidden', position:'relative' }}>
         {/* 左サイドバー */}
         <div className="sp-left-side" style={{ display:'flex', background:'var(--bg-sidebar)', borderRight:'1px solid var(--border)', flexShrink:0, paddingLeft:'env(safe-area-inset-left)' }}>
-          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 128 : 190, padding: isLandscapeMobile ? 4 : 10, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
+          <div className="sp-left-trait" style={{ width: isLandscapeMobile ? 100 : 170, padding: isLandscapeMobile ? 4 : 10, overflowY:'auto', borderRight:'1px solid rgba(30,45,74,.3)' }}>
             
             
 
