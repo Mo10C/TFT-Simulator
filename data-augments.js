@@ -461,7 +461,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'trade_sector', name: 'トレードセクター', tier: 'gold', category: 'economy', imgName: 'trade2',
+      id: 'trade_sector', name: 'トレードセクター', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_tradesector.avif?v=1',
       desc: '毎ラウンド、ショップの無料リロール1回分を獲得する。2ゴールドを獲得する。',
       icon: '💹',
       effect: (state, rng, helpers) => {
@@ -497,7 +497,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'pandoras_items2', name: 'パンドラのアイテム II', tier: 'gold', category: 'item', imgName: 'pandora2',
+      id: 'pandoras_items2', name: 'パンドラのアイテム II', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_pandorasitemsii.avif?v=1',
       desc: 'ラウンド開始時: ベンチのアイテムがランダムに変更される。ランダムな素材アイテムを2個獲得する。。',
       icon: '📦',
       effect: (state, rng, helpers) => {
@@ -613,7 +613,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'makeshift_armor2', name: '即席アーマー II', tier: 'gold', category: 'combat', imgName: 'makeshift2',
+      id: 'makeshift_armor2', name: '即席アーマー II', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_makeshiftarmorii.avif?v=1',
       desc: 'アイテムを装備していない味方の物理防御と魔法防御が50増加する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -621,7 +621,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'bodyguard_training', name: 'ボディーガードの訓練', tier: 'gold', category: 'combat', imgName: 'bodyguardstraining_ii',
+      id: 'bodyguard_training', name: 'ボディーガードの訓練', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_bodyguardtraining.avif?v=1',
       desc: '味方の物理防御と魔法防御が10増加し、プレイヤーレベル1ごとに3ずつ増加する。',
       icon: '💪',
       effect: (state, rng, helpers) => {
@@ -659,7 +659,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'urf', name: 'U.R.F.', tier: 'gold', category: 'item', imgName: 'ultrarapidfire_ii',
+      id: 'urf', name: 'U.R.F.', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_urf.avif?v=1',
       desc: '「へら」を1個獲得する。「へら」または「フライパン」アイテムを装備しているチャンピオンの攻撃速度が20%、マナ自動回復が3増加する。',
       icon: '🍳',
       effect: (state, rng, helpers) => {
@@ -733,7 +733,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'early_education', name: '早期教育', tier: 'gold', category: 'combat', imgName: 'earlylearning_ii',
+      id: 'early_education', name: '早期教育', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_earlylearnings.avif?v=1',
       desc: '味方チームの攻撃力と魔力が8%増加する。この効果は各対人戦終了後に1%増加する。コスト1のチャンピオンは増加量が2倍になる',
       icon: '📚',
       effect: (state, rng, helpers) => {
@@ -758,7 +758,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'cluttered_mind', name: '乱れる思考', tier: 'gold', category: 'economy', imgName: 'dizzy-ii',
+      id: 'cluttered_mind', name: '乱れる思考', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_clutteredmind.avif?v=1',
       desc: '今すぐランダムなコスト1のチャンピオンを4体獲得する。対人戦ラウンド終了時にベンチが満員の場合、3 XPの経験値を獲得する。',
       icon: '🧠',
       effect: (state, rng, helpers) => {
@@ -777,7 +777,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'salvage_bin', name: '回収箱', tier: 'gold', category: 'item', imgName: 'salvage2',
+      id: 'salvage_bin', name: '回収箱', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_salvagebin.avif?v=1',
       desc: '即座にランダムな完成アイテムを1個獲得する。また、対人戦を8回終えると、素材アイテムを1個獲得する。チャンピオンを売却すると、完成アイテムが素材に解体される(タクティシャンアイテムと紋章は除く)。',
       icon: '♻️',
       effect: (state, rng, helpers) => {
@@ -1082,7 +1082,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'heart_of_steel', name: '鋼の心', tier: 'gold', category: 'combat', imgName: 'healthygains_ii',
+      id: 'heart_of_steel', name: '鋼の心', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_heartofsteel.avif?v=1',
       desc: '「揺るがぬ心」を1個獲得する。戦闘で装備者が10秒生存するごとに、「揺るがぬ心」が最大体力を恒久的に16追加で獲得する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -1185,7 +1185,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'money_hungry', name: '金に飢えし者', tier: 'gold', category: 'economy', imgName: 'moneyhungry1_ii',
+      id: 'money_hungry', name: '金に飢えし者', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_moneyhungry_notbroken.avif?v=1',
       desc: '即座に7ゴールドを獲得し、その後は各ステージの開始時に7ゴールドを獲得する。ゴールドを拾うとタクティシャンが大きくなる。',
       icon: '🤑',
       effect: (state, rng, helpers) => {
@@ -1195,7 +1195,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'item_extraction', name: 'アイテム抽出', tier: 'gold', category: 'item', imgName: 'itemextraction_ii',
+      id: 'item_extraction', name: 'アイテム抽出', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_blackthorntraitaugment.avif?v=1',
       desc: '「ブラックソーン」のマスでチャンピオンを生贄にしたとき、最初の3回まではそのチャンピオンが装備している素材アイテムのコピーをランダムで1つ獲得する。ベイガーとレク＝サイを1体ずつ獲得する。',
       icon: '🗡️',
       effect: (state, rng, helpers) => {
@@ -1218,7 +1218,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'omega_riftbeast', name: 'オメガ リフトビースト', tier: 'gold', category: 'combat', imgName: 'omegariftbeast_ii',
+      id: 'omega_riftbeast', name: 'オメガ リフトビースト', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_riftbeasttraitaugment.avif?v=1',
       desc: '2体目の「アルファ リフトビースト」を選択できるようになる。スカトルクラブ、シンダーリング、小石を1体ずつ獲得する。',
       icon: '🐉',
       effect: (state, rng, helpers) => {
@@ -1230,7 +1230,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'capital_gain2', name: 'キャピタルゲイン II', tier: 'gold', category: 'economy', imgName: 'capitalgains_ii',
+      id: 'capital_gain2', name: 'キャピタルゲイン II', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_capitalgainsii.avif?v=1',
       desc: '獲得した利子に等しいゴールドを蓄える。3-3で、獲得した利子の125%に等しいゴールドを蓄える。即座に1ゴールドを獲得する。',
       icon: '📈',
       effect: (state, rng, helpers) => {
@@ -1269,7 +1269,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'haggling_expert', name: '値切り上手', tier: 'gold', category: 'economy', imgName: 'masterhaggler_ii',
+      id: 'haggling_expert', name: '値切り上手', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_hardbargain.avif?v=1',
       desc: 'ドラフトの報酬を選択できなくなる。ドラフトラウンドごとに、プレイヤー体力が6増加し、8ゴールドを獲得する。ドラフト報酬を選択しなかった場合、ピックされなかったチャンピオンとそれが所有するアイテムを獲得する。',
       icon: '🤝',
       effect: (state, rng, helpers) => {
@@ -1277,7 +1277,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'natural_shelter', name: '天然シェルター', tier: 'gold', category: 'combat', imgName: 'naturalshelter_ii',
+      id: 'natural_shelter', name: '天然シェルター', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_elderwoodtraitaugment.avif?v=1',
       desc: '戦闘開始時に「エルダーウッド」の植物に隣接しているチャンピオンは、攻撃速度が15%増加し、2秒ごとに自身の最大体力の2%を回復する。アリスター、オーン、ザヤを1体ずつ獲得する。',
       icon: '🌳',
       effect: (state, rng, helpers) => {
@@ -1289,7 +1289,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'with_solar_blessing', name: '太陽の加護と共に', tier: 'gold', category: 'combat', imgName: 'solarblessing_ii',
+      id: 'with_solar_blessing', name: '太陽の加護と共に', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_solartraitaugment.avif?v=1',
       desc: 'レオナ、ケイル、セジュアニを1体ずつ獲得する。レオナが毎ラウンド60の最大体力を恒久的に獲得する。この効果は配置した種類の異なる★3のチャンピオン1体につき10増加する。',
       icon: '☀️',
       effect: (state, rng, helpers) => {
@@ -1301,7 +1301,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'small_fluffy_friend', name: '小さなモフモフのお友達', tier: 'gold', category: 'combat', imgName: 'smallfluffyfriend_ii',
+      id: 'small_fluffy_friend', name: '小さなモフモフのお友達', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_sprykinaugment.avif?v=1',
       desc: '「スプライキン」が発動中は、35%の強さを持つ2体目の「大きなモフモフのお友達」を召喚する。ティーモ、ベイガー、コブコを1体ずつ獲得する。',
       icon: '🐾',
       effect: (state, rng, helpers) => {
@@ -1313,7 +1313,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'guardians_blessing', name: '庇護者の祝福', tier: 'gold', category: 'item', imgName: 'guardiansblessing_ii',
+      id: 'guardians_blessing', name: '庇護者の祝福', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_caretakersfavor.avif?v=1',
       desc: 'レベル5、6、7、8に到達した際に「素材アイテムの金床」を1個獲得する。',
       icon: '🙏',
       effect: (state, rng, helpers) => {
@@ -1321,7 +1321,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'investment_strategy1', name: '投資戦略 I', tier: 'gold', category: 'economy', imgName: 'investmentstrategy_ii',
+      id: 'investment_strategy1', name: '投資戦略 I', tier: 'gold', category: 'economy', imgName: 'https://tftips.b-cdn.net/aug/18_investmentstrategyi.avif?v=1',
       desc: '獲得した利子1ゴールドにつき、味方チャンピオンの最大体力が8恒久的に増加する。即座に4ゴールドを獲得する。',
       icon: '💹',
       effect: (state, rng, helpers) => {
@@ -1330,7 +1330,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'predator_plant', name: '捕食植物', tier: 'gold', category: 'item', imgName: 'predatoryplants_ii',
+      id: 'predator_plant', name: '捕食植物', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_florafatalisaugment.avif?v=1',
       desc: '「フローラ・ファターリスの紋章」を1個獲得する。この紋章を装備しているチャンピオンは、「フローラ・ファターリス」の特性から得られる効果が2倍になる。3ゴールドを獲得する。',
       icon: '🌿',
       effect: (state, rng, helpers) => {
@@ -1359,7 +1359,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'magnify', name: '極大化', tier: 'gold', category: 'combat', imgName: 'magnify_ii',
+      id: 'magnify', name: '極大化', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_faetraitaugment.avif?v=1',
       desc: '「フェイ」の妖精が大きくなり、付与する攻撃力と魔力が50%増加する。「フェイ」チャンピオンの攻撃力と魔力が即座に10%増加する。ザヤとラカンを1体ずつ獲得する。',
       icon: '🧚',
       effect: (state, rng, helpers) => {
@@ -1371,7 +1371,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'unrivaled_existence', name: '比類なき存在', tier: 'gold', category: 'combat', imgName: 'unrivaledexistence_ii',
+      id: 'unrivaled_existence', name: '比類なき存在', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_rivalsaugmentplus.avif?v=1',
       desc: 'レンガーとカ＝ジックスを一緒にボードに出してもペナルティを受けない。さらにお互いのスキル発動時にボーナスを獲得する。レンガーとカ＝ジックスを1体ずつ獲得する。',
       icon: '⚔️',
       effect: (state, rng, helpers) => {
@@ -1383,7 +1383,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'guaranteed_protection', name: '確約された守護', tier: 'gold', category: 'item', imgName: 'guaranteedprotection_ii',
+      id: 'guaranteed_protection', name: '確約された守護', tier: 'gold', category: 'item', imgName: 'https://tftips.b-cdn.net/aug/18_promisedprotection.avif?v=1',
       desc: '「プロテクターの誓い」を1個獲得する。「プロテクターの誓い」の装備者は、あらゆるソースから獲得するマナが20%、最大体力が200増加する。',
       icon: '🛡️',
       effect: (state, rng, helpers) => {
@@ -1393,7 +1393,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'dark_ritual', name: '闇の儀式', tier: 'gold', category: 'combat', imgName: 'darkritual_ii',
+      id: 'dark_ritual', name: '闇の儀式', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_coventraitaugment_loottoap.avif?v=1',
       desc: '「魔女」エッセンスを報酬に変換すると、「魔女」チャンピオンが戦利品の代わりに魔力を獲得する。カミール、エリス、ケイトリンを1体ずつ獲得する。',
       icon: '🌑',
       effect: (state, rng, helpers) => {
@@ -1405,7 +1405,7 @@ const AUGMENTS_DATA = {
       }
     },
     {
-      id: 'witchs_familiar', name: '魔女の従者', tier: 'gold', category: 'combat', imgName: 'witchsfamiliar_ii',
+      id: 'witchs_familiar', name: '魔女の従者', tier: 'gold', category: 'combat', imgName: 'https://tftips.b-cdn.net/aug/18_coventraitaugment.avif?v=1',
       desc: '「魔女」のエッセンスを集め続けることを選択すると、タクティシャンの体力を2回復する。カミール、エリス、ケイトリンを1体ずつ獲得する。',
       icon: '🐈\u200d⬛',
       effect: (state, rng, helpers) => {
@@ -1922,7 +1922,7 @@ const AUGMENTS_DATA = {
   const TAGS = {"protectors_pact":"set18","silver_spoon":"set18","cognitive_tax":"set18","thieves_guild":"set18","pave_the_way":"set18","extra_buckle":"set18","makeshift_armor1":"set18","focused_fire":"set18","the_tower":"set18","team_building":"set18","branching_out":"set18","kickstart":"set18","ordinary_days":"set18","well_earned_1":"set18","support_bow":"set18","flowing_tears":"set18","masterful_crafting":"set18","loaded_dice":"set18","legion_of_three":"set18","epoch":"set18","trade_sector":"set18","slam_dunk":"set18","strategic_loss":"set18","pandoras_items2":"set18","seraphims_staff":"set18","redemption_soul":"set18","makeshift_armor2":"set18","bodyguard_training":"set18","infinity_guardian":"set18","urf":"set18","backline_blueprint":"set18","frontline_foundation":"set18","spreading_roots":"set18","early_education":"set18","no_scouting_no_pivoting":"set18","cluttered_mind":"set18","salvage_bin":"set18","birthday_reunion":"set18","studious":"set18","hustler":"set18","booster_pack":"set18","heroic_grab_bag":"set18","portable_forge":"set18","duplication":"set18","worth_the_wait":"set18","single_plate":"set18","solo_leveling":"set18","discharge_2":"set18","lategame_scaling":"set18","heart_of_steel":"set18","spun_magic":"set18","cry_all_you_want":"set18","fast_double_kill":"set18","clear_mind_2":"set18","money_hungry":"set18","upward_mobility":"set18","hedge_fund":"set18","prism_ticket":"set18","make_friends":"set18","level_up":"set18","thieves_guild2":"set18","scarier_cap":"set18","deadlier_blade":"set18","cursed_crown":"set18","last_stand":"set18","worth_the_wait2":"set18","birthday_gift":"set18","tacticians_kitchen":"set18","trait_tree":"set18","pandoras_items3":"set18","lucky_gloves":"set18","speculative_buying":"set18","flexibility":"set18","heart_and_soul":"set18","living_forge":"set18","shimmerscale_essence":"set18","golden_gamble":"set18","forged_in_force":"set18","always_together":"set18","subscription":"set18","item_loot_bag":"set18","buried_treasures":"set18","dice_of_fortune":"set18","kana_to_kane":"set18","capital_gain1":"set18","quick_streak":"set18","call_shot":"set18","fate_silver":"set18","pandoras_items1":"set18","pandoras_bench":"set18","one_one_two_three":"set18","delivery_champ":"set18","virtue_of_patience":"set18","discharge_1":"set18","focus_on_future":"set18","future_forge":"set18","its_burning":"set18","kingslayer":"set18","free_spirit":"set18","residual_magic":"set18","item_extraction":"set18","war_path":"set18","omega_riftbeast":"set18","capital_gain2":"set18","fate_gold":"set18","double_trouble":"set18","bonus_gift":"set18","haggling_expert":"set18","natural_shelter":"set18","with_solar_blessing":"set18","small_fluffy_friend":"set18","guardians_blessing":"set18","investment_strategy1":"set18","predator_plant":"set18","cooking_pot":"set18","time_skip":"set18","magnify":"set18","unrivaled_existence":"set18","guaranteed_protection":"set18","dark_ritual":"set18","witchs_familiar":"set18","star_up":"set18","fate_prismatic":"set18","radiant_relic":"set18","nesting_doll":"set18","investment_strategy2":"set18","trait_ladder":"set18","component_quest":"set18","shopping_spree":"set18","stellar_combo":"set17","terminal_velocity":"set17","shield_maiden":"set17","afk":"set17","augment_power":"set17","one_two_three":"set17","continuous_magic":"set17","small_giant":"set17","critical_success":"set17","savings_account":"set17","pro_boxer":"set17","fan_the_flames":"set17","charge":"set17","warlords_honor":"set17","anima_commander":"set17","advance_payment":"set17","two_tanks":"set17","sunfire_board":"set17","big_bang":"set17","heavy_is_the_crown":"set17","divine_forge":"set17","pro_assassin":"set17","root_singularity":"set17","self_destruction":"set17","focus":"set17","aura_training":"set17","galactic_journey":"set17","blood_offering":"set17","high_voltage":"set17","heat_death":"set17","timestream":"set17","treasure_hunt":"set17","reach_for_the_stars":"set17","sacrifice":"set17","sublime_adventure":"set17","wise_spending":"set17","swarm_heart":"set17","expected_surprise":"set17"};
   const ADDED = [];
   const ADDED_JA = {};
-  const EDITS = {"free_spirit":{"imgName":"https://tftips.b-cdn.net/aug/18_youngandwildandfree.avif?v=1"},"its_burning":{"imgName":"https://tftips.b-cdn.net/aug/18_infernotraitaugment.avif?v=1"},"future_forge":{"imgName":"https://tftips.b-cdn.net/aug/18_latentforge.avif?v=1"},"focus_on_future":{"imgName":"https://tftips.b-cdn.net/aug/18_futurefocused.avif?v=1"},"discharge_1":{"imgName":"https://tftips.b-cdn.net/aug/18_electrochargei.avif?v=1"},"virtue_of_patience":{"imgName":"https://tftips.b-cdn.net/aug/18_patienceisavirtue.avif?v=1"},"delivery_champ":{"imgName":"https://tftips.b-cdn.net/aug/18_champdelivery.avif?v=1"},"one_one_two_three":{"imgName":"https://tftips.b-cdn.net/aug/18_onestwosthree.avif?v=1"},"pandoras_items1":{"imgName":"https://tftips.b-cdn.net/aug/18_pandorasitemsi.avif?v=1"},"call_shot":{"imgName":"https://tftips.b-cdn.net/aug/18_calledshot.avif?v=1"},"quick_streak":{"imgName":"https://tftips.b-cdn.net/aug/18_quickstreaks.avif?v=1"},"capital_gain1":{"imgName":"https://tftips.b-cdn.net/aug/18_capitalgainsi.avif?v=1"},"kana_to_kane":{"imgName":"https://tftips.b-cdn.net/aug/18_ironassets.avif?v=1"},"loaded_dice":{"imgName":"https://tftips.b-cdn.net/aug/18_loadeddice.avif?v=1"},"flowing_tears":{"imgName":"https://tftips.b-cdn.net/aug/18_flowingtears.avif?v=1"},"support_bow":{"imgName":"https://tftips.b-cdn.net/aug/18_backupbows.avif?v=1"},"team_building":{"imgName":"https://tftips.b-cdn.net/aug/18_teambuilding.avif?v=1"},"makeshift_armor1":{"imgName":"https://tftips.b-cdn.net/aug/18_makeshiftarmori.avif?v=1"},"thieves_guild":{"imgName":"https://tftips.b-cdn.net/aug/18_bandofthieves.avif?v=1"},"protectors_pact":{"imgName":"https://tftips.b-cdn.net/aug/18_caretakersally.avif?v=1"}};
+  const EDITS = {"free_spirit":{"imgName":"https://tftips.b-cdn.net/aug/18_youngandwildandfree.avif?v=1"},"its_burning":{"imgName":"https://tftips.b-cdn.net/aug/18_infernotraitaugment.avif?v=1"},"future_forge":{"imgName":"https://tftips.b-cdn.net/aug/18_latentforge.avif?v=1"},"focus_on_future":{"imgName":"https://tftips.b-cdn.net/aug/18_futurefocused.avif?v=1"},"discharge_1":{"imgName":"https://tftips.b-cdn.net/aug/18_electrochargei.avif?v=1"},"virtue_of_patience":{"imgName":"https://tftips.b-cdn.net/aug/18_patienceisavirtue.avif?v=1"},"delivery_champ":{"imgName":"https://tftips.b-cdn.net/aug/18_champdelivery.avif?v=1"},"one_one_two_three":{"imgName":"https://tftips.b-cdn.net/aug/18_onestwosthree.avif?v=1"},"pandoras_items1":{"imgName":"https://tftips.b-cdn.net/aug/18_pandorasitemsi.avif?v=1"},"call_shot":{"imgName":"https://tftips.b-cdn.net/aug/18_calledshot.avif?v=1"},"quick_streak":{"imgName":"https://tftips.b-cdn.net/aug/18_quickstreaks.avif?v=1"},"capital_gain1":{"imgName":"https://tftips.b-cdn.net/aug/18_capitalgainsi.avif?v=1"},"kana_to_kane":{"imgName":"https://tftips.b-cdn.net/aug/18_ironassets.avif?v=1"},"loaded_dice":{"imgName":"https://tftips.b-cdn.net/aug/18_loadeddice.avif?v=1"},"flowing_tears":{"imgName":"https://tftips.b-cdn.net/aug/18_flowingtears.avif?v=1"},"support_bow":{"imgName":"https://tftips.b-cdn.net/aug/18_backupbows.avif?v=1"},"team_building":{"imgName":"https://tftips.b-cdn.net/aug/18_teambuilding.avif?v=1"},"makeshift_armor1":{"imgName":"https://tftips.b-cdn.net/aug/18_makeshiftarmori.avif?v=1"},"thieves_guild":{"imgName":"https://tftips.b-cdn.net/aug/18_bandofthieves.avif?v=1"},"protectors_pact":{"imgName":"https://tftips.b-cdn.net/aug/18_caretakersally.avif?v=1"},"salvage_bin":{"imgName":"https://tftips.b-cdn.net/aug/18_salvagebin.avif?v=1"},"cluttered_mind":{"imgName":"https://tftips.b-cdn.net/aug/18_clutteredmind.avif?v=1"},"early_education":{"imgName":"https://tftips.b-cdn.net/aug/18_earlylearnings.avif?v=1"},"urf":{"imgName":"https://tftips.b-cdn.net/aug/18_urf.avif?v=1"},"bodyguard_training":{"imgName":"https://tftips.b-cdn.net/aug/18_bodyguardtraining.avif?v=1"},"makeshift_armor2":{"imgName":"https://tftips.b-cdn.net/aug/18_makeshiftarmorii.avif?v=1"},"pandoras_items2":{"imgName":"https://tftips.b-cdn.net/aug/18_pandorasitemsii.avif?v=1"},"trade_sector":{"imgName":"https://tftips.b-cdn.net/aug/18_tradesector.avif?v=1"},"witchs_familiar":{"imgName":"https://tftips.b-cdn.net/aug/18_coventraitaugment.avif?v=1"},"dark_ritual":{"imgName":"https://tftips.b-cdn.net/aug/18_coventraitaugment_loottoap.avif?v=1"},"guaranteed_protection":{"imgName":"https://tftips.b-cdn.net/aug/18_promisedprotection.avif?v=1"},"unrivaled_existence":{"imgName":"https://tftips.b-cdn.net/aug/18_rivalsaugmentplus.avif?v=1"},"magnify":{"imgName":"https://tftips.b-cdn.net/aug/18_faetraitaugment.avif?v=1"},"predator_plant":{"imgName":"https://tftips.b-cdn.net/aug/18_florafatalisaugment.avif?v=1"},"investment_strategy1":{"imgName":"https://tftips.b-cdn.net/aug/18_investmentstrategyi.avif?v=1"},"guardians_blessing":{"imgName":"https://tftips.b-cdn.net/aug/18_caretakersfavor.avif?v=1"},"small_fluffy_friend":{"imgName":"https://tftips.b-cdn.net/aug/18_sprykinaugment.avif?v=1"},"with_solar_blessing":{"imgName":"https://tftips.b-cdn.net/aug/18_solartraitaugment.avif?v=1"},"natural_shelter":{"imgName":"https://tftips.b-cdn.net/aug/18_elderwoodtraitaugment.avif?v=1"},"haggling_expert":{"imgName":"https://tftips.b-cdn.net/aug/18_hardbargain.avif?v=1"},"capital_gain2":{"imgName":"https://tftips.b-cdn.net/aug/18_capitalgainsii.avif?v=1"},"omega_riftbeast":{"imgName":"https://tftips.b-cdn.net/aug/18_riftbeasttraitaugment.avif?v=1"},"item_extraction":{"imgName":"https://tftips.b-cdn.net/aug/18_blackthorntraitaugment.avif?v=1"},"money_hungry":{"imgName":"https://tftips.b-cdn.net/aug/18_moneyhungry_notbroken.avif?v=1"},"heart_of_steel":{"imgName":"https://tftips.b-cdn.net/aug/18_heartofsteel.avif?v=1"}};
   ['silver','gold','prismatic'].forEach(t => (AUGMENTS_DATA[t] || []).forEach(a => {
     if (HIDDEN.includes(a.id)) a.hidden = true;
     if (TAGS[a.id]) a.setTag = TAGS[a.id];
