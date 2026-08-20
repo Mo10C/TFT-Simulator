@@ -7167,12 +7167,13 @@ const handleAugmentPick = (aug, historyContext) => {
                             position:'relative', cursor:'pointer',
                             opacity: gold < (wispSlot.cost||0) ? 0.4 : 1,
                           }}>
-                          {/* 枠本体: 効果説明 → 区切り線 → 名前/価格（すべて枠の内側） */}
+                          {/* 枠本体: 効果説明 → 区切り線 → 名前/価格（すべて枠の内側）
+                              背景・枠線・光・区切り線をすべてカテゴリ色で揃える */}
                           <div style={{
                             position:'absolute', inset:0, borderRadius:4, overflow:'hidden',
-                            background:'linear-gradient(160deg, rgba(45,20,70,0.9), rgba(15,23,42,0.95))',
+                            background:`linear-gradient(160deg, ${catColor}59 0%, ${catColor}1f 45%, rgba(15,23,42,0.96) 100%)`,
                             border:`3px solid ${catColor}`,
-                            boxShadow:`0 0 10px ${catColor}55`,
+                            boxShadow:`0 0 10px ${catColor}55, inset 0 0 18px ${catColor}22`,
                             display:'flex', flexDirection:'column',
                           }}>
                             {/* 効果説明（アイコンバッジが重なる分だけ上に余白） */}
@@ -7182,7 +7183,7 @@ const handleAugmentPick = (aug, historyContext) => {
                               </span>
                             </div>
                             {/* 区切り線 ＋ 名前と価格 */}
-                            <div style={{ flexShrink:0, borderTop:`1px solid ${catColor}77`, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+                            <div style={{ flexShrink:0, borderTop:`1px solid ${catColor}77`, background:`${catColor}26`, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
                               <span style={{ fontSize:11, fontWeight:900, color:'white', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
                               <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
                             </div>
