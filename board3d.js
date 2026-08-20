@@ -1063,7 +1063,12 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
 
       /* ✏️ 六角形の淵（駒を持ち上げている間だけ表示） */
       const hexEdgeGroup = new THREE.Group(); hexEdgeGroup.visible = false; boardGroup.add(hexEdgeGroup);
-      const hexEdgeMat = new THREE.LineBasicMaterial({ color:B3D_HEX_EDGE_COLOR, transparent:true, opacity:B3D_HEX_EDGE_OPACITY });
+      const hexEdgeMat = new THREE.LineBasicMaterial({ 
+         color:B3D_HEX_EDGE_COLOR, 
+         transparent:true, 
+         opacity:B3D_HEX_EDGE_OPACITY,
+         linewidth: 2  // ← ここを追加/変更
+            });
       const addHexEdge = (geo, x, y, z) => {
         const e = new THREE.LineSegments(new THREE.EdgesGeometry(geo), hexEdgeMat);
         e.rotation.y = Math.PI/6; e.position.set(x, y + 0.012, z);   // 地面と重なってチラつかないよう少し浮かせる
