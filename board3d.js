@@ -191,7 +191,7 @@ const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && type
 
 /* ✨ カーソルが乗った駒を水色の縁で囲む設定 */
 const B3D_OUTLINE_COLOR = 0x7fd8ff;
-const B3D_OUTLINE_WIDTH = 0.035;   // 縁の太さ（ワールド単位。0.02〜0.06 くらいが目安）
+const B3D_OUTLINE_WIDTH = 0.01;   // 縁の太さ（ワールド単位。0.02〜0.06 くらいが目安）
 
 /* モデルを裏面だけ描いたコピーを重ねて輪郭線にする。
    ── ⚠️ 単純に「一回り大きく拡大する」方式は使えない。
