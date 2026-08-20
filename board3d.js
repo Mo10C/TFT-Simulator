@@ -189,6 +189,44 @@ let B3D_MAX_ANISO = 1;
 const B3D_MODEL_TINT = (typeof window!=='undefined' && window.SIM_CONFIG && typeof window.SIM_CONFIG.modelTint === 'number')
   ? window.SIM_CONFIG.modelTint : 1;   // 既定は無調整
 
+/* ✨ カーソルが乗った駒を水色の縁で囲む設定 */
+const B3D_OUTLINE_COLOR = 0x7fd8ff;
+const B3D_OUTLINE_SCALE = 1.045;   // 元のメッシュを少しだけ膨らませて縁にする
+
+/* モデルを裏面だけ描いた一回り大きいコピーを重ね、輪郭線のように見せる。
+   ── 後処理(EffectComposer)を使わずに済むので軽く、r128 でもそのまま動く。
+   ── スキン付きメッシュは skeleton を共有して同じポーズで動かす。 */
+function b3dAddOutline(group){
+  if(!group || group.userData.b3dOutline) return;
+  const mat = new THREE.MeshBasicMaterial({
+    color: B3D_OUTLINE_COLOR, side: THREE.BackSide,
+    transparent: true, opacity: 0.9, depthWrite: false, toneMapped: false,
+  });
+  const made = [];
+  const srcs = [];
+  group.traverse(n => { if((n.isMesh || n.isSkinnedMesh) && n.geometry) srcs.push(n); });
+  srcs.forEach(m => {
+    const o = m.isSkinnedMesh ? new THREE.SkinnedMesh(m.geometry, mat) : new THREE.Mesh(m.geometry, mat);
+    if(m.isSkinnedMesh && m.skeleton){ o.bind(m.skeleton, m.bindMatrix); o.bindMode = m.bindMode; }
+    o.position.copy(m.position); o.quaternion.copy(m.quaternion);
+    o.scale.copy(m.scale).multiplyScalar(B3D_OUTLINE_SCALE);
+    o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false;
+    o.renderOrder = -1;                   // 本体より先に描いて、はみ出した裏面だけが縁として残る
+    o.userData.b3dOutlinePart = true;
+    if(m.parent) m.parent.add(o);
+    made.push(o);
+  });
+  group.userData.b3dOutline = { meshes: made, material: mat };
+}
+
+function b3dRemoveOutline(group){
+  const o = group && group.userData.b3dOutline;
+  if(!o) return;
+  o.meshes.forEach(m => { if(m.parent) m.parent.remove(m); });
+  if(o.material) o.material.dispose();
+  delete group.userData.b3dOutline;
+}
+
 /* 🛡️ 敵陣（奥側4列）の淵。自陣より暗く出して「置けない側」だと分かるようにする */
 const B3D_ENEMY_EDGE_COLOR = 0x8fa3bd;
 const B3D_ENEMY_EDGE_OPACITY = 0.22;
@@ -1203,7 +1241,35 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
 
       const setPtr=(e)=>{ const b=renderer.domElement.getBoundingClientRect();
         ptr.x=((e.clientX-b.left)/b.width)*2-1; ptr.y=-((e.clientY-b.top)/b.height)*2+1; ray.setFromCamera(ptr,camera); };
-      const pickSlot=()=>{ const hit=ray.intersectObjects(slots,false)[0]; return hit?hit.object:null; };
+      /* 駒そのもの（モデル全体）に当たり判定を取る。
+         以前はマス（足元の板）だけを見ていたため、頭や武器の上では反応しなかった。 */
+      const pieceList = () => (S.current && S.current.pieces) ? Array.from(S.current.pieces.values()) : [];
+      const slotOf = (kind, idx) => slots.find(s => s.userData.kind === kind && s.userData.idx === idx) || null;
+      const pickPiece = () => {
+        const list = pieceList();
+        if(!list.length) return null;
+        const hit = ray.intersectObjects(list, true)[0];
+        if(!hit) return null;
+        // 当たったメッシュから、駒のグループ（kind/idx を持つ）まで親をたどる
+        let n = hit.object;
+        while(n && !(n.userData && n.userData.kind !== undefined && n.userData.idx !== undefined)) n = n.parent;
+        if(n && n.userData.b3dOutlinePart) return null;
+        return n || null;
+      };
+      /* モデルに当たればそのマスを、当たらなければ従来どおり足元のマスを返す */
+      const pickSlot=()=>{
+        const p = pickPiece();
+        if(p){ const s = slotOf(p.userData.kind, p.userData.idx); if(s) return s; }
+        const hit=ray.intersectObjects(slots,false)[0]; return hit?hit.object:null;
+      };
+      /* ✨ カーソルが乗っている駒に水色の縁を付ける（ドラッグ中の駒には付けない） */
+      let outlined = null;
+      const setOutlined=(g)=>{
+        if(outlined === g) return;
+        if(outlined) b3dRemoveOutline(outlined);
+        outlined = g || null;
+        if(outlined) b3dAddOutline(outlined);
+      };
       // 塗りつぶしを今出しているかどうか（clearHover で元に戻す色を決めるのに使う）
       let hexFillOn = false;
       const clearHover=()=>{ if(hovered){ hovered.material = hexFillOn ? hexFillMat : hexInvisibleMat; hovered=null; } };
@@ -1241,6 +1307,8 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
             drag.piece.position.x=local.x; drag.piece.position.z=local.z;
           }
         }
+        // ✨ 縁取り：持ち上げている最中は本人に付けない（掴んでいるのが分かるので）
+        setOutlined(drag ? null : pickPiece());
         const slot=pickSlot();
         if(hovered && (!slot || slot!==hovered)) clearHover();
         if(slot && drag){ slot.material=hexHover; hovered=slot; }   // 持っているときだけ光らせる
@@ -1253,7 +1321,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
         down=null;
         try{ renderer.domElement.releasePointerCapture(e.pointerId); }catch(err){}
         controls.enabled = !!(S.current && S.current.freeView);   // 固定視点のままなら戻さない
-        clearHover(); showHexEdges(false);
+        clearHover(); showHexEdges(false); setOutlined(null);
         setPtr(e); const slot=pickSlot();
         if(drag){
           const d=drag; drag=null; pending=null;
@@ -1272,7 +1340,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       const onDragOver=(e)=>{ e.preventDefault(); setPtr(e); showHexEdges(true); const slot=pickSlot();
         if(hovered && (!slot || slot!==hovered)) clearHover();
         if(slot){ slot.material=hexHover; hovered=slot; } };
-      const onDragLeaveEv=(e)=>{ clearHover(); showHexEdges(false); };
+      const onDragLeaveEv=(e)=>{ clearHover(); showHexEdges(false); setOutlined(null); };
       const onDomDropEv=(e)=>{ e.preventDefault(); clearHover(); showHexEdges(false); setPtr(e); const slot=pickSlot();
         if(slot && domDropRef.current) domDropRef.current(slot.userData.kind, slot.userData.idx); };
       renderer.domElement.addEventListener('dragover', onDragOver);
