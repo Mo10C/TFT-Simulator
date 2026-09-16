@@ -1,217 +1,63 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#171923" />
-  <title>ほげ走</title>
-  <link rel="icon" type="image/png" sizes="64x64" href="./assets/ui/favicon.png?v=45" />
-  <link rel="apple-touch-icon" sizes="180x180" href="./assets/ui/apple-touch-icon.png?v=45" />
-  <style>
-    html, body { margin: 0; min-height: 100%; }
-    body.app-loading { overflow: hidden; }
-    body.app-loading .app-shell,
-    body.app-loading .footer { display: none !important; }
-    #boot-splash { position: fixed; inset: 0; z-index: 99999; }
-  </style>
-  <link rel="stylesheet" href="./styles.css?v=45" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>TFT 1 Stage Simulator</title>
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- 🌟 Babelをバージョン固定（未固定だと自動更新で壊れる）。8系で従来のJSX変換に固定する -->
+<script src="https://unpkg.com/@babel/standalone@8.0.1/babel.min.js"></script>
+<script>
+  // 🌟 JSXを classic ランタイム（React.createElement）に強制。
+  //    これをしないと Babel 8 既定の automatic ランタイムが import 文を出力し、
+  //    「Cannot use import statement outside a module」で全画面が真っ白になる。
+  Babel.registerPreset('jsx-classic', {
+    presets: [[Babel.availablePresets.react, { runtime: 'classic' }]],
+  });
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Orbitron:wght@400;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+
+
+<link rel="stylesheet" href="styles.css">
 </head>
-<body class="app-loading">
-  <div id="boot-splash" class="boot-splash" role="status" aria-live="polite">
-    <div class="loading-scene">
-      <div class="loading-brand">
-        <img class="loading-logo-image" src="./assets/ui/title-logo.png?v=45" alt="ほげ走" />
-        <p class="loading-kicker">TEA KINGDOM RUNNER</p>
-      </div>
+<body>
+<div id="root"></div>
 
-      <div class="loading-bottom-right">
-        <div class="loading-text-wrap">
-          <span class="now-loading-text">Now Loading</span>
-          <span class="loading-ellipsis"><i></i><i></i><i></i></span>
-        </div>
-        <img id="loading-runner" class="loading-runner loading-teacup" data-loading-kind="teacup" src="./assets/items/tea-cup.png?v=45" alt="ゆらゆら揺れている紅茶カップ" />
-      </div>
-      <p id="boot-status" class="boot-status">ゲーム素材を読み込んでいます…</p>
-    </div>
-  </div>
-  <main class="app-shell">
-    <header class="topbar">
-      <div>
-        <div class="eyebrow">TEA ROGUELIKE RUNNER</div>
-        <div class="title-logo" aria-label="ほげ走">
-          <img class="title-logo-image" src="./assets/ui/title-logo.png?v=45" alt="ほげ走" />
-        </div>
-      </div>
-    </header>
+<!-- 共通設定（Firebase / Riotプロキシ / Discord / 管理者） -->
+<script src="sim-config.js"></script>
 
-    <section id="login-screen" class="panel login-panel hidden">
-      <div class="hero-visual">
-        <img class="login-character" src="./assets/player/portrait.jpg?v=45" alt="ほげ走の操作キャラ" />
-      </div>
-      <div>
-        <p class="eyebrow">USERNAME ONLY</p>
-        <h2>名前を入れたら、すぐスタート。</h2>
-        <p class="muted">メールアドレス・パスワードは不要です。このブラウザに匿名セッションを保存します。</p>
-        <form id="login-form" class="login-form">
-          <label for="username-input">プレイヤー名</label>
-          <div class="login-row">
-            <input id="username-input" type="text" maxlength="16" minlength="1" placeholder="例：けんたん" autocomplete="nickname" required />
-            <button class="primary-button" type="submit">この名前で遊ぶ</button>
-          </div>
-          <p id="login-error" class="error-text" role="alert"></p>
-        </form>
-      </div>
-    </section>
+<!-- データセット（app.js より前に読み込む） -->
+<!-- champions / items は純粋なデータなので通常スクリプト -->
+<script src="data-champions.js"></script>
+<script src="data-items.js"></script>
+<script src="data-encounters.js"></script>
+<script src="data-wisps.js"></script>
+<!-- 🧊 3Dモデルの調整値（board3d.js と sim-editor.html が共有。board3d.js より前に読む） -->
+<script src="data-model-tune.js"></script>
+<!-- 🧊 モデル配置の共通ロジック（board3d.js と sim-editor.html が共有） -->
+<script src="model-fit.js"></script>
+<!-- augments は内部に JSX を含むため Babel で変換 -->
+<script type="text/babel" data-presets="jsx-classic" src="data-augments.js"></script>
 
-    <section id="game-screen" class="game-layout hidden">
-      <div class="game-column">
-        <div class="game-frame panel">
-          <div class="in-game-ui" aria-label="ゲーム情報表示">
-            <div class="in-game-ui-row">
-              <div id="user-badge" class="user-badge game-user-badge hidden">
-                <span class="status-dot"></span>
-                <span class="user-badge-label">PLAYER</span>
-                <span id="current-username"></span>
-              </div>
-              <div class="scoreboard-pop">
-                <div class="game-stat game-stat-score">
-                  <div class="game-stat-head"><img class="game-stat-icon" src="./assets/ui/hud/score.png?v=45" alt="" /><span>SCORE</span></div>
-                  <strong id="score-label">0m</strong>
-                </div>
-                <div class="game-stat game-stat-cup">
-                  <div class="game-stat-head"><img class="game-stat-icon" src="./assets/ui/hud/tea-cup.png?v=45" alt="" /><span>TEA CUP</span></div>
-                  <strong id="coin-label">0</strong>
-                </div>
-                <div class="game-stat game-stat-next">
-                  <div class="game-stat-head"><img class="game-stat-icon" src="./assets/ui/hud/next-item.png?v=45" alt="" /><span>NEXT ITEM</span></div>
-                  <strong id="upgrade-label">10</strong>
-                </div>
-                <div class="game-stat game-stat-best">
-                  <div class="game-stat-head"><img class="game-stat-icon" src="./assets/ui/hud/best.png?v=45" alt="" /><span>BEST</span></div>
-                  <strong id="best-label">0m</strong>
-                </div>
-              </div>
-            </div>
-            <div class="build-pop panel-lite">
-              <div class="build-pop-title"><img class="build-pop-icon" src="./assets/ui/hud/build.png?v=45" alt="" /><span>今回の強化</span></div>
-              <div id="build-list" class="build-list build-list-ingame"><span class="muted">まだ強化なし</span></div>
-            </div>
-          </div>
-          <canvas id="game-canvas" width="960" height="540" aria-label="ほげ走ゲーム画面"></canvas>
+<!-- 🧊 3D盤面用：three.js（r128：グローバル環境用安定版） -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
+<!-- 🖊️ Fat Lines（グリッド線の太さを実際に反映するための拡張。board3d.js のグリッド線用） -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
 
-          <div id="start-overlay" class="overlay-card overlay-start">
-            <div class="overlay-inner">
-              <p id="overlay-eyebrow" class="eyebrow">WELCOME TO THE TEA KINGDOM</p>
-                            <img id="overlay-character" class="overlay-character" src="./assets/ui/title-key-art.png?v=45" alt="ほげ走のキャラクター" />
-              <h2 id="start-title">ほげ走</h2>
-              <div id="result-score-panel" class="result-score-panel hidden" aria-live="polite">
-                <span class="result-score-label">RESULT SCORE</span>
-                <strong id="result-score-value">0m</strong>
-                <span id="result-tea-value" class="result-tea-value">0 TEA</span>
-              </div>
-              <p id="start-description">ジャンプとしゃがみで敵をかわし、紅茶入りのカップを集めよう。</p>
-              <p id="overlay-note" class="overlay-note">ふしぎな紅茶の国を駆け抜けよう！</p>
-              <form id="menu-name-form" class="menu-name-form">
-                <label for="menu-username-input">プレイヤー名</label>
-                <div class="menu-name-row">
-                  <input id="menu-username-input" type="text" maxlength="16" minlength="1" placeholder="例：けんたん" autocomplete="nickname" required />
-                  <button id="menu-name-save" class="primary-button menu-name-save" type="submit">名前を保存</button>
-                </div>
-                <p id="menu-name-status" class="muted small">ここで設定した名前で遊びます。ランキングにもこの名前で記録されます。</p>
-              </form>
-              <div class="start-feature-grid" aria-label="ゲーム紹介">
-                <div class="start-feature-card feature-run"><strong>RUN</strong><span>敵や障害物をかわしてどこまでも進もう</span></div>
-                <div class="start-feature-card feature-cup"><strong>COLLECT</strong><span>紅茶カップを集めて能力をアンロック</span></div>
-                <div class="start-feature-card feature-upgrade"><strong>POWER UP</strong><span>好きな強化を選んでベスト更新を狙おう</span></div>
-              </div>
-              <div class="start-action-badges">
-                <span class="start-action-badge">1P SOLO</span>
-                <span class="start-action-badge">CUTE ROGUELIKE RUN</span>
-                <span class="start-action-badge">BEST SCORE CHALLENGE</span>
-              </div>
-              <div class="start-keybind-box">
-                <div class="keybind-heading">
-                  <div>
-                    <p class="eyebrow">KEY CONFIG</p>
-                    <h3>スタート前に操作キー設定</h3>
-                  </div>
-                  <button id="reset-keybinds" class="text-button key-reset" type="button">初期設定に戻す</button>
-                </div>
-                <p id="keybind-status" class="muted small">変更したいボタンを押してから、割り当てたいキーを入力してください。</p>
-                <div class="keybind-grid compact-keybind-grid">
-                  <div class="keybind-action">
-                    <strong>ジャンプ</strong>
-                    <button class="keybind-button" data-action="jump" data-slot="0" type="button">Space</button>
-                    <button class="keybind-button" data-action="jump" data-slot="1" type="button">W</button>
-                    <button class="keybind-button" data-action="jump" data-slot="2" type="button">↑</button>
-                  </div>
-                  <div class="keybind-action">
-                    <strong>しゃがみ</strong>
-                    <button class="keybind-button" data-action="duck" data-slot="0" type="button">S</button>
-                    <button class="keybind-button" data-action="duck" data-slot="1" type="button">↓</button>
-                  </div>
-                  <div class="keybind-action ability-bind-action">
-                    <strong>能力① 左</strong>
-                    <button class="keybind-button" data-action="upgrade1" data-slot="0" type="button">Q</button>
-                    <button class="keybind-button" data-action="upgrade1" data-slot="1" type="button">1</button>
-                  </div>
-                  <div class="keybind-action ability-bind-action">
-                    <strong>能力② 中</strong>
-                    <button class="keybind-button" data-action="upgrade2" data-slot="0" type="button">W</button>
-                    <button class="keybind-button" data-action="upgrade2" data-slot="1" type="button">2</button>
-                  </div>
-                  <div class="keybind-action ability-bind-action">
-                    <strong>能力③ 右</strong>
-                    <button class="keybind-button" data-action="upgrade3" data-slot="0" type="button">E</button>
-                    <button class="keybind-button" data-action="upgrade3" data-slot="1" type="button">3</button>
-                  </div>
-                </div>
-                <p class="menu-key-note"><strong>決定：</strong>スタート / リトライは Space　・　能力選択は左から Q/W/E または 1/2/3</p>
-              </div>
-              <div class="result-action-row">
-                <button id="home-button" class="home-button hidden" type="button">HOME</button>
-                <button id="start-button" class="primary-button big-button start-button-game" type="button">ゲームスタート</button>
-              </div>
-              <p id="start-press-hint" class="start-press-hint">クリック / Space でスタート</p>
-            </div>
-          </div>
+<!-- 🧊 3D盤面モジュール（JSX を含むため Babel で変換。app.js より前に読み込む） -->
+<script type="text/babel" data-presets="jsx-classic" src="board3d.js"></script>
 
-          <div id="upgrade-overlay" class="upgrade-overlay hidden">
-            <div class="upgrade-box">
-              <div class="upgrade-heading">
-                <p class="upgrade-kicker">SPECIAL TEA TIME</p>
-                <h2>どの力をえらぶ？</h2>
-                <p class="upgrade-subtitle">ほげっと すてきな力で もっと先へ！</p>
-              </div>
-              <div id="upgrade-cards" class="upgrade-cards"></div>
-              <button id="upgrade-confirm" class="upgrade-confirm" type="button" disabled>この力をえらぶ</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="mobile-gesture-help">スマホ操作：ゲーム画面を <strong>上フリック＝ジャンプ</strong> / <strong>下フリック＝しゃがみ</strong></div>
-        <div class="mobile-controls">
-          <button id="jump-button" class="control-button jump-button" type="button">JUMP</button>
-          <button id="duck-button" class="control-button duck-button" type="button">DUCK</button>
-        </div>
-      </div>
-
-      <aside class="panel ranking-panel">
-        <div class="ranking-logo-row">
-          <img class="ranking-logo-image" src="./assets/ui/ranking/ranking-logo.png?v=45" alt="ランキング" />
-          <button id="refresh-ranking" class="icon-button" type="button" title="ランキング更新">↻</button>
-        </div>
-        <div class="ranking-divider-wrap" aria-hidden="true"><img class="ranking-divider" src="./assets/ui/ranking/divider-ornament.png?v=45" alt="" /></div>
-        <div id="ranking-status" class="ranking-status">読み込み中...</div>
-        <ol id="ranking-list" class="ranking-list"></ol>
-      </aside>
-    </section>
-  </main>
-
-  <footer class="footer">ほげ走 — browser-only pixel roguelike runner</footer>
-
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="./config.js?v=45"></script>
-  <script src="./game.js?v=45" defer></script>
+<!-- アプリ本体（JSX を含むため Babel で変換） -->
+<script type="text/babel" data-presets="jsx-classic" src="app.js"></script>
 </body>
 </html>
