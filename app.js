@@ -4675,7 +4675,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 🌟 今回遭遇した神（リザルト表示用。ランダムで選ばれた1体目を運命の神とする）
 
   // 🌟 金床（アイテム選択）を展開する処理
-  const triggerAnvilChoice = useCallback((anvilType) => {
+  // countOverride: 選択肢の数を指定したいとき（例: レディアントの遺物 = ランダムな5個）
+  const triggerAnvilChoice = useCallback((anvilType, countOverride) => {
     let pool = [];
     let count = 4;
     if (anvilType === 'component') {
@@ -4694,6 +4695,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
       pool = ITEMS.filter(it => it.type === 'comp' && !it.hidden && !isSpecialComponent(it));
       count = 3;
     }
+    if (countOverride > 0) count = countOverride;
     const shuffled = shuffleArray(pool, rngMisc).slice(0, count);
     setAnvilOptions({ items: shuffled, anvilType });
   }, [rngMisc]);
@@ -5673,10 +5675,19 @@ useEffect(() => {
   };
 
 const handleAugmentPick = (aug, historyContext) => {
-  // 🌟 augデータの中に history オブジェクトとして文脈データをまるごと保存
-  setAugments(prev => [...prev, { ...aug, history: historyContext }]);
   setAugmentTierBoost(0);
-  if (typeof aug.effect === 'function') aug.effect({ gold, level, xp }, rngAug, augmentHelpers);  // 🏷️ エディタ新規追加分はeffectなし（表示のみ）
+  // 🏷️ エディタ新規追加分はeffectなし（表示のみ）
+  //    運命系（シルバー/ゴールド/プリズムの運命）は発動したオーグメントを { chained } で返すので、一緒に保存してサイドバーに出す
+  let chained = null;
+  if (typeof aug.effect === 'function') {
+    const res = aug.effect({ gold, level, xp }, rngAug, augmentHelpers);
+    if (res && res.chained) {
+      const c = res.chained;
+      chained = { id: c.id, name: c.name, tier: c.tier, imgName: c.imgName, icon: c.icon };
+    }
+  }
+  // 🌟 augデータの中に history オブジェクトとして文脈データをまるごと保存
+  setAugments(prev => [...prev, { ...aug, history: historyContext, ...(chained ? { chained } : {}) }]);
   setShowAugment(false);
 
   // 通知メッセージを画像付きにする
@@ -6988,6 +6999,19 @@ const handleAugmentPick = (aug, historyContext) => {
                 }}>
                   {a.name}
                 </span>
+
+                {/* 🎁 運命系で発動したオーグメント（小さく下に表示） */}
+                {a.chained && (
+                  <div title={`${a.name} で発動: ${a.chained.name}`} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, width:'100%' }}>
+                    <span style={{ fontSize:9, color:'var(--textdim)', lineHeight:1 }}>▼ 発動</span>
+                    <div style={{ width:34, height:34, background:'#000', border:`2px solid ${TIER_COLORS[a.chained.tier] || TIER_COLORS[a.tier]}`, borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', flexShrink:0 }}>
+                      <img src={getAugmentIconUrl(a.chained)} style={{ width:'85%', height:'85%', objectFit:'contain' }} onError={e=>augImgErr(e,a.chained)} />
+                    </div>
+                    <span style={{ fontSize:9, color: TIER_COLORS[a.chained.tier] || TIER_COLORS[a.tier], fontWeight:700, lineHeight:1.2, fontFamily:'Noto Sans JP', wordBreak:'break-all', padding:'0 4px' }}>
+                      {a.chained.name}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

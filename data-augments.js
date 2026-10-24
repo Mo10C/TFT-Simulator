@@ -379,6 +379,7 @@ const AUGMENTS_DATA = {
           const picked = pool[Math.floor(rng() * pool.length)];
           helpers.showMsg(`🎁 シルバーの運命: 「${picked.name}」を獲得！`);
           try { picked.effect(state, rng, helpers); } catch (e) { console.error('fate_silver chain error', e); }
+          return { chained: picked };   // 発動したオーグメントをサイドバーに表示するため app.js に返す
         }
       }
     },
@@ -1310,6 +1311,7 @@ const AUGMENTS_DATA = {
           const picked = pool[Math.floor(rng() * pool.length)];
           helpers.showMsg(`🎁 ゴールドの運命: 「${picked.name}」を獲得！`);
           try { picked.effect(state, rng, helpers); } catch (e) { console.error('fate_gold chain error', e); }
+          return { chained: picked };   // 発動したオーグメントをサイドバーに表示するため app.js に返す
         }
       }
     },
@@ -1897,6 +1899,7 @@ const AUGMENTS_DATA = {
           const picked = pool[Math.floor(rng() * pool.length)];
           helpers.showMsg(`🎁 プリズムの運命: 「${picked.name}」を獲得！`);
           try { picked.effect(state, rng, helpers); } catch (e) { console.error('fate_prismatic chain error', e); }
+          return { chained: picked };   // 発動したオーグメントをサイドバーに表示するため app.js に返す
         }
       }
     },
@@ -1905,7 +1908,7 @@ const AUGMENTS_DATA = {
       desc: '5個のレディアントアイテムの中から1個を選択する。「磁力式除去装置」を1個獲得する。',
       icon: '💎',
       effect: (state, rng, helpers) => {
-        helpers.triggerAnvilChoice('radiant');
+        helpers.triggerAnvilChoice('radiant', 5);   // ランダムな5個から選択
         helpers.addItem({ ...CONSUMABLES.REMOVER, count: 1 });
         helpers.showMsg('💎 レディアントの遺物: レディアントアイテムを1つ選択してください！');
       }
