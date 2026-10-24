@@ -884,6 +884,16 @@ const isConsumable = (item, key) => {
   return !!id && item.id === id;
 };
 
+/* 🐉 リフトビースト セレクター
+   ── 「リフトビースト」の特性が発動している間だけアイテム欄に出る道具（使っても無くならない）。
+   ── 盤面のリフトビーストに使うと、そのチャンピオンが「アルファ」になる（見た目が強化される）。
+      別のリフトビーストに使うと対象が移る。通常は1体、「オメガ リフトビースト」所持時は2体まで。 */
+const RIFT_SELECTOR = {
+  id: 'riftbeast_selector', name: 'Riftbeast Selector', jaName: 'リフトビースト セレクター', type: 'trait_tool',
+  imgUrl: 'https://img.tftips.app/item/tftset18_item_riftbeastselector.avif?v=2',
+};
+const isRiftSelector = (it) => !!it && it.id === RIFT_SELECTOR.id;
+
 const createAnvil = (type) => {
   let jaName = '金床', color = '#94a3b8'; // default
   if (type === 'component') { jaName = '素材の金床'; color = '#c0c0c0'; }
@@ -1057,7 +1067,7 @@ const Stars = ({star}) => (
   </div>
 );
 
-const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouseEnter, onMouseLeave, onTouchStartDrag, dropType, dropIdx, isGolden }) => {
+const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouseEnter, onMouseLeave, onTouchStartDrag, dropType, dropIdx, isGolden, isAlpha }) => {
   const [over, setOver] = useState(false);
   return (
     <div
@@ -1068,9 +1078,13 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
       onDrop={e => { e.preventDefault(); setOver(false); onDrop && onDrop(e); }}
       style={{ width: size, height: size, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
     >
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', filter: isGolden ? 'drop-shadow(0 0 6px var(--gold))' : 'none' }} viewBox="0 0 78 78">
-        <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : champ ? `${COST_COLORS[champ.cost]}33` : 'var(--bg-hex)'} stroke={over ? 'rgba(26,159,255,.9)' : isGolden ? 'var(--gold2)' : champ ? COST_COLORS[champ.cost] : 'var(--border)'} strokeWidth={isGolden ? 4 : champ ? 3 : 1} />
+      {/* 🐉 アルファ リフトビースト：赤橙に光る枠＋右上の「α」バッジで強化されていることを示す */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', filter: isAlpha ? 'drop-shadow(0 0 7px #ff5a3c) drop-shadow(0 0 3px #ffb347)' : isGolden ? 'drop-shadow(0 0 6px var(--gold))' : 'none' }} viewBox="0 0 78 78">
+        <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : isAlpha ? 'rgba(255,90,60,.28)' : champ ? `${COST_COLORS[champ.cost]}33` : 'var(--bg-hex)'} stroke={over ? 'rgba(26,159,255,.9)' : isAlpha ? '#ff5a3c' : isGolden ? 'var(--gold2)' : champ ? COST_COLORS[champ.cost] : 'var(--border)'} strokeWidth={isAlpha || isGolden ? 4 : champ ? 3 : 1} />
       </svg>
+      {isAlpha && champ && (
+        <div title="アルファ リフトビースト" style={{ position: 'absolute', top: 2, right: 2, zIndex: 3, width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#ffb347,#ff3c28)', border: '2px solid #fff3e0', boxShadow: '0 0 8px #ff5a3c', color: '#fff', fontSize: 13, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', lineHeight: 1 }}>α</div>
+      )}
       {champ && (
         <div
           draggable={!!onDragStart}
@@ -4064,6 +4078,7 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   const [augments, setAugments] = useState([]);
   const [wisps, setWisps] = useState([]);           // 🌿 取得済みWisp履歴
   const [wispSlot, setWispSlot] = useState(null);    // 🌿 現在ショップに出ているWisp（未購入なら随時null）
+  const [alphaRiftIds, setAlphaRiftIds] = useState([]);  // 🐉 アルファ リフトビーストに指定したチャンピオンID（指定順）
   const [passiveBuffs, setPassiveBuffs] = useState([]);
   const [dragSrc, setDragSrc] = useState(null);
   const [dropMsg, setDropMsg] = useState(null);
@@ -4662,6 +4677,21 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 🐾 プライマルの現在の人数（祝福の選択トリガーに使う。実際の useEffect / ハンドラは
   //    showMsg 定義後にまとめて置く。ここでは値だけ拾っておく）
   const primalCount = traitCounts['Primal'] || 0;
+
+  // 🐉 リフトビースト：発動中はアイテム欄にセレクターを1個出し、発動が切れたら片付ける
+  const riftTiers = (typeof TRAIT_TIERS_DATA !== 'undefined' && TRAIT_TIERS_DATA['Riftbeast']) || [3];
+  const riftActive = (traitCounts['Riftbeast'] || 0) >= riftTiers[0];
+  const isAlphaUnit = (u) => !!u && !u.isAnvil && riftActive && alphaRiftIds.includes(u.id);
+  useEffect(() => {
+    setInventory(prev => {
+      const has = prev.some(isRiftSelector);
+      if (riftActive && !has) return [...prev, { ...RIFT_SELECTOR }];
+      if (!riftActive && has) return prev.filter(it => !isRiftSelector(it));
+      return prev;
+    });
+  }, [riftActive]);
+  // 3D盤面に渡す盤面（アルファの駒に印を付ける。見た目の強化は board3d.js 側で描く）
+  const board3D = useMemo(() => board.map(u => isAlphaUnit(u) ? { ...u, alphaRift: true } : u), [board, alphaRiftIds, riftActive]);
 
 
 
@@ -5809,6 +5839,25 @@ const handleAugmentPick = (aug, historyContext) => {
         if (unit.isAnvil) {
           showMsg("⚠️ 金床にアイテムは装備できません！"); setDragSrc(null); return;
         }
+        // 🐉 リフトビースト セレクター：盤面のリフトビーストを「アルファ」に指定する（セレクターは無くならない）
+        if (isRiftSelector(newItem)) {
+          if (targetType !== 'board') { showMsg('⚠️ 盤面のリフトビーストに使用してください'); setDragSrc(null); return; }
+          if (!(unit.traits || []).includes('Riftbeast')) { showMsg('⚠️ リフトビーストにのみ使用できます'); setDragSrc(null); return; }
+          if (alphaRiftIds.includes(unit.id)) { showMsg(`🐉 ${unit.jaName}はすでにアルファ リフトビーストです`); setDragSrc(null); return; }
+          const maxAlpha = passiveBuffs.some(b => b.type === 'omega_riftbeast') ? 2 : 1;
+          const next = [...alphaRiftIds, unit.id];
+          const removed = [];
+          while (next.length > maxAlpha) removed.push(next.shift());   // 上限を超えたら古い指定から外す
+          setAlphaRiftIds(next);
+          const removedNames = removed.map(id => (CHAMPS.find(c => c.id === id) || {}).jaName).filter(Boolean);
+          showMsg(
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <img src={RIFT_SELECTOR.imgUrl} style={{ width:18, height:18 }} />
+              <span>{removedNames.length ? `アルファを ${removedNames.join('・')} → ${unit.jaName} に変更！` : `${unit.jaName}がアルファ リフトビーストに！`}</span>
+            </div>
+          );
+          setDragSrc(null); return;
+        }
         if (!unit.items) unit.items = [];
         if (newItem.type === 'consumable') {
           if (isConsumable(newItem,'REMOVER')) {
@@ -6100,9 +6149,14 @@ const handleAugmentPick = (aug, historyContext) => {
       const i = parseInt(cell.getAttribute('data-drop-idx'), 10);
       if ((t === 'bench' || t === 'board') && !isNaN(i) && i >= 0) hoveredUnitRef.current = { type: t, idx: i };
     }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const isRight = rect.left > window.innerWidth / 2;
-    hoverTimer.current = setTimeout(() => { setTooltipData({ champ, x: rect.left, y: rect.top, isRight }); }, 1000);
+    // 💬 駒に1秒カーソルを置いたときのチャンピオン詳細POPは表示しない（売却ホットキー用の記録だけ行う）
+    //    もう一度出したい場合は SHOW_CHAMP_HOVER_POP を true にする
+    const SHOW_CHAMP_HOVER_POP = false;
+    if (SHOW_CHAMP_HOVER_POP) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const isRight = rect.left > window.innerWidth / 2;
+      hoverTimer.current = setTimeout(() => { setTooltipData({ champ, x: rect.left, y: rect.top, isRight }); }, 1000);
+    }
   };
   const handleMouseLeave = () => { if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; } setTooltipData(null); hoveredUnitRef.current = null; };
   const handleTraitMouseEnter = (e, trait, count) => { const rect = e.currentTarget.getBoundingClientRect(); setTraitTooltipData({ trait, count, x: rect.left, y: rect.top }); };
@@ -6455,7 +6509,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
                     <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
-                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={76} itemSize={21} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={76} itemSize={21} isAlpha={isAlphaUnit(board[row*7+col])} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
                 </div>
@@ -6896,7 +6950,7 @@ const handleAugmentPick = (aug, historyContext) => {
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', position:'relative' }}
         >
           {use3D ? (
-            <Board3D board={board} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
+            <Board3D board={board3D} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
               onCancel={handle3DCancel} selected={sel3D} freeView={freeView}
               savedView={savedView3D} viewApi={view3DApi} insets={insets3D}
@@ -6916,6 +6970,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           champ={board[idx]}
                           dropType="board"
                           dropIdx={idx}
+                          isAlpha={isAlphaUnit(board[idx])}
                           isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[idx]?.id === 'miipsy' || board[idx]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[idx]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[idx]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[idx]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[idx]?.id === 'jax') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
                           onDragStart={() => setDragSrc({ type:'board', idx })}
                           onTouchStartDrag={(e) => startTouchDrag(e, { type:'board', idx })}

@@ -608,6 +608,46 @@ function b3dRemoveItemDom(S, key){
 /* ↑この処理は model-fit.js に移動（エディタと共有） */
 
 /* ↑この処理は model-fit.js に移動（エディタと共有） */
+
+/* 🐉 アルファ リフトビーストの強化表示
+   ── app.js が盤面の駒に alphaRift:true を付けて渡してくる。付いている駒は
+      ひと回り大きくし、足元に赤橙の光る輪と、立ちのぼる光の柱を出す（ループで脈動）。 */
+const B3D_ALPHA_SCALE = 1.22;
+const B3D_ALPHA_COLOR = 0xff5a3c;
+function b3dRefreshAlpha(g, u){
+  if(!g) return;
+  const want = !!(u && u.alphaRift && !u.isAnvil);
+  let aura = g.children.find(c => c.userData && c.userData.b3dAlpha);
+  if(want && !aura){
+    aura = new THREE.Group(); aura.userData.b3dAlpha = true;
+    const ring = new THREE.Mesh(new THREE.RingGeometry(B3D.R*0.58, B3D.R*0.82, 48),
+      new THREE.MeshBasicMaterial({ color:B3D_ALPHA_COLOR, transparent:true, opacity:0.85, side:THREE.DoubleSide, depthWrite:false }));
+    ring.rotation.x = -Math.PI/2; ring.position.y = B3D.TOP + 0.03; ring.userData.alphaRing = true;
+    aura.add(ring);
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(B3D.R*0.6, B3D.R*0.78, 2.4, 32, 1, true),
+      new THREE.MeshBasicMaterial({ color:0xff7a3c, transparent:true, opacity:0.16, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+    pillar.position.y = B3D.TOP + 1.2; pillar.userData.alphaPillar = true;
+    aura.add(pillar);
+    g.add(aura);
+  } else if(!want && aura){
+    g.remove(aura); b3dDispose(aura);
+  }
+  g.scale.setScalar(want ? B3D_ALPHA_SCALE : 1);
+}
+/* ループから毎フレーム呼ぶ：アルファの輪と柱をゆっくり脈動させる */
+function b3dAnimateAlpha(S){
+  if(!S || !S.pieces) return;
+  const t = performance.now() * 0.003;
+  S.pieces.forEach(g => {
+    const aura = g.children.find(c => c.userData && c.userData.b3dAlpha);
+    if(!aura) return;
+    aura.children.forEach(m => {
+      if(m.userData.alphaRing){ m.material.opacity = 0.6 + Math.sin(t) * 0.25; m.rotation.z += 0.01; }
+      if(m.userData.alphaPillar){ m.material.opacity = 0.12 + (Math.sin(t) + 1) * 0.06; }
+    });
+  });
+}
+
 function b3dMakeAnvil(u){
   // 🔨 金床：チャンピオンではないので簡易マーカーで表示（見えないと置き場所を見失うため）
   const col = new THREE.Color(u.color || '#d9a05b');
@@ -1017,7 +1057,7 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     movedFromKeys.forEach(k=>S.mixers.delete(k));
     movedMixers.forEach((mx,key)=>S.mixers.set(key,mx));
   }
-  moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w) b3dRefreshItems(g, w.u, itemIcon, S, key); });
+  moved.forEach((g,key)=>{ pieces.set(key,g); const w=want.get(key); if(w){ b3dRefreshItems(g, w.u, itemIcon, S, key); b3dRefreshAlpha(g, w.u); } });
 
   // ── 4) 残り（新規作成・削除）を処理
   slots.forEach(h=>{
@@ -1029,7 +1069,7 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     const modelUrl = w ? w.modelUrl : '';
     const sig = w ? w.sig : null;
     const cur=pieces.get(key);
-    if(cur && cur.userData.sig===sig){ if(u) b3dRefreshItems(cur, u, itemIcon, S, key); return; }
+    if(cur && cur.userData.sig===sig){ if(u){ b3dRefreshItems(cur, u, itemIcon, S, key); b3dRefreshAlpha(cur, u); } return; }
     if(cur){ 
        boardGroup.remove(cur); 
        b3dDispose(cur); 
@@ -1070,6 +1110,7 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
     }
     g.add(b3dMakeStars(u.star));
     g.userData.itemsSig = null; b3dRefreshItems(g, u, itemIcon, S, key);
+    b3dRefreshAlpha(g, u);   // 🐉 アルファ リフトビーストの強化表示
     g.userData.spawnT=0;
     boardGroup.add(g); pieces.set(key,g);
     if(S.spawning) S.spawning.add(g);
@@ -1423,6 +1464,7 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
                if (p >= 1) { g.position.y = g.userData.home.y; S.current.spawning.delete(g); }
             });
          }
+         b3dAnimateAlpha(S.current);   // 🐉 アルファ リフトビーストの輪を脈動させる
          controls.update(); 
          renderer.render(scene,camera);
          b3dSyncItemDom(S.current);   // 装備アイコンを駒の頭上へ追従させる
