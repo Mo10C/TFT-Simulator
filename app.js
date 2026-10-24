@@ -7117,7 +7117,8 @@ const handleAugmentPick = (aug, historyContext) => {
               >
                 {champ.isAnvil ? (
                   <div style={{ width:'100%', height:'100%', background:'rgba(0,0,0,0.6)', borderRadius:8, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', border:`2px solid ${champ.color}`, overflow:'hidden' }}>
-                    <img src={champ.img + "?cors=1"} crossOrigin="anonymous" style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt={champ.jaName} />
+                    {/* 🔨 チートリストの金床と同じ画像。CORSで読めない場合は imgCorsFallback が通常読み込みに切り替える */}
+                    <img src={champ.img || createAnvil(champ.anvilType || 'component').img} crossOrigin="anonymous" onError={imgCorsFallback} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt={champ.jaName} />
                   </div>
                 ) : (
                   <>
