@@ -4694,8 +4694,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 3D盤面に渡す盤面（アルファの駒に印を付ける。見た目の強化は board3d.js 側で描く）
   const board3D = useMemo(() => board.map(u => isAlphaUnit(u) ? { ...u, alphaRift: true } : u), [board, alphaRiftIds, riftActive]);
 
-  // 🟣 ブラックソーン：発動中は「下から3段目の真ん中」（＝上から2段目・4列目 / idx 10）を紫で縁取る。発動が切れると元に戻る
-  const BLACKTHORN_HEX_IDX = 1 * 7 + 3;
+  // 🟣 ブラックソーン：発動中は「上から3段目・4列目（真ん中）」（idx 17）を紫で縁取る。発動が切れると元に戻る
+  const BLACKTHORN_HEX_IDX = 2 * 7 + 3;
   const BLACKTHORN_MARK_COLOR = '#a855f7';
   const blackthornTiers = (typeof TRAIT_TIERS_DATA !== 'undefined' && TRAIT_TIERS_DATA['Blackthorn']) || [2];
   const blackthornActive = (traitCounts['Blackthorn'] || 0) >= blackthornTiers[0];
