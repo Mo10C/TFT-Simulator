@@ -71,7 +71,7 @@ const ENCOUNTERS = [
         const emblem = tempEmblems.splice(idx, 1)[0];
         h.addItem({ ...emblem, type: 'completed' });
       }
-      h.showMsg('🔰 ラースト: 異なる紋章を3個獲得しました！');
+      h.showMsg('🔰異なる紋章を3個獲得しました！');
     } },
   { id:"ezreal", champ:"エズリアル", jaName:"開幕リロール", prob:3.7, desc:"2-1で、5回分の無料リロールを獲得する。", icon:"🎲", color:"#ffd76e", freeRerollsAt21:5, hidden:true },
   { id:"ornn", champ:"オーン", jaName:"アーティファクトの金床", prob:5, desc:"3-3で全プレイヤーが「アーティファクトの金床」を獲得する。", icon:"🔨", color:"#d9a05b", displayOnly:true },
