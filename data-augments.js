@@ -303,10 +303,33 @@ const AUGMENTS_DATA = {
       desc: 'ダイスを振る。出た目に応じて報酬を獲得する。',
       icon: '🎲',
       effect: (state, rng, helpers) => {
+        // 公式テーブル: 6つの目が各1/6
         const roll = 1 + Math.floor(rng() * 6);
-        if (roll <= 2) { helpers.addGold(2); helpers.showMsg(`🎲 ちょっとだけ魔法のダイス: ${roll}の目で2G獲得！`); }
-        else if (roll <= 4) { helpers.addXp(4); helpers.showMsg(`🎲 ちょっとだけ魔法のダイス: ${roll}の目で4XP獲得！`); }
-        else { const it = ITEMS[Math.floor(rng() * ITEMS.length)]; helpers.addItem({ ...it }); helpers.showMsg(`🎲 ちょっとだけ魔法のダイス: ${roll}の目で${it.jaName}獲得！`); }
+        const msg = (t) => helpers.showMsg(`🎲 ちょっとだけ魔法のダイス: ${roll}の目で${t}`);
+        if (roll === 1) {
+          helpers.addGold(10); msg('10G獲得！');
+        } else if (roll === 2) {
+          helpers.addPassiveBuff({ type: 'dice_of_fortune_hp', value: 160 }); msg('全ユニットの体力+160！（戦闘効果）');
+        } else if (roll === 3) {
+          const pool = CHAMPS.filter(c => c.cost === 2);
+          const chosen = pool[Math.floor(rng() * pool.length)];
+          helpers.addGold(3);
+          helpers.addPendingUnits([{ ...chosen, star: 2, uid: rng(), items: [] }]);
+          msg(`3Gと★2${chosen.jaName}獲得！`);
+        } else if (roll === 4) {
+          const emblems = augEmblemPool();
+          const em = emblems[Math.floor(rng() * emblems.length)];
+          helpers.addItem({ ...em, type: 'completed' }); msg(`${em.jaName}獲得！`);
+        } else if (roll === 5) {
+          const recipes = Object.values(ITEM_RECIPES).filter(r => !r.hidden && !r.grantedTrait
+            && !(typeof isTacticianItem === 'function' && isTacticianItem(r)));
+          const it = recipes[Math.floor(rng() * recipes.length)];
+          helpers.addItem({ ...it, type: 'completed' });
+          helpers.addItem({ ...CONSUMABLES.REFORGER });
+          msg(`${it.jaName}と再合成装置獲得！`);
+        } else {
+          helpers.addFreeRerolls(6); msg('無料リロール6回獲得！');
+        }
       }
     },
     {

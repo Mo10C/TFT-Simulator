@@ -919,10 +919,41 @@ function rollShop(level, rng){
    本家は毎ラウンドおきに出現するが、このシムでは 2-1 のみに出現させる。 */
 const WISP_ROUNDS = ['2-1'];
 const WISP_SLOT_INDEX = 4;   // 🌿 ショップの5枚目（最後の枠）をWispが置き換える
-function rollWisp(rng){
-  const pool = (typeof WISPS_DATA !== 'undefined' ? WISPS_DATA : []).filter(w => !w.hidden);
-  if (pool.length === 0) return null;
-  const w = pool[Math.floor(rng() * pool.length)];
+/* 🌿 出現条件（data-wisps.js の req）の判定。ctx はラウンド開始時点の状況。
+   このシムは対人戦が無いので、2-1時点の連勝・連敗は0、プレイヤー体力は100（満タン）として扱う。 */
+function wispReqOk(req, ctx){
+  const raw = String(req || '').trim();
+  if (!raw) return true;
+  const neg = raw.startsWith('!');
+  const [key, arg = ''] = (neg ? raw.slice(1) : raw).split(':');
+  const n = Number(arg) || 0;
+  const tankTraits = (typeof AUG_TANK_TRAITS !== 'undefined') ? AUG_TANK_TRAITS : ['Brawler', 'Defender', 'Juggernaut', 'Vanguard'];
+  let r;
+  switch (key) {
+    case 'gold':       r = ctx.gold >= n; break;
+    case 'hpOver':     r = ctx.hp > n; break;
+    case 'hpLost':     r = (100 - ctx.hp) >= n; break;
+    case 'own':        r = ctx.units.some(u => u.cost === n); break;
+    case 'trait': {
+      const tiers = (typeof TRAIT_TIERS_DATA !== 'undefined' && TRAIT_TIERS_DATA[arg]) || [1];
+      r = (ctx.traitCounts[arg] || 0) >= tiers[0]; break;
+    }
+    case 'winStreak':  r = ctx.streak >= Math.max(1, n); break;
+    case 'lossStreak': r = -ctx.streak >= Math.max(1, n); break;
+    case 'comps':      r = ctx.compCount >= n; break;
+    case 'itemCarry':  r = ctx.units.some(u => (u.items || []).some(Boolean) && !(u.traits || []).some(t => tankTraits.includes(t))); break;
+    case 'aug':        r = arg.split(',').some(id => ctx.augIds.includes(id.trim())); break;
+    default:           r = true;   // 未知のキーは判定しない（出現を妨げない）
+  }
+  return neg ? !r : r;
+}
+function rollWisp(rng, ctx = null){
+  const all = (typeof WISPS_DATA !== 'undefined' ? WISPS_DATA : []).filter(w => !w.hidden);
+  const pool = ctx ? all.filter(w => (w.req || []).every(q => wispReqOk(q, ctx))) : all;
+  // 条件を満たすウィスプが1つも無ければ「おねだりウィスプ」（＝ウィスプが見つからなかった）
+  const finalPool = pool.length ? pool : all.filter(w => w.id === 'wisp_begging');
+  if (finalPool.length === 0) return null;
+  const w = finalPool[Math.floor(rng() * finalPool.length)];
   return { ...w, uid: rng() };
 }
 
@@ -5050,35 +5081,49 @@ useEffect(() => {
 
   // 🌟 レベルアップ時に発動するオーグメントを管理する（関数定義より後ろに移動）
   const prevLevelRef = useRef(level);
-  const birthdayReunionDoneRef = useRef(false); // 🎉 バースデーリユニオンLv5報酬の発動済みフラグ
+  const birthdayReunionDoneRef = useRef(false); // 🎉 バースデーリユニオンLv6報酬の発動済みフラグ
   useEffect(() => {
     if (prevLevelRef.current < level) {
-      // Level up occurred!
+      // Level up occurred!（一度に複数レベル上がった場合も、上がったレベルごとに発動させる）
       const hasBD = passiveBuffs.some(b => b.type === 'birthday_gift');
-      if (hasBD) {
-        const cost = Math.min(5, Math.max(1, level - 4));
-        const pool = CHAMPS.filter(c => c.cost === cost);
-        if (pool.length) {
-          const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
-          addChampToBenchDirect(champ);
-          setGold(g => g + 1);
-          showMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
+      const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
+      const hasGB = passiveBuffs.some(b => b.type === 'guardians_blessing');
+      const hasSS = passiveBuffs.some(b => b.type === 'shopping_spree');
+      for (let lv = prevLevelRef.current + 1; lv <= level; lv++) {
+        // 🎂 バースデープレゼント: レベルアップごとに★2（コスト＝レベル−4、1〜5）と1G
+        if (hasBD) {
+          const cost = Math.min(5, Math.max(1, lv - 4));
+          const pool = CHAMPS.filter(c => c.cost === cost);
+          if (pool.length) {
+            const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
+            setPendingUnits(prev => [...prev, champ]);
+            setGold(g => g + 1);
+            showMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
+          }
+        }
+        // ⬆️ 上方移動: レベルアップごとにリロール2回分
+        if (hasUM) setFreeRerolls(fr => fr + 2);
+        // 🙏 庇護者の祝福: レベル5・6・7・8到達時に「素材アイテムの金床」を1個
+        if (hasGB && [5, 6, 7, 8].includes(lv)) {
+          addAnvilToBench('component', 1);
+          showMsg('🙏 庇護者の祝福: 素材アイテムの金床を獲得！');
+        }
+        // 🛍️ 買い物三昧: レベルアップごとに、新レベル+1回のリロール
+        if (hasSS) {
+          setFreeRerolls(fr => fr + lv + 1);
+          showMsg(`🛍️ 買い物三昧: リロール+${lv + 1}！`);
         }
       }
-      const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
-      if (hasUM) {
-        setFreeRerolls(fr => fr + 1);
-      }
-      // 🎉 バースデー リユニオン: レベル5到達で★2のコスト2を1体（1回のみ）
-      //    ※ レベル7/9の効果は本シムの範囲(1-1〜2-1)外のため未実装
+      // 🎉 バースデー リユニオン: レベル6到達でランダムな素材アイテムを1個（1回のみ）
+      //    ※ ★2のコスト2は獲得時に付与済み。レベル9の効果は本シムの範囲(1-1〜2-1)外のため未実装
       const brBuff = passiveBuffs.find(b => b.type === 'birthday_reunion');
-      if (brBuff && level >= 5 && !birthdayReunionDoneRef.current) {
+      if (brBuff && level >= 6 && !birthdayReunionDoneRef.current) {
         birthdayReunionDoneRef.current = true;
-        const pool = CHAMPS.filter(c => c.cost === 2);
-        if (pool.length) {
-          const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
-          addChampToBenchDirect(champ);
-          showMsg(`🎉 バースデー リユニオン: レベル5到達！★★${champ.jaName}を獲得！`);
+        const comps = (typeof augComponentPool === 'function') ? augComponentPool() : ITEMS.filter(x => x.type === 'comp');
+        if (comps.length) {
+          const it = comps[Math.floor(rngMisc() * comps.length)];
+          setInventory(prev => [...prev, { ...it }]);
+          showMsg(`🎉 バースデー リユニオン: レベル6到達！${it.jaName}を獲得！`);
         }
       }
       const protectorsPactBuff = passiveBuffs.find(b => b.type === 'protectors_pact');
@@ -5484,11 +5529,13 @@ useEffect(() => {
   };
 
   const processRoundStart = (nextR, currentR) => {
+    let bonusGoldThisRound = 0;   // 収入より前に入るゴールド（ウィスプの出現条件の判定に使う）
     // 🌟 ゾーイの遭遇「ゴールドのサブスク」: ステージ2以降、各ステージ開始時にゴールド獲得
     if (passiveBuffs.some(b => b.type === 'gold_subscription')) {
       const stageNum = parseInt(nextR.split('-')[0]);
       if (stageNum >= 2) {
         const g = 2 + Math.floor(rngEnc() * 5); // 2-6G
+        bonusGoldThisRound += g;
         setGold(prev => prev + g);
         showMsg(`💳 ゴールドのサブスク: ${g}G 獲得！`);
       }
@@ -5509,6 +5556,7 @@ useEffect(() => {
       const newLeft = afkRoundsLeft - 1;
       setAfkRoundsLeft(newLeft);
       if (newLeft === 0) {
+        bonusGoldThisRound += 17;
         setGold(g => g + 17);
         setDropMsg('💤 AFK解除！17G獲得！');
         setTimeout(() => setDropMsg(null), 2500);
@@ -5539,54 +5587,31 @@ useEffect(() => {
       setTimeout(() => showMsg(`👯 複製: ${getJaName(dupItemsToAdd[0].name)}を追加獲得！`), 1500);
     }
 
-    setGold(g => {
-      if (nextR === '1-2') return g + 0; 
-      if (nextR === '1-3') return g + 2;
+    const incomeOf = (g) => {
+      if (nextR === '1-2') return 0;
+      if (nextR === '1-3') return 2;
       const interest = Math.min(maxInterest, Math.floor(g / 10));
       const baseIncome = {  '1-4': 2, '2-1': 3 }[nextR] || 5;
       const hasSA = passiveBuffs.some(b => b.type === 'savings_account');
       const extraG = (hasSA && interest >= 5) ? 25 : 0;
-      return g + baseIncome + interest + extraG;
-    });
+      return baseIncome + interest + extraG;
+    };
+    setGold(g => g + incomeOf(g));
+    // 🌿 ウィスプの出現条件（ゴールド）判定用：このラウンドの収入まで入った後の所持金
+    const goldBeforeIncome = gold + bonusGoldThisRound;
+    const goldAtRoundStart = goldBeforeIncome + incomeOf(goldBeforeIncome);
 
     const xpGain = (currentR === '1-1') ? 0 : 2;
     const { level: newLevel, xp: newXp } = applyXp(xpGain, level, xp);
     
     if (newLevel > level) {
-      const hasBD = passiveBuffs.some(b => b.type === 'birthday_gift');
-      if (hasBD) {
-        const cost = Math.min(5, Math.max(1, newLevel - 4));
-        const pool = CHAMPS.filter(c => c.cost === cost);
-        if (pool.length) {
-          const champ = { ...pool[Math.floor(rngMisc() * pool.length)], star: 2, uid: rngMisc(), items: [] };
-          addChampToBenchDirect(champ);
-          setGold(g => g + 1);
-          setDropMsg(`🎂 バースデープレゼント: ★★${champ.jaName}+1G！`);
-          setTimeout(() => setDropMsg(null), 2500);
-        }
-      }
-      const hasUM = passiveBuffs.some(b => b.type === 'upward_mobility');
-      if (hasUM) setFreeRerolls(fr => fr + 1);
-      
+      // ※ バースデープレゼント・上方移動・庇護者の祝福・買い物三昧は、
+      //    レベル変化を監視する useEffect（レベルアップ時のオーグメント処理）側で一括処理する（二重発動防止）
       const hasEp = passiveBuffs.some(b => b.type === 'epoch');
       if (hasEp) {
         const r = applyXp(4, newLevel, newXp);
         setLevel(r.level);
         setXp(r.xp);
-      }
-
-      // 🌿 庇護者の祝福: レベル5・6・7・8到達時に「素材アイテムの金床」を1個獲得
-      const hasGB = passiveBuffs.some(b => b.type === 'guardians_blessing');
-      if (hasGB && [5, 6, 7, 8].includes(newLevel)) {
-        addAnvilToBench('component', 1);
-        showMsg('🙏 庇護者の祝福: 素材アイテムの金床を獲得！');
-      }
-
-      // 🌿 買い物三昧: レベルアップするたびに、新レベル+1回の無料リロールを獲得
-      const hasSS = passiveBuffs.some(b => b.type === 'shopping_spree');
-      if (hasSS) {
-        setFreeRerolls(fr => fr + newLevel + 1);
-        showMsg(`🛍️ 買い物三昧: 無料リロール+${newLevel + 1}！`);
       }
     }
 
@@ -5605,8 +5630,21 @@ useEffect(() => {
       setShop(finalShop);
     }
 
-    // 🌿 Wisp: 出現ラウンドなら1体抽選、それ以外は（未購入でも）消える
-    setWispSlot(WISP_ROUNDS.includes(nextR) ? rollWisp(rngWisp) : null);
+    // 🌿 Wisp: 出現ラウンドなら出現条件（data-wisps.js の req）を満たすものから1体抽選、それ以外は（未購入でも）消える
+    if (WISP_ROUNDS.includes(nextR)) {
+      const units = [...board, ...bench].filter(u => u && !u.isAnvil);
+      const compWeight = (it) => !it ? 0 : (it.type === 'comp' ? 1 : (it.type === 'completed' ? 2 : 0));
+      const compCount = inventory.reduce((s, it) => s + compWeight(it), 0)
+        + units.reduce((s, u) => s + (u.items || []).reduce((t, it) => t + compWeight(it), 0), 0);
+      const wispCtx = {
+        round: nextR, gold: goldAtRoundStart, hp: 100, streak: 0,
+        units, traitCounts, compCount,
+        augIds: (augments || []).map(a => a.id),
+      };
+      setWispSlot(rollWisp(rngWisp, wispCtx));
+    } else {
+      setWispSlot(null);
+    }
 
     if (nextR === '2-1' && !noMoreAugments) {
       setShowAugment(true);
@@ -7267,7 +7305,8 @@ const handleAugmentPick = (aug, historyContext) => {
                   {shop.map((champ, i) => {
                     const showWisp = wispSlot && i === WISP_SLOT_INDEX;
                     if (showWisp) {
-                      const catColor = WISP_CATEGORY_COLORS[wispSlot.category] || 'var(--prismatic)';
+                      // 末尾に空白が入った色（例: combat の '#F56653 '）でも透明度付きの色指定が壊れないよう trim する
+                      const catColor = String(WISP_CATEGORY_COLORS[wispSlot.category] || '#c084fc').trim();
                       // 🌿 アイコンバッジの大きさはここの2つだけで調整できる。
                       //    WISP_BADGE_SIZE: バッジ（円）の直径。WISP_BADGE_TOP: 枠の上端からのズラし量（負値＝上にはみ出す）。
                       //    バッジを大きくしたら、下の説明文コンテナの paddingTop も
@@ -7286,20 +7325,21 @@ const handleAugmentPick = (aug, historyContext) => {
                               背景・枠線・光・区切り線をすべてカテゴリ色で揃える */}
                           <div style={{
                             position:'absolute', inset:0, borderRadius:4, overflow:'hidden',
-                            background:`linear-gradient(160deg, ${catColor}59 0%, ${catColor}1f 45%, rgba(15,23,42,0.96) 100%)`,
+                            // 下地は不透明な濃紺。カテゴリ色はその上に薄く重ねる（明るい画面でも白文字が読める）
+                            background:`linear-gradient(160deg, ${catColor}73 0%, ${catColor}2e 45%, rgba(15,23,42,0) 100%), linear-gradient(180deg, #172238 0%, #0b1220 100%)`,
                             border:`3px solid ${catColor}`,
                             boxShadow:`0 0 10px ${catColor}55, inset 0 0 18px ${catColor}22`,
                             display:'flex', flexDirection:'column',
                           }}>
                             {/* 効果説明（アイコンバッジが重なる分だけ上に余白） */}
                             <div style={{ flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center', padding:`${WISP_BADGE_SIZE + WISP_BADGE_TOP + 2}px 6px 2px`, overflow:'hidden' }}>
-                              <span style={{ fontSize:13, color:'rgba(255,255,255,0.92)', textAlign:'center', lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:6, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-all' }}>
+                              <span style={{ fontSize:13, fontWeight:700, color:'#ffffff', textShadow:'0 1px 2px rgba(0,0,0,0.9)', textAlign:'center', lineHeight:1.35, display:'-webkit-box', WebkitLineClamp:6, WebkitBoxOrient:'vertical', overflow:'hidden', wordBreak:'break-all' }}>
                                 {wispSlot.desc}
                               </span>
                             </div>
                             {/* 区切り線 ＋ 名前と価格 */}
-                            <div style={{ flexShrink:0, borderTop:`1px solid ${catColor}77`, background:`${catColor}26`, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
-                              <span style={{ fontSize:11, fontWeight:900, color:'white', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
+                            <div style={{ flexShrink:0, borderTop:`1px solid ${catColor}99`, background:`linear-gradient(0deg, rgba(0,0,0,0.45), rgba(0,0,0,0.45)), ${catColor}40`, padding:'4px 6px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:4 }}>
+                              <span style={{ fontSize:11, fontWeight:900, color:'white', textShadow:'0 1px 2px rgba(0,0,0,0.9)', lineHeight:1.15, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{wispSlot.name}</span>
                               <span style={{ fontSize:12, fontWeight:900, color:'var(--gold2)', fontFamily:'Orbitron', flexShrink:0 }}>💰{wispSlot.cost || 0}</span>
                             </div>
                           </div>
