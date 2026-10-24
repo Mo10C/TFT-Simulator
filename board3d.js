@@ -611,30 +611,35 @@ function b3dRemoveItemDom(S, key){
 
 /* 🐉 アルファ リフトビーストの強化表示
    ── app.js が盤面の駒に alphaRift:true を付けて渡してくる。付いている駒は
-      ひと回り大きくし、足元に赤橙の光る輪と、立ちのぼる光の柱を出す（ループで脈動）。 */
+      ひと回り大きくし、足元に光る円環を出す（ループで脈動）。
+   ── 円環の色はチャンピオンごとに B3D_ALPHA_COLORS で決める。載っていないものは既定色。 */
 const B3D_ALPHA_SCALE = 1.22;
-const B3D_ALPHA_COLOR = 0xff5a3c;
+const B3D_ALPHA_COLOR = 0xff5a3c;   // 既定色（下の表に無いリフトビースト）
+const B3D_ALPHA_COLORS = {
+  cinderling:  0xff3b30,   // シンダーリング：赤
+  pebbles:     0x3b82f6,   // 小石：青
+  scuttlecrab: 0x22c55e,   // スカトルクラブ：緑
+  murkwolf:    0xa0662d,   // マークウルフ：茶
+  gromp:       0xa855f7,   // グロンプ：紫
+  mamabeak:    0xff8c1a,   // ラプター（ママ鳥）：オレンジ
+};
 function b3dRefreshAlpha(g, u){
   if(!g) return;
   const want = !!(u && u.alphaRift && !u.isAnvil);
+  const color = (u && B3D_ALPHA_COLORS[u.id] != null) ? B3D_ALPHA_COLORS[u.id] : B3D_ALPHA_COLOR;
   let aura = g.children.find(c => c.userData && c.userData.b3dAlpha);
+  if(aura && (!want || aura.userData.color !== color)){ g.remove(aura); b3dDispose(aura); aura = null; }
   if(want && !aura){
-    aura = new THREE.Group(); aura.userData.b3dAlpha = true;
+    aura = new THREE.Group(); aura.userData.b3dAlpha = true; aura.userData.color = color;
     const ring = new THREE.Mesh(new THREE.RingGeometry(B3D.R*0.58, B3D.R*0.82, 48),
-      new THREE.MeshBasicMaterial({ color:B3D_ALPHA_COLOR, transparent:true, opacity:0.85, side:THREE.DoubleSide, depthWrite:false }));
+      new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.85, side:THREE.DoubleSide, depthWrite:false }));
     ring.rotation.x = -Math.PI/2; ring.position.y = B3D.TOP + 0.03; ring.userData.alphaRing = true;
     aura.add(ring);
-    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(B3D.R*0.6, B3D.R*0.78, 2.4, 32, 1, true),
-      new THREE.MeshBasicMaterial({ color:0xff7a3c, transparent:true, opacity:0.16, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
-    pillar.position.y = B3D.TOP + 1.2; pillar.userData.alphaPillar = true;
-    aura.add(pillar);
     g.add(aura);
-  } else if(!want && aura){
-    g.remove(aura); b3dDispose(aura);
   }
   g.scale.setScalar(want ? B3D_ALPHA_SCALE : 1);
 }
-/* ループから毎フレーム呼ぶ：アルファの輪と柱をゆっくり脈動させる */
+/* ループから毎フレーム呼ぶ：アルファの円環をゆっくり脈動させる */
 function b3dAnimateAlpha(S){
   if(!S || !S.pieces) return;
   const t = performance.now() * 0.003;
