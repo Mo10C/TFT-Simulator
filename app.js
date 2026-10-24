@@ -4438,8 +4438,23 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
 
 
   const [showMfPopup, setShowMfPopup] = useState(false);
-  // 🧊 盤面 2D/3D 切替。既定は3D（sim-config.js の default2D: true で2D起動に戻せる）
-  const [use3D, setUse3D] = useState(() => !(SIM_CFG && SIM_CFG.default2D));
+  // 🧊 盤面 2D/3D 切替。最後に選んだ方をこのブラウザに保存し、次回以降もそれで表示する。
+  //    まだ一度も切り替えていなければ既定は3D（sim-config.js の default2D: true で2D起動に戻せる）
+  const BOARD_VIEW_KEY = 'tft_sim_board_view_v1';
+  const [use3D, setUse3D] = useState(() => {
+    try {
+      const saved = localStorage.getItem(BOARD_VIEW_KEY);
+      if (saved === '3d') return true;
+      if (saved === '2d') return false;
+    } catch (e) {}
+    return !(SIM_CFG && SIM_CFG.default2D);
+  });
+  // 切替ボタンを押したときだけ保存する（一度も押していない人は sim-config.js の既定に従う）
+  const toggleBoardView = () => setUse3D(v => {
+    const next = !v;
+    try { localStorage.setItem(BOARD_VIEW_KEY, next ? '3d' : '2d'); } catch (e) {}
+    return next;
+  });
   const [sel3D, setSel3D] = useState(null);     // 🧊 3Dで選択中のスロット {kind:'board'|'bench', idx}
   const [freeView, setFreeView] = useState(false); // 🎥 3D: 自由視点 ON/OFF（OFFで既定の視点に固定）
   // 📌 3D盤面の既定アングル
@@ -6769,7 +6784,7 @@ const handleAugmentPick = (aug, historyContext) => {
           )}
 
           {/* 🧊 3D関連（ティアリストの左に配置。盤面上に置くとオーバーレイに埋もれるため） */}
-          <button onClick={() => setUse3D(v => !v)} title="盤面 2D / 3D 切替"
+          <button onClick={toggleBoardView} title="盤面 2D / 3D 切替（選んだ方が次回以降の既定になります）"
             style={{ background: use3D ? 'var(--gold)' : 'rgba(255,255,255,0.15)', border:'1px solid var(--border)', borderRadius:4,
               padding:'4px 8px', fontSize:isLandscapeMobile?14:10, color: use3D ? '#1a1400' : 'var(--text-main)',
               fontFamily:'Orbitron', fontWeight:900, cursor:'pointer' }}>
