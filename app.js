@@ -1067,7 +1067,7 @@ const Stars = ({star}) => (
   </div>
 );
 
-const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouseEnter, onMouseLeave, onTouchStartDrag, dropType, dropIdx, isGolden, isAlpha }) => {
+const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouseEnter, onMouseLeave, onTouchStartDrag, dropType, dropIdx, isGolden, isAlpha, markColor }) => {
   const [over, setOver] = useState(false);
   return (
     <div
@@ -1079,8 +1079,9 @@ const HexCell = ({ champ, size = 78, itemSize = 14, onDragStart, onDrop, onMouse
       style={{ width: size, height: size, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
     >
       {/* 🐉 アルファ リフトビースト：赤橙に光る枠＋右上の「α」バッジで強化されていることを示す */}
-      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', filter: isAlpha ? 'drop-shadow(0 0 7px #ff5a3c) drop-shadow(0 0 3px #ffb347)' : isGolden ? 'drop-shadow(0 0 6px var(--gold))' : 'none' }} viewBox="0 0 78 78">
-        <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : isAlpha ? 'rgba(255,90,60,.28)' : champ ? `${COST_COLORS[champ.cost]}33` : 'var(--bg-hex)'} stroke={over ? 'rgba(26,159,255,.9)' : isAlpha ? '#ff5a3c' : isGolden ? 'var(--gold2)' : champ ? COST_COLORS[champ.cost] : 'var(--border)'} strokeWidth={isAlpha || isGolden ? 4 : champ ? 3 : 1} />
+      {/* 🟣 markColor: 特定のマスの縁取り（例: ブラックソーン発動中の生贄マス）。アルファ等より優先して縁の色を変える */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', filter: markColor ? `drop-shadow(0 0 6px ${markColor})` : isAlpha ? 'drop-shadow(0 0 7px #ff5a3c) drop-shadow(0 0 3px #ffb347)' : isGolden ? 'drop-shadow(0 0 6px var(--gold))' : 'none' }} viewBox="0 0 78 78">
+        <polygon points="39,2 76,20 76,58 39,76 2,58 2,20" fill={over ? 'rgba(26,159,255,.18)' : isAlpha ? 'rgba(255,90,60,.28)' : champ ? `${COST_COLORS[champ.cost]}33` : markColor ? `${markColor}22` : 'var(--bg-hex)'} stroke={over ? 'rgba(26,159,255,.9)' : markColor ? markColor : isAlpha ? '#ff5a3c' : isGolden ? 'var(--gold2)' : champ ? COST_COLORS[champ.cost] : 'var(--border)'} strokeWidth={markColor || isAlpha || isGolden ? 4 : champ ? 3 : 1} />
       </svg>
       {isAlpha && champ && (
         <div title="アルファ リフトビースト" style={{ position: 'absolute', top: 2, right: 2, zIndex: 3, width: 22, height: 22, borderRadius: '50%', background: 'linear-gradient(135deg,#ffb347,#ff3c28)', border: '2px solid #fff3e0', boxShadow: '0 0 8px #ff5a3c', color: '#fff', fontSize: 13, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', lineHeight: 1 }}>α</div>
@@ -4693,6 +4694,14 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 3D盤面に渡す盤面（アルファの駒に印を付ける。見た目の強化は board3d.js 側で描く）
   const board3D = useMemo(() => board.map(u => isAlphaUnit(u) ? { ...u, alphaRift: true } : u), [board, alphaRiftIds, riftActive]);
 
+  // 🟣 ブラックソーン：発動中は「下から3段目の真ん中」（＝上から2段目・4列目 / idx 10）を紫で縁取る。発動が切れると元に戻る
+  const BLACKTHORN_HEX_IDX = 1 * 7 + 3;
+  const BLACKTHORN_MARK_COLOR = '#a855f7';
+  const blackthornTiers = (typeof TRAIT_TIERS_DATA !== 'undefined' && TRAIT_TIERS_DATA['Blackthorn']) || [2];
+  const blackthornActive = (traitCounts['Blackthorn'] || 0) >= blackthornTiers[0];
+  const hexMarkColor = (idx) => (blackthornActive && idx === BLACKTHORN_HEX_IDX) ? BLACKTHORN_MARK_COLOR : null;
+  const hexMarks3D = useMemo(() => blackthornActive ? [{ idx: BLACKTHORN_HEX_IDX, color: BLACKTHORN_MARK_COLOR }] : [], [blackthornActive]);
+
 
 
 
@@ -5858,6 +5867,19 @@ const handleAugmentPick = (aug, historyContext) => {
           );
           setDragSrc(null); return;
         }
+        // 🧪 ステータスブースター（瓶系ウィスプの消費アイテム）：チャンピオンに使うと消費され、使用記録が残る
+        //    （このシムは戦闘を扱わないのでステータス自体は記録のみ。装備枠は使わない）
+        if (newItem.type === 'booster') {
+          targetArr[targetIdx] = { ...unit, boosters: [...(unit.boosters || []), newItem.id] };
+          if (dragSrc.type === 'inventory') ninv.splice(dragSrc.idx, 1);
+          showMsg(
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <img src={getMetaTFTItemUrl(newItem)} style={{ width:18, height:18 }} />
+              <span>{unit.jaName}に{newItem.jaName}を使用しました</span>
+            </div>
+          );
+          setInventory(ninv.filter(Boolean)); setBoard(nbrd); setBench(nb); setDragSrc(null); return;
+        }
         if (!unit.items) unit.items = [];
         if (newItem.type === 'consumable') {
           if (isConsumable(newItem,'REMOVER')) {
@@ -6509,7 +6531,7 @@ const handleAugmentPick = (aug, historyContext) => {
                 <div style={{transformOrigin:'center center'}}>
                   {[0,1,2,3].map(row => (
                     <div key={row} style={{display:'flex',gap:2,marginLeft:row%2===1?39:0}}>
-                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={76} itemSize={21} isAlpha={isAlphaUnit(board[row*7+col])} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
+                      {[0,1,2,3,4,5,6].map(col => <HexCell key={row*7+col} champ={board[row*7+col]} size={76} itemSize={21} isAlpha={isAlphaUnit(board[row*7+col])} markColor={hexMarkColor(row*7+col)} isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[row*7+col]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[row*7+col]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[row*7+col]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[row*7+col]?.id === 'miipsy' || board[row*7+col]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[row*7+col]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[row*7+col]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[row*7+col]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[row*7+col]?.id === 'jax') || (protectorsPactBuff && board[row*7+col]?.id === protectorsPactBuff.champId)} />)}
                     </div>
                   ))}
                 </div>
@@ -6950,7 +6972,7 @@ const handleAugmentPick = (aug, historyContext) => {
           style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', position:'relative' }}
         >
           {use3D ? (
-            <Board3D board={board3D} bench={bench} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
+            <Board3D board={board3D} bench={bench} markSlots={hexMarks3D} boardIcon={boardIcon} champModels={CHAMP_MODELS3D}
               onSlotClick={handle3DSlotClick} onPickup={handle3DPickup} onDropSlot={handle3DDrop}
               onCancel={handle3DCancel} selected={sel3D} freeView={freeView}
               savedView={savedView3D} viewApi={view3DApi} insets={insets3D}
@@ -6971,6 +6993,7 @@ const handleAugmentPick = (aug, historyContext) => {
                           dropType="board"
                           dropIdx={idx}
                           isAlpha={isAlphaUnit(board[idx])}
+                          markColor={hexMarkColor(idx)}
                           isGolden={(passiveBuffs.some(b => b.type === 'shield_maiden') && board[idx]?.id === 'leona') || (passiveBuffs.some(b => b.type === 'terminal_velocity') && board[idx]?.id === 'poppy') || (passiveBuffs.some(b => b.type === 'stellar_combo') && board[idx]?.id === 'aatrox') || (passiveBuffs.some(b => b.type === 'big_bang') && (board[idx]?.id === 'miipsy' || board[idx]?.id === 'meepsie')) || (passiveBuffs.some(b => b.type === 'pro_assassin') && board[idx]?.id === 'pyke') || (passiveBuffs.some(b => b.type === 'self_destruction') && board[idx]?.id === 'gragas') || (passiveBuffs.some(b => b.type === 'heat_death') && board[idx]?.id === 'mordekaiser') || (passiveBuffs.some(b => b.type === 'reach_for_the_stars') && board[idx]?.id === 'jax') || (protectorsPactBuff && board[idx]?.id === protectorsPactBuff.champId)}
                           onDragStart={() => setDragSrc({ type:'board', idx })}
                           onTouchStartDrag={(e) => startTouchDrag(e, { type:'board', idx })}

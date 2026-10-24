@@ -653,6 +653,27 @@ function b3dAnimateAlpha(S){
   });
 }
 
+/* 🟣 盤面のマスを縁取る（markSlots = [{ idx, color }]）
+   ── 六角形の輪（RingGeometry を6分割＝六角形）を地面のすぐ上に置き、中をうっすら塗る。
+      呼ぶたびに作り直すので、空配列を渡せば縁取りが消えて元に戻る。 */
+function b3dApplyMarks(S, marks){
+  if(!S || !S.boardGroup) return;
+  if(!S.markGroup){ S.markGroup = new THREE.Group(); S.boardGroup.add(S.markGroup); }
+  while(S.markGroup.children.length){ const c = S.markGroup.children[0]; S.markGroup.remove(c); b3dDispose(c); }
+  (marks || []).forEach(m => {
+    const h = S.hexes && S.hexes[m.idx]; if(!h) return;
+    const col = new THREE.Color(m.color || '#a855f7');
+    const ring = new THREE.Mesh(new THREE.RingGeometry(B3D.R*0.86, B3D.R*1.0, 6),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.95, side:THREE.DoubleSide, depthWrite:false }));
+    ring.rotation.x = -Math.PI/2; ring.position.set(h.userData.x, B3D.TOP + 0.02, h.userData.z);
+    S.markGroup.add(ring);
+    const fill = new THREE.Mesh(new THREE.CircleGeometry(B3D.R*0.86, 6),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:0.18, side:THREE.DoubleSide, depthWrite:false }));
+    fill.rotation.x = -Math.PI/2; fill.position.set(h.userData.x, B3D.TOP + 0.015, h.userData.z);
+    S.markGroup.add(fill);
+  });
+}
+
 function b3dMakeAnvil(u){
   // 🔨 金床：チャンピオンではないので簡易マーカーで表示（見えないと置き場所を見失うため）
   const col = new THREE.Color(u.color || '#d9a05b');
@@ -1122,7 +1143,7 @@ function b3dSync(S, board, bench, boardIcon, champModels, itemIcon){
   });
 }
 
-function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi, insets, onDropOutside, onHoverSlot, onDomDrop }) {
+function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlotClick, onPickup, onDropSlot, onCancel, selected, freeView, savedView, viewApi, insets, onDropOutside, onHoverSlot, onDomDrop, markSlots }) {
   const mountRef = useRef3D(null);
   const S = useRef3D(null);
   const cbRef = useRef3D(onSlotClick);
@@ -1512,6 +1533,10 @@ function Board3D({ board, bench, boardIcon, itemIcon, champs, champModels, onSlo
       if(x.itemLayer && x.itemLayer.parentNode) x.itemLayer.parentNode.removeChild(x.itemLayer); try{ x.renderer.dispose(); }catch(e){}
       if(el.parentNode) el.parentNode.removeChild(el); S.current=null; };
   }, []);
+
+  // 🟣 マスの縁取り（markSlots = [{ idx, color }]。例: ブラックソーン発動中の生贄マス）
+  const markKey = JSON.stringify(markSlots || []);
+  useEffect3D(()=>{ if(S.current) b3dApplyMarks(S.current, markSlots); }, [markKey]);
 
   useEffect3D(()=>{ if(S.current) b3dSync(S.current, board, bench, boardIcon, champModels, itemIcon); }, [board, bench, champModels]);
 
