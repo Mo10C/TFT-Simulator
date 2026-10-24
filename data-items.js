@@ -38,7 +38,7 @@ const ITEM_RECIPES = {
   'bfsword_sparringgloves':{id:'infinityedge', name:'Infinity Edge', jaName: 'インフィニティエッジ', icon:'✨', imgId: 19},
   'recurvebow_recurvebow':{id:'rapidfirecannon', name:'rapidfirecannon', jaName: 'レッドバフ', icon:'🔥', imgId: 22}, 
   'recurvebow_needlesslylargerod':{id:'guinsoosrageblade', name:"Guinsoo's Rageblade", jaName: 'グインソー レイジブレード', icon:'☄️', imgId: 23},
-  'recurvebow_tearofthegoddess':{id:'statikkshiv', name:'statikkshiv', jaName: 'ヴォイドスタッフ', icon:'⚡', imgId: 24}, 
+  'recurvebow_tearofthegoddess':{id:'voidstaff', name:'voidstaff', jaName: 'ヴォイドスタッフ', icon:'⚡', imgId: 24}, 
   'recurvebow_chainvest':{id:'titansresolve', name:"Titan's Resolve", jaName: '巨人の誓い', icon:'🗿', imgId: 25},
   'recurvebow_negatroncloak':{id:'runaanshurricane', name:"runaanshurricane", jaName: 'クラーケンの怒り', icon:'🌪️', imgId: 26}, 
   'recurvebow_giantsbelt':{id:'leviathan', name:"leviathan", jaName: 'ナッシャー トゥース', icon:'🦷', imgId: 27},
