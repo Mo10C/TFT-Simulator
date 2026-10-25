@@ -4776,7 +4776,60 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
   // 🌟 html2canvas は clip-path 非対応（六角形→四角になる）ため、
   //    キャプチャ前に「六角形クリップ済み＋グラデ焼き込み」のPNGをcanvasで生成しておき、
   //    onclone でクローンDOMの画像だけ差し替える（画面表示は一切変えない）。
-  const buildHexCaptureFixes = async (root) => {
+  /* 🖼️ キャプチャ用の画像取り込み
+     ── 外部CDN（tftips / metatft）の画像はCORSヘッダが無いと html2canvas が描けず、画像が抜け落ちる。
+        そこで保存・コピーの直前に、画面内の全画像を「同じページ内のデータ（PNGのdata URL）」に変換しておき、
+        クローンDOMの <img> をそれに差し替えてから描く（画面表示は変えない）。
+     ── tftips / metatft はCORSを許可していない（直接 fetch すると必ず失敗する）ため、
+        画像変換サービス wsrv.nl（CORS許可・AVIFもPNGに変換）経由で取り込む。だめなら直接取得も試す。 */
+  const CAPTURE_PROXY = (u) => `https://wsrv.nl/?url=${encodeURIComponent(u)}&output=png`;
+  const absUrl = (u) => { try { return new URL(u, location.href).href; } catch (e) { return u || ''; } };
+  const blobToPngDataUrl = (blob) => new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const im = new Image();
+    im.onload = () => {
+      try {
+        const cv = document.createElement('canvas');
+        cv.width = im.naturalWidth || 1; cv.height = im.naturalHeight || 1;
+        cv.getContext('2d').drawImage(im, 0, 0);
+        resolve(cv.toDataURL('image/png'));
+      } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+    };
+    im.onerror = (e) => { URL.revokeObjectURL(url); reject(e); };
+    im.src = url;
+  });
+  const fetchImageAsDataUrl = async (src) => {
+    const clean = src.replace(/([?&])nocors=1(&|$)/, '$1').replace(/[?&]$/, '');
+    for (const u of [CAPTURE_PROXY(clean), src]) {
+      try {
+        const r = await fetch(u, { mode: 'cors' });
+        if (!r.ok) continue;
+        return await blobToPngDataUrl(await r.blob());
+      } catch (e) { /* 次の候補へ */ }
+    }
+    return null;
+  };
+  // 画面内の外部画像をまとめて data URL 化（元URL → data URL の対応表を返す）
+  const buildCaptureImageMap = async (root) => {
+    const srcs = new Set();
+    root.querySelectorAll('img').forEach(im => { const s = im.currentSrc || im.src; if (/^https?:/.test(s)) srcs.add(s); });
+    root.querySelectorAll('.hex-capture').forEach(t => { if (t.dataset.img) srcs.add(absUrl(t.dataset.img)); });
+    const map = new Map();
+    await Promise.all([...srcs].map(async s => { const d = await fetchImageAsDataUrl(s); if (d) map.set(s, d); }));
+    return map;
+  };
+  // クローンDOMの <img> を data URL に差し替える（読めずに非表示になっていた画像も戻す）
+  const applyCaptureImageMap = (clonedDoc, map) => {
+    clonedDoc.querySelectorAll('img').forEach(im => {
+      const d = map.get(im.currentSrc || im.src) || map.get(absUrl(im.getAttribute('src') || ''));
+      if (!d) return;
+      im.removeAttribute('crossorigin');
+      im.src = d;
+      if (im.style.display === 'none') im.style.display = '';
+    });
+  };
+
+  const buildHexCaptureFixes = async (root, imgMap = new Map()) => {
     const targets = Array.from(root.querySelectorAll('.hex-capture'));
     return Promise.all(targets.map(t => new Promise(resolve => {
       const w = t.offsetWidth || 1, h = t.offsetHeight || 1;
@@ -4806,7 +4859,8 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
         } catch (e) { resolve(null); }   // CORS等で失敗した枠は従来表示のまま
       };
       im.onerror = () => resolve(null);
-      im.src = t.dataset.img || '';
+      // 取り込み済み（data URL）があればそれを使う＝CORSで描けない問題を回避
+      im.src = imgMap.get(absUrl(t.dataset.img || '')) || t.dataset.img || '';
     })));
   };
   const applyHexCaptureFixes = (clonedDoc, fixes) => {
@@ -4826,13 +4880,14 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     if (!resultRef.current) return;
     setIsSaving(true);
     try {
-      const hexFixes = await buildHexCaptureFixes(resultRef.current);
+      const imgMap = await buildCaptureImageMap(resultRef.current);   // 外部画像を先に取り込む
+      const hexFixes = await buildHexCaptureFixes(resultRef.current, imgMap);
       // html2canvasでDOMを画像化 (外部画像も読み込めるように useCORS: true を指定)
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: '#04060e', // 背景色をアプリに合わせる
         scale: 2, // 高画質化
         useCORS: true,
-        onclone: (doc) => applyHexCaptureFixes(doc, hexFixes)
+        onclone: (doc) => { applyCaptureImageMap(doc, imgMap); applyHexCaptureFixes(doc, hexFixes); }
       });
       const image = canvas.toDataURL("image/png");
       const link = document.createElement("a");
@@ -4852,12 +4907,13 @@ function App({ seed, onRestart, onNewGame, onHome = () => {}, keyBindings = DEFA
     if (!resultRef.current) return;
     setIsSaving(true);
     try {
-      const hexFixes = await buildHexCaptureFixes(resultRef.current);
+      const imgMap = await buildCaptureImageMap(resultRef.current);   // 外部画像を先に取り込む
+      const hexFixes = await buildHexCaptureFixes(resultRef.current, imgMap);
       const canvas = await html2canvas(resultRef.current, {
         backgroundColor: '#04060e',
         scale: 2,
         useCORS: true,
-        onclone: (doc) => applyHexCaptureFixes(doc, hexFixes)
+        onclone: (doc) => { applyCaptureImageMap(doc, imgMap); applyHexCaptureFixes(doc, hexFixes); }
       });
       // canvas.toBlob は非同期なので Promise でラップ
       const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
